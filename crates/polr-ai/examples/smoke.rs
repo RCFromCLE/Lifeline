@@ -47,7 +47,6 @@ fn main() {
     std::fs::create_dir_all(&dir).expect("temp dir");
     let mut cli = ClaudeCli::new(dir.clone());
     cli.agents_file = Some(agents::write_agents_file(&dir).expect("agents file"));
-    cli.model = Some("haiku".into());
     cli.builtin_tools.push("Agent".into());
     cli.allowed_tools.push("Agent".into());
     cli.disallowed_tools = agents::BUILT_IN_AGENTS.iter().map(|a| format!("Agent({a})")).collect();

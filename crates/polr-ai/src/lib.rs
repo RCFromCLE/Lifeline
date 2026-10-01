@@ -32,8 +32,8 @@ pub struct ClaudeCli {
     pub program: PathBuf,
     /// App-owned directory so no project `CLAUDE.md`/settings leak in.
     pub working_dir: PathBuf,
-    /// Alias (`sonnet`, `opus`, `haiku`, ...) or full model id; `None` keeps
-    /// the user's Claude Code default.
+    /// Model id or alias; defaults to [`agents::MODEL`] (Opus 5.5). `None`
+    /// keeps the user's Claude Code default.
     pub model: Option<String>,
     /// Used when no `main_agent` is set.
     pub system_prompt: String,
@@ -69,7 +69,7 @@ impl ClaudeCli {
         Self {
             program: default_program(),
             working_dir,
-            model: None,
+            model: Some(agents::MODEL.to_owned()),
             system_prompt: SYSTEM_PROMPT.to_owned(),
             main_agent: None,
             agents_file: None,
@@ -313,6 +313,7 @@ mod tests {
         assert!(a.iter().any(|x| x == "--restricted"));
         assert!(a.iter().any(|x| x == "--system-prompt"));
         assert!(!a.iter().any(|x| x == "--max-turns"));
+        assert!(a.windows(2).any(|w| w == ["--model", "claude-opus-5-5"]));
         let allowed = a
             .windows(2)
             .find(|w| w[0] == "--allowedTools")

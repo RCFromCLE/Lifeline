@@ -23,6 +23,11 @@ pub const PATCH_ANALYST: &str = "patch-analyst";
 
 pub const AGENTS_FILE: &str = "agents.json";
 
+/// Every agent, the companion and background jobs run on Claude Opus 5.5
+/// (owner's decision, 2026-10-01). Pinned by full id rather than the `opus`
+/// alias so a future Opus release doesn't change behaviour silently.
+pub const MODEL: &str = "claude-opus-5-5";
+
 const SHARED: &str = include_str!("../prompts/agents/shared.md");
 const WEB: &[&str] = &["WebSearch", "WebFetch"];
 
@@ -51,7 +56,7 @@ pub struct AgentSpec {
     role: &'static str,
     /// MCP tools as `mcp__polr__…` plus any built-in tools.
     pub tools: Vec<String>,
-    /// `opus`, `sonnet` or `haiku`; the alias resolves to the latest model.
+    /// Pinned model id; see [`MODEL`].
     pub model: &'static str,
     pub effort: Option<&'static str>,
     pub max_turns: Option<u32>,
@@ -107,7 +112,7 @@ pub fn roster() -> Vec<AgentSpec> {
                 ],
                 &["WebSearch", "WebFetch", consults],
             ),
-            model: "opus",
+            model: MODEL,
             effort: Some("high"),
             max_turns: Some(60),
         },
@@ -124,7 +129,7 @@ pub fn roster() -> Vec<AgentSpec> {
                 ],
                 &[consults, STRUCTURED_OUTPUT],
             ),
-            model: "sonnet",
+            model: MODEL,
             effort: Some("high"),
             max_turns: Some(40),
         },
@@ -147,7 +152,7 @@ pub fn roster() -> Vec<AgentSpec> {
                 ]],
                 &[],
             ),
-            model: "sonnet",
+            model: MODEL,
             effort: None,
             max_turns: Some(15),
         },
@@ -170,7 +175,7 @@ pub fn roster() -> Vec<AgentSpec> {
                 ]],
                 &[],
             ),
-            model: "sonnet",
+            model: MODEL,
             effort: None,
             max_turns: Some(20),
         },
@@ -188,7 +193,7 @@ pub fn roster() -> Vec<AgentSpec> {
                 ],
                 WEB_REPORT,
             ),
-            model: "sonnet",
+            model: MODEL,
             effort: Some("high"),
             max_turns: Some(25),
         },
@@ -202,7 +207,7 @@ pub fn roster() -> Vec<AgentSpec> {
                 &[&[CHARACTER_STATE, NEXT_STEPS, CAMPAIGN_REWARDS, AREA_INFO, BUILD_PLAN]],
                 &[STRUCTURED_OUTPUT],
             ),
-            model: "haiku",
+            model: MODEL,
             effort: None,
             max_turns: Some(10),
         },
@@ -223,7 +228,7 @@ pub fn roster() -> Vec<AgentSpec> {
                 ]],
                 &[],
             ),
-            model: "sonnet",
+            model: MODEL,
             effort: None,
             max_turns: Some(20),
         },
@@ -234,7 +239,7 @@ pub fn roster() -> Vec<AgentSpec> {
                           claim. Use before stating any mechanic not looked up in this conversation.",
             role: include_str!("../prompts/agents/fact-checker.md"),
             tools: tool_list(&[GAME_DATA], WEB),
-            model: "sonnet",
+            model: MODEL,
             effort: Some("high"),
             max_turns: Some(20),
         },
@@ -244,7 +249,7 @@ pub fn roster() -> Vec<AgentSpec> {
                           that affect the player's build, campaign route and hardcore safety.",
             role: include_str!("../prompts/agents/patch-analyst.md"),
             tools: tool_list(&[GAME_DATA, &[BUILD_PLAN]], WEB_REPORT),
-            model: "sonnet",
+            model: MODEL,
             effort: None,
             max_turns: Some(25),
         },
@@ -283,10 +288,7 @@ mod tests {
             for field in ["description", "prompt", "tools", "model", "omitClaudeMd"] {
                 assert!(spec.get(field).is_some(), "{name} lacks {field}");
             }
-            assert!(
-                ["opus", "sonnet", "haiku"].contains(&spec["model"].as_str().unwrap()),
-                "{name}"
-            );
+            assert_eq!(spec["model"], MODEL, "{name}");
             assert!(
                 spec["prompt"].as_str().unwrap().starts_with("You are a specialist"),
                 "{name}"

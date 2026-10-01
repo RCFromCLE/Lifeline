@@ -388,7 +388,7 @@ The canonical names live in `polr-ai/src/tools.rs`, shared by the agents and the
 
 ### 6.6 Models and limits
 
-- **Model:** default is your Claude Code default. Aliases `sonnet` (fast chat), `opus` (build creation) and `haiku` are documented for `--model`. Default choice: `sonnet` for chat, `opus` for "make me a build".
+- **Model: Claude Opus 5.5 everywhere** — the companion, all nine specialists and every background job (owner's decision, 2026-10-01). It is pinned as `claude-opus-5-5` (`polr-ai::agents::MODEL`) rather than the `opus` alias, so a future release can't change behaviour silently. Verified live on your Max plan.
 - **Subscription limits, verified live.** Every turn emits a `rate_limit_event` with your plan's windows, e.g. `five_hour` 9% and `seven_day` 3%, each with a reset time. Usage is shared with claude.ai.
   - The HUD shows both meters.
   - Background jobs pause above a configurable threshold (default 80% of the five-hour window), so chat always has headroom.
@@ -406,15 +406,15 @@ All specialists share a preamble with the grounding rules, the hardcore lens, an
 
 | Agent | Model | Can use | Job |
 |---|---|---|---|
-| **build-architect** | opus (high effort) | game data, plan, `validate_build`, web, `propose_action`, can consult fact-checker and hc-safety-officer | Designs and reworks staged builds; must validate, get a safety review and fact-check before handing back |
-| **build-auditor** | sonnet (high) | game data, plan, `validate_build`, rewards, can consult the two checkers | Stage-by-stage audit of imported or changed builds, most dangerous first |
-| **gear-appraiser** | sonnet | copied item, state, plan, base/mod/unique lookups, price | "Does this fit?" → equip / keep / sell, hardcore order |
-| **market-scout** | sonnet | plan, state, `trade_search`, price, lookups, `propose_action` | Precise searches, value ranking for this character, queues travel |
-| **hc-safety-officer** | sonnet (high) | game data, state, plan, rewards, death journal, web | What kills you next; death debriefs |
-| **route-coach** | haiku | state, next steps, rewards, area info, plan | One to three next steps, overlay-sized |
-| **loot-filter-smith** | sonnet | plan, state, base lookup, `filter_preview`, `propose_action` | Build- and stage-aware filter rules on NeverSink |
-| **fact-checker** | sonnet (high) | game data, web — **no actions** | Adversarial CONFIRMED / CONTRADICTED / UNVERIFIED per claim |
-| **patch-analyst** | sonnet | game data, plan, web | What a new patch changes for *your* build |
+| **build-architect** | Opus 5.5 (high effort) | game data, plan, `validate_build`, web, `propose_action`, can consult fact-checker and hc-safety-officer | Designs and reworks staged builds; must validate, get a safety review and fact-check before handing back |
+| **build-auditor** | Opus 5.5 (high) | game data, plan, `validate_build`, rewards, can consult the two checkers | Stage-by-stage audit of imported or changed builds, most dangerous first |
+| **gear-appraiser** | Opus 5.5 | copied item, state, plan, base/mod/unique lookups, price | "Does this fit?" → equip / keep / sell, hardcore order |
+| **market-scout** | Opus 5.5 | plan, state, `trade_search`, price, lookups, `propose_action` | Precise searches, value ranking for this character, queues travel |
+| **hc-safety-officer** | Opus 5.5 (high) | game data, state, plan, rewards, death journal, web | What kills you next; death debriefs |
+| **route-coach** | Opus 5.5 | state, next steps, rewards, area info, plan | One to three next steps, overlay-sized |
+| **loot-filter-smith** | Opus 5.5 | plan, state, base lookup, `filter_preview`, `propose_action` | Build- and stage-aware filter rules on NeverSink |
+| **fact-checker** | Opus 5.5 (high) | game data, web — **no actions** | Adversarial CONFIRMED / CONTRADICTED / UNVERIFIED per claim |
+| **patch-analyst** | Opus 5.5 | game data, plan, web | What a new patch changes for *your* build |
 
 **Guardrails enforced in code (each has a test):**
 - Only the companion, build-architect and build-auditor can delegate.
@@ -431,7 +431,7 @@ All specialists share a preamble with the grounding rules, the hardcore lens, an
 | Death debrief | hc-safety-officer | `has been slain` for the tracked character |
 | Session recap | route-coach | Game closed, or a long AFK after play |
 
-Jobs respect the usage-window threshold (§6.6). They are individually toggleable and use `haiku`/`sonnet` except where the agent definition says otherwise.
+Jobs respect the usage-window threshold (§6.6). They are individually toggleable.
 
 **Verified live:** route-coach ran as a job and returned a schema-valid report, parsed into `JobReport`.
 
