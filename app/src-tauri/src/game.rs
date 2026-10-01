@@ -1,0 +1,152 @@
+//! Follows `Client.txt` and keeps the character card current.
+
+use std::time::Duration;
+
+use polr_gamefiles::client_log::{self, plain_text, EventKind, LogEvent, LogTailer};
+use polr_gamefiles::paths;
+use tauri::{AppHandle, Emitter, Manager};
+
+use crate::state::{AppState, Character, FeedItem};
+
+const FEED_LIMIT: usize = 120;
+
+/// Elemental resistance penalty by act / area level (PLAN.md §3.5).
+pub fn res_penalty(area_id: &str, area_level: u32) -> Option<i32> {
+    if area_id.is_empty() || area_id.starts_with("Hideout") {
+        return None;
+    }
+    match client_log::campaign_act(area_id) {
+        Some(1) => Some(0),
+        Some(2) => Some(-10),
+        Some(3) => Some(-20),
+        Some(4) => Some(-30),
+        _ => match area_level {
+            54..=59 => Some(-40),
+            60..=64 => Some(-50),
+            65.. => Some(-60),
+            _ => None,
+        },
+    }
+}
+
+/// Applies one event; returns a feed line when it's worth showing.
+fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
+    let mine = c.name.clone();
+    let is_mine = |name: &str| mine.as_deref() == Some(name);
+    match &e.kind {
+        EventKind::LevelUp {
+            character,
+            class,
+            level,
+        } => {
+            if !is_mine(character) {
+                *c = Character {
+                    zone: c.zone.clone(),
+                    area_id: c.area_id.clone(),
+                    area_level: c.area_level,
+                    act: c.act,
+                    res_penalty: c.res_penalty,
+                    ..Character::default()
+                };
+                c.name = Some(character.clone());
+            }
+            c.class = class.clone();
+            c.level = *level;
+            Some(("level".into(), format!("{character} reached level {level}")))
+        }
+        EventKind::AreaGenerated {
+            area_id, area_level, ..
+        } => {
+            c.area_id = area_id.clone();
+            c.area_level = *area_level;
+            c.act = client_log::campaign_act(area_id);
+            c.res_penalty = res_penalty(area_id, *area_level);
+            None
+        }
+        EventKind::SceneEntered { name } => {
+            c.zone = name.clone();
+            let act = c.act.map_or(String::new(), |a| format!(" · Act {a}"));
+            let pen = c.res_penalty.map_or(String::new(), |p| format!(" · res {p}%"));
+            Some(("zone".into(), format!("{name} (area {}){act}{pen}", c.area_level)))
+        }
+        EventKind::Slain { character } if is_mine(character) => {
+            c.deaths += 1;
+            Some(("death".into(), format!("{character} was slain in {}", c.zone)))
+        }
+        EventKind::PassiveAllocated { name, .. } => Some(("passive".into(), format!("Allocated {name}"))),
+        EventKind::PassiveUnallocated { name, .. } => Some(("passive".into(), format!("Refunded {name}"))),
+        EventKind::PassivePointsReceived { count, weapon_set } => {
+            if !weapon_set {
+                c.quest_points += count;
+            }
+            let kind = if *weapon_set { "weapon set " } else { "" };
+            Some(("reward".into(), format!("Quest reward: {count} {kind}passive points")))
+        }
+        EventKind::PermanentBonus { bonus, lost, .. } => {
+            let text = plain_text(bonus);
+            if *lost {
+                c.buffs.retain(|b| b != &text);
+            } else {
+                c.buffs.push(text.clone());
+            }
+            Some((
+                "reward".into(),
+                format!("Permanent buff {}: {text}", if *lost { "removed" } else { "gained" }),
+            ))
+        }
+        EventKind::BuildPlannerLoaded { path } => Some((
+            "planner".into(),
+            format!("Game loaded planner build {}", path.rsplit('/').next().unwrap_or(path)),
+        )),
+        _ => None,
+    }
+}
+
+pub fn spawn_log_watcher(app: AppHandle) {
+    std::thread::spawn(move || {
+        let Some(path) = paths::find_client_log() else {
+            let _ = app.emit(
+                "notice",
+                "Client.txt not found in the default Steam or standalone install folders.",
+            );
+            return;
+        };
+        let mut tailer = LogTailer::from_start(&path);
+        let mut backfilled = false;
+        loop {
+            if let Ok(lines) = tailer.poll() {
+                let state = app.state::<AppState>();
+                let mut changed = false;
+                for line in lines {
+                    let Some(event) = client_log::parse_line(&line) else {
+                        continue;
+                    };
+                    let note = apply(&mut state.character.lock().unwrap(), &event);
+                    changed = true;
+                    if let Some((kind, text)) = note {
+                        let item = FeedItem {
+                            time: event.timestamp.clone(),
+                            kind,
+                            text,
+                        };
+                        let mut feed = state.feed.lock().unwrap();
+                        feed.push(item.clone());
+                        if feed.len() > FEED_LIMIT {
+                            let excess = feed.len() - FEED_LIMIT;
+                            feed.drain(..excess);
+                        }
+                        if backfilled {
+                            let _ = app.emit("feed", &item);
+                        }
+                    }
+                }
+                if changed || !backfilled {
+                    let character = state.character.lock().unwrap().clone();
+                    let _ = app.emit("character", &character);
+                }
+                backfilled = true;
+            }
+            std::thread::sleep(Duration::from_millis(400));
+        }
+    });
+}

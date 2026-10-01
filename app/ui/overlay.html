@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PoLR HUD</title>
+  <style>
+    html, body { margin: 0; background: transparent; overflow: hidden; }
+    body { font: 14px/1.45 "Segoe UI", system-ui, sans-serif; color: #eadfcb; }
+    .hud {
+      margin: 6px; padding: 10px 12px; border-radius: 10px;
+      background: rgba(18, 14, 11, 0.86); border: 1px solid rgba(214, 167, 86, 0.55);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5); max-height: 280px; overflow: hidden;
+    }
+    .row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .name { color: #f0c878; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pen { font-weight: 700; white-space: nowrap; }
+    .pen.warn { color: #f0c878; } .pen.bad { color: #ff8a7a; }
+    .where { color: #b7a68d; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .status { margin-top: 8px; color: #8fb8e6; font-size: 12px; min-height: 0; }
+    .answer { margin-top: 6px; font-size: 13.5px; max-height: 190px; overflow: hidden; }
+    .answer ul { margin: 2px 0; padding-left: 18px; }
+    .answer pre { display: none; }
+    .err { color: #ff9c8f; }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="row"><div class="name" id="name">PathOfLeastResistance</div><div class="pen" id="pen"></div></div>
+    <div class="where" id="where"></div>
+    <div class="status" id="status"></div>
+    <div class="answer" id="answer"></div>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    let raw = "";
+    const el = id => document.getElementById(id);
+    function renderCharacter(c) {
+      const d = describeCharacter(c);
+      el("name").textContent = d.name;
+      el("where").textContent = d.where + (c.deaths ? ` · ☠ ${c.deaths}` : "");
+      el("pen").textContent = c.res_penalty === null || c.res_penalty === undefined ? "" : `Res ${c.res_penalty}%`;
+      el("pen").className = `pen ${penaltyClass(c.res_penalty)}`;
+    }
+    listen("character", ({ payload }) => renderCharacter(payload));
+    listen("ai", ({ payload: e }) => {
+      if (e.type === "start") { raw = ""; el("status").textContent = `${e.label}…`; el("answer").innerHTML = ""; }
+      else if (e.type === "tool") el("status").textContent = `↳ ${e.text}`;
+      else if (e.type === "delta") { raw += e.text; el("answer").innerHTML = renderMarkdown(raw); }
+      else if (e.type === "done") {
+        el("status").textContent = "";
+        el("answer").innerHTML = renderMarkdown(e.text || raw);
+        el("answer").className = e.error ? "answer err" : "answer";
+      }
+    });
+    listen("notice", ({ payload }) => { el("status").textContent = ""; el("answer").innerHTML = `<span class="err">${escapeHtml(payload)}</span>`; });
+    invoke("snapshot").then(s => renderCharacter(s.character));
+  </script>
+</body>
+</html>

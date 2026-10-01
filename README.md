@@ -27,11 +27,34 @@ crates/
                              auditor, gear appraiser, market scout, HC safety
                              officer, route coach, filter smith, fact checker,
                              patch analyst), background jobs, usage meters
+  polr-data/               GGG's official passive-tree export
+  polr-model/              PoB build → stages → in-game .build files
+app/
+  src-tauri/               the desktop app (Tauri 2): hotkeys, HUD overlay, log
+                             watcher, build import/export, Opus 5.5 companion
+  ui/                      main window + overlay (HTML/CSS/JS)
 ```
 
-More crates (game data, canonical build model, MCP tools, filters, trade,
-controller input, voice, hardcore suite) and the Tauri app are scheduled in
-PLAN.md §11 and §13.
+Next crates (MCP tools, filters, trade, controller input, voice, hardcore
+suite) are scheduled in PLAN.md §11 and §13.
+
+## Run the app
+
+```powershell
+cargo build --release -p polr-app
+.\target\release\PathOfLeastResistance.exe        # or double-click it
+```
+
+| Hotkey (default, change in *Hotkeys & settings*) | What it does |
+|---|---|
+| `Alt+Shift+D` | **Item check** — with an item hovered in PoE2, sends one Ctrl+Alt+C, the Opus 5.5 gear appraiser judges it, answer shows on the HUD |
+| `Alt+Shift+N` | **What next** — route coach's next 1–3 steps for where you are |
+| `Alt+Shift+A` | **Ask** — brings the app up with the chat focused |
+| `Alt+Shift+O` | **HUD overlay** — show/hide the click-through overlay over the game |
+
+Tabs: **Play** (companion chat, live game feed, usage meters), **Build** (paste a PoB code or
+pobb.in link → act-by-act stages → write them into the in-game Build Planner), **Hotkeys & settings**
+(hotkeys, league — default HC Forbidden Rites). Play PoE2 in windowed fullscreen for the overlay.
 
 ## Prerequisites (Windows)
 

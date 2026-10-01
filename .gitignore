@@ -4,3 +4,4 @@
 /app/node_modules
 .env
 *.log
+/app/src-tauri/gen

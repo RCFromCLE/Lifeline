@@ -1,0 +1,28 @@
+[package]
+name = "polr-app"
+description = "PathOfLeastResistance desktop app (Tauri 2)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "PathOfLeastResistance"
+path = "src/main.rs"
+
+[dependencies]
+arboard = "3.6.1"
+polr-ai = { path = "../../crates/polr-ai" }
+polr-data = { path = "../../crates/polr-data" }
+polr-gamefiles = { path = "../../crates/polr-gamefiles" }
+polr-model = { path = "../../crates/polr-model" }
+polr-pob = { path = "../../crates/polr-pob" }
+serde.workspace = true
+serde_json.workspace = true
+tauri = "2"
+tauri-plugin-global-shortcut = "2"
+ureq = "3.2.1"
+windows = { version = "0.61.3", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }
+
+[build-dependencies]
+tauri-build = "2"

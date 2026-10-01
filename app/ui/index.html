@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PathOfLeastResistance</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Path<span>Of</span>Least<span>Resistance</span></div>
+    <div id="char" class="char">
+      <div class="char-name" id="char-name">Waiting for the game log…</div>
+      <div class="char-meta" id="char-meta"></div>
+    </div>
+    <div class="pills">
+      <div class="pill" id="penalty-pill" title="Elemental resistance penalty in the current area">Res —</div>
+      <div class="pill danger" id="deaths-pill" title="Deaths for this character">☠ 0</div>
+      <div class="usage" id="usage" title="Your Claude plan usage windows"></div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="play">Play</button>
+    <button class="tab" data-tab="build">Build</button>
+    <button class="tab" data-tab="settings">Hotkeys &amp; settings</button>
+  </nav>
+
+  <main>
+    <section class="view active" id="view-play">
+      <div class="col">
+        <div class="card">
+          <h2>Companion <small>Claude Opus 5.5 · your subscription</small></h2>
+          <div class="chat" id="chat"></div>
+          <div class="quick">
+            <button id="btn-next" class="primary">What next?</button>
+            <button id="btn-paste-item">Check item from clipboard</button>
+            <button id="btn-new-chat" class="ghost">New conversation</button>
+          </div>
+          <form id="ask-form" class="ask">
+            <textarea id="ask-input" rows="2" placeholder="Ask anything — gear, supports, bosses, what to buy…  (Enter to send, Shift+Enter for a new line)"></textarea>
+            <button type="submit" class="primary">Ask</button>
+          </form>
+        </div>
+      </div>
+      <div class="col narrow">
+        <div class="card">
+          <h2>Live from the game</h2>
+          <ul class="feed" id="feed"></ul>
+        </div>
+        <div class="card">
+          <h2>Hotkeys</h2>
+          <ul class="keys" id="keys-summary"></ul>
+          <button id="btn-overlay" class="ghost">Show / hide HUD overlay</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-build">
+      <div class="col">
+        <div class="card">
+          <h2>Import a build</h2>
+          <p class="hint">Paste a Path of Building code or a pobb.in / Maxroll PoB / poe2db / pastebin link.</p>
+          <form id="import-form" class="ask">
+            <textarea id="import-input" rows="3" placeholder="https://pobb.in/…  or  eNrtfW…"></textarea>
+            <button type="submit" class="primary">Import</button>
+          </form>
+          <div id="import-status" class="status"></div>
+          <div id="import-result"></div>
+        </div>
+      </div>
+      <div class="col narrow">
+        <div class="card">
+          <h2>In-game Build Planner</h2>
+          <p class="hint">Files the game will show under Build Planner. Select a stage there for your character.</p>
+          <ul class="files" id="planner-files"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-settings">
+      <div class="col">
+        <div class="card">
+          <h2>Global hotkeys</h2>
+          <p class="hint">Work while the game is focused. Format: <code>Alt+Shift+D</code>, <code>Ctrl+F9</code>… Pick combos the game doesn't use.
+            The item check sends exactly one Ctrl+Alt+C to the game; nothing else is ever sent.</p>
+          <form id="settings-form" class="settings">
+            <label>Item check (copies the hovered item, AI judges it)<input name="item_check"></label>
+            <label>What next (route coach)<input name="what_next"></label>
+            <label>Ask (brings this window up, focuses the chat)<input name="ask"></label>
+            <label>Show / hide HUD overlay<input name="toggle_overlay"></label>
+            <label>League<input name="league"></label>
+            <label class="check"><input type="checkbox" name="overlay_on_hotkey"> Show the HUD automatically for hotkey answers</label>
+            <button type="submit" class="primary">Save</button>
+            <div id="settings-status" class="status"></div>
+          </form>
+        </div>
+      </div>
+      <div class="col narrow">
+        <div class="card">
+          <h2>About</h2>
+          <p class="hint">Reads your PoE2 log (zones, levels, deaths, passives, rewards) and Build Planner folder. Writes only .build files you ask for.
+            This product isn't affiliated with or endorsed by Grinding Gear Games in any way.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script src="common.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
