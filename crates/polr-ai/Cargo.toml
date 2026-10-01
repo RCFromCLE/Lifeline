@@ -1,0 +1,12 @@
+[package]
+name = "polr-ai"
+description = "Drives the user's own Claude Code CLI (subscription login): companion, specialist agents and background jobs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

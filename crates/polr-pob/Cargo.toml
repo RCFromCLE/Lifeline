@@ -1,0 +1,14 @@
+[package]
+name = "polr-pob"
+description = "Path of Building (PoE2) codes, share links, build XML and stage splitting."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+base64.workspace = true
+flate2.workspace = true
+regex.workspace = true
+roxmltree.workspace = true
+thiserror.workspace = true
