@@ -6,6 +6,7 @@
 mod ai;
 mod builds;
 mod game;
+mod gamedata;
 mod hotkeys;
 mod input;
 mod market;
@@ -186,6 +187,7 @@ fn main() {
                 Err(e) => eprintln!("tool server not started: {e}"),
             }
             create_overlay(&handle)?;
+            gamedata::preload(handle.clone());
             game::spawn_log_watcher(handle);
             Ok(())
         })

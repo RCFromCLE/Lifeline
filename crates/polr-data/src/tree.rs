@@ -35,6 +35,8 @@ pub struct TreeNode {
     pub is_notable: bool,
     #[serde(default, rename = "isKeystone")]
     pub is_keystone: bool,
+    #[serde(default)]
+    pub stats: Vec<String>,
 }
 
 fn null_as_empty<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
@@ -86,6 +88,24 @@ impl PassiveTree {
     pub fn is_ascendancy_point(&self, skill: u32) -> bool {
         self.node(skill)
             .is_some_and(|n| n.ascendancy_id.is_some() && !n.is_ascendancy_start)
+    }
+
+    /// Passives whose name or stat text contains every word of `query`;
+    /// keystones and notables first.
+    pub fn find_passives(&self, query: &str, limit: usize) -> Vec<&TreeNode> {
+        let words: Vec<String> = query.to_lowercase().split_whitespace().map(str::to_owned).collect();
+        let mut found: Vec<&TreeNode> = self
+            .nodes
+            .values()
+            .filter(|n| !n.id.is_empty() && !n.name.is_empty())
+            .filter(|n| {
+                let hay = format!("{} {}", n.name, n.stats.join(" ")).to_lowercase();
+                words.iter().all(|w| hay.contains(w.as_str()))
+            })
+            .collect();
+        found.sort_by_key(|n| (!n.is_keystone, !n.is_notable, n.ascendancy_id.is_some(), n.name.clone()));
+        found.dedup_by(|a, b| a.name == b.name && a.stats == b.stats);
+        found.into_iter().take(limit).collect()
     }
 
     /// Belongs in a Build Planner passive list (class and ascendancy start

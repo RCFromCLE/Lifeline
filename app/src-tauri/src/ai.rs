@@ -5,7 +5,6 @@
 use std::sync::Once;
 
 use polr_ai::{agents, ClaudeCli, CliEvent};
-use polr_gamefiles::build_planner::gem_short_name;
 use polr_model::skills_for_stage;
 use polr_pob::Stage;
 use serde_json::json;
@@ -56,10 +55,10 @@ fn context(state: &AppState) -> String {
     let c = state.character.lock().unwrap().clone();
     let league = state.settings.lock().unwrap().league.clone();
     let mut lines = vec![
-        "[Live context from PathOfLeastResistance. Connected polr tools: character_state, build_plan, \
-         trade_find_stat, trade_search, price, propose_action (market: delegate buying/selling to market-scout). \
-         Game-data lookups are not connected yet, so use web lookups (poe2db.tw, poe2wiki.net, pathofexile.com) \
-         for mechanics and say what you could not verify.]"
+        "[Live context from PathOfLeastResistance. The polr tools are connected: live character state, the imported build, \
+         game data for the current patch (gems, supports, item bases, mods, uniques, passives, areas) and the trade market. \
+         Look facts up with them first; use the web only for what they don't cover (boss mechanics, patch notes) and say \
+         what you could not verify.]"
             .to_string(),
         format!("League: {league}"),
     ];
@@ -86,11 +85,19 @@ fn context(state: &AppState) -> String {
         let skills: Vec<String> = skills_for_stage(&imported.build, stage)
             .iter()
             .map(|s| {
-                let supports: Vec<&str> = s.support_skills.iter().map(|x| gem_short_name(&x.id)).collect();
+                let supports: Vec<String> = s
+                    .support_skills
+                    .iter()
+                    .map(|x| crate::gamedata::gem_display(state, &x.id))
+                    .collect();
                 if supports.is_empty() {
-                    gem_short_name(&s.id).to_string()
+                    crate::gamedata::gem_display(state, &s.id)
                 } else {
-                    format!("{} [{}]", gem_short_name(&s.id), supports.join(", "))
+                    format!(
+                        "{} [{}]",
+                        crate::gamedata::gem_display(state, &s.id),
+                        supports.join(", ")
+                    )
                 }
             })
             .collect();

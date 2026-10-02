@@ -6,7 +6,6 @@
 use std::sync::Arc;
 
 use polr_ai::tools;
-use polr_gamefiles::build_planner::gem_short_name;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -34,6 +33,45 @@ fn tool_definitions() -> Value {
             "inputSchema": {"type": "object", "properties": {}}
         },
         {
+            "name": tools::LOOKUP_GEM,
+            "description": "Look up skill, spirit or support gems by name in the current game data: description, tags, attribute, recommended supports. Support gem names can differ from their ids (e.g. 'Rapid Attacks I').",
+            "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}
+        },
+        {
+            "name": tools::LOOKUP_SUPPORTS_FOR,
+            "description": "Shortlist of support gems relevant to a skill (game-recommended first, then supports whose text matches the skill's types). Judge fit yourself.",
+            "inputSchema": {"type": "object", "properties": {"skill": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["skill"]}
+        },
+        {
+            "name": tools::LOOKUP_BASE,
+            "description": "Item bases by name, or every base of a class ('boots', 'spear', 'body armour') with drop level, requirements, defences/damage and implicits.",
+            "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["query"]}
+        },
+        {
+            "name": tools::LOOKUP_UNIQUE,
+            "description": "Unique item by name: item class from game data plus its mods from the PoE2 wiki.",
+            "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}
+        },
+        {
+            "name": tools::LOOKUP_MOD,
+            "description": "Explicit item modifiers (prefix/suffix tiers with value ranges and required item level) whose text contains the words, optionally only those that can roll on an item class (slot: 'boots', 'ring', 'body armour', 'spear'…).",
+            "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}, "slot": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["text"]}
+        },
+        {
+            "name": tools::LOOKUP_PASSIVE,
+            "description": "Passive tree nodes (incl. notables, keystones, ascendancy) whose name or stats contain the words, from GGG's tree export. Returns the node ids the game and Build Planner use.",
+            "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["query"]}
+        },
+        {
+            "name": tools::AREA_INFO,
+            "description": "Area by name or id (e.g. 'Clearfell', 'G1_town'): act, area (monster) level, town, waypoint, bosses.",
+            "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
+        },
+        {
+            "name": tools::SEARCH_GAME_DATA,
+            "description": "Search gems, item bases, uniques, areas and passives at once by name.",
+            "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
+        },        {
             "name": tools::TRADE_FIND_STAT,
             "description": "Find trade-site stat ids by text, e.g. 'cold res', 'maximum life', 'movement speed'. Pseudo ids (pseudo.pseudo_total_*) sum every source on the item.",
             "inputSchema": {"type": "object", "properties": {
@@ -89,8 +127,8 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             let skills: Vec<Value> = polr_model::skills_for_stage(&i.build, stage)
                 .iter()
                 .map(|s| {
-                    json!({"skill": gem_short_name(&s.id),
-                           "supports": s.support_skills.iter().map(|x| gem_short_name(&x.id)).collect::<Vec<_>>()})
+                    json!({"skill": crate::gamedata::gem_display(&state, &s.id),
+                           "supports": s.support_skills.iter().map(|x| crate::gamedata::gem_display(&state, &x.id)).collect::<Vec<_>>()})
                 })
                 .collect();
             Ok(json!({
@@ -99,6 +137,79 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 "current_stage": polr_model::stage_label(stage),
                 "stages": i.stages.iter().filter(|s| s.chosen).map(|s| json!({"stage": s.stage, "spec": s.title, "level": s.estimated_level, "passives": s.main_points})).collect::<Vec<_>>(),
                 "current_stage_skills": skills
+            }))
+        }
+        n if n == tools::LOOKUP_GEM => {
+            let d = crate::gamedata::load(&state)?;
+            let name = args["name"].as_str().ok_or("name is required")?;
+            Ok(json!({"version": d.version, "gems": d.find_gems(name, 6)}))
+        }
+        n if n == tools::LOOKUP_SUPPORTS_FOR => {
+            let d = crate::gamedata::load(&state)?;
+            let skill = args["skill"].as_str().ok_or("skill is required")?;
+            let gem = d
+                .find_gems(skill, 1)
+                .into_iter()
+                .find(|g| g.kind != "support")
+                .ok_or(format!("no skill gem matching '{skill}'"))?;
+            let limit = args["limit"].as_u64().unwrap_or(15) as usize;
+            let supports: Vec<Value> = d.supports_for(gem, limit).iter().map(|s| json!({"name": s.name, "text": s.description, "attribute": s.attribute, "lineage": s.is_lineage})).collect();
+            Ok(json!({"skill": gem.name, "skill_types": gem.skill_types, "supports": supports}))
+        }
+        n if n == tools::LOOKUP_BASE => {
+            let d = crate::gamedata::load(&state)?;
+            let q = args["query"].as_str().ok_or("query is required")?;
+            Ok(json!({"version": d.version, "bases": d.find_bases(q, args["limit"].as_u64().unwrap_or(12) as usize)}))
+        }
+        n if n == tools::LOOKUP_UNIQUE => {
+            let d = crate::gamedata::load(&state)?;
+            let name = args["name"].as_str().ok_or("name is required")?;
+            let found = d.find_uniques(name, 5);
+            let wiki = found
+                .first()
+                .map(|u| crate::gamedata::wiki_unique(&u.name))
+                .transpose()
+                .unwrap_or_else(|e| Some(vec![json!({"wiki_error": e})]));
+            Ok(json!({"matches": found, "wiki": wiki}))
+        }
+        n if n == tools::LOOKUP_MOD => {
+            let d = crate::gamedata::load(&state)?;
+            let text = args["text"].as_str().ok_or("text is required")?;
+            let mods = d.find_mods(
+                text,
+                args["slot"].as_str(),
+                args["limit"].as_u64().unwrap_or(15) as usize,
+            );
+            Ok(json!({"version": d.version, "mods": mods}))
+        }
+        n if n == tools::LOOKUP_PASSIVE => {
+            let tree = crate::builds::load_tree(&state)?;
+            let q = args["query"].as_str().ok_or("query is required")?;
+            let found: Vec<Value> = tree.find_passives(q, args["limit"].as_u64().unwrap_or(10) as usize).iter().map(|n| json!({"id": n.id, "name": n.name, "notable": n.is_notable, "keystone": n.is_keystone, "ascendancy": n.ascendancy_id, "stats": n.stats.iter().map(|s| polr_data::game::plain(s)).collect::<Vec<_>>()})).collect();
+            Ok(json!({"source": "GGG passive tree export", "passives": found}))
+        }
+        n if n == tools::AREA_INFO => {
+            let d = crate::gamedata::load(&state)?;
+            let q = args["query"].as_str().ok_or("query is required")?;
+            Ok(json!({"areas": d.find_areas(q, 5)}))
+        }
+        n if n == tools::SEARCH_GAME_DATA => {
+            let d = crate::gamedata::load(&state)?;
+            let q = args["query"].as_str().ok_or("query is required")?;
+            let passives: Vec<Value> = crate::builds::load_tree(&state)
+                .map(|t| {
+                    t.find_passives(q, 5)
+                        .iter()
+                        .map(|n| json!({"id": n.id, "name": n.name}))
+                        .collect()
+                })
+                .unwrap_or_default();
+            Ok(json!({
+                "gems": d.find_gems(q, 5).iter().map(|g| json!({"name": g.name, "kind": g.kind})).collect::<Vec<_>>(),
+                "bases": d.find_bases(q, 5).iter().map(|b| json!({"name": b.name, "class": b.item_class})).collect::<Vec<_>>(),
+                "uniques": d.find_uniques(q, 5),
+                "areas": d.find_areas(q, 5).iter().map(|a| json!({"id": a.id, "name": a.name, "act": a.act, "level": a.area_level})).collect::<Vec<_>>(),
+                "passives": passives
             }))
         }
         n if n == tools::TRADE_FIND_STAT => {
