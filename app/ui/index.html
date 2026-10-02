@@ -23,6 +23,7 @@
   <nav class="tabs" id="tabs">
     <button class="tab active" data-tab="play">Play</button>
     <button class="tab" data-tab="rating">Rating</button>
+    <button class="tab" data-tab="skills">Skills</button>
     <button class="tab" data-tab="build">Build</button>
     <button class="tab" data-tab="settings">Hotkeys &amp; settings</button>
   </nav>
@@ -96,6 +97,29 @@
         <div class="card">
           <h2>Recommended upgrades <small>market picks within your budget · Sonnet 5.5</small></h2>
           <div id="r-recs" class="r-recs"><p class="hint">Recommendations appear after a rating.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-skills">
+      <div class="col">
+        <div class="card">
+          <div class="skills-head">
+            <div class="grow">
+              <h2>Skills, supports &amp; rotations <small>for where you are now · only supports the game allows on each skill</small></h2>
+              <div class="r-summary" id="s-summary">No setup yet.</div>
+              <div class="hint" id="s-meta"></div>
+            </div>
+            <button id="s-run" class="primary">Suggest skills &amp; rotation</button>
+          </div>
+          <div class="status" id="s-status"></div>
+          <div class="s-grid" id="s-skills"></div>
+        </div>
+      </div>
+      <div class="col narrow">
+        <div class="card">
+          <h2>Rotations</h2>
+          <div id="s-rotations"><p class="hint">Rotations appear after a setup. The bossing rotation also shows on the overlay.</p></div>
         </div>
       </div>
     </section>

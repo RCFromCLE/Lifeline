@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::agents::{BUILD_AUDITOR, BUILD_RATER, HC_SAFETY_OFFICER, PATCH_ANALYST, ROUTE_COACH};
+use crate::agents::{BUILD_AUDITOR, BUILD_RATER, HC_SAFETY_OFFICER, PATCH_ANALYST, ROUTE_COACH, SKILL_COACH};
 use crate::{ClaudeCli, RunResult};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,6 +21,8 @@ pub enum Job {
     SessionRecap,
     /// Grade the build F–S+ for the current stage (rating screen, overlay).
     Rating,
+    /// Skills, supports, buttons and rotations for the current stage.
+    Skills,
 }
 
 impl Job {
@@ -31,6 +33,7 @@ impl Job {
             Job::DeathDebrief => HC_SAFETY_OFFICER,
             Job::SessionRecap => ROUTE_COACH,
             Job::Rating => BUILD_RATER,
+            Job::Skills => SKILL_COACH,
         }
     }
 
@@ -53,6 +56,7 @@ impl Job {
                  the first steps for next session."
             }
             Job::Rating => "Rate the character's build for where it is right now in the campaign or endgame.",
+            Job::Skills => "Set up this character's skills, supports, buttons and rotations for where it is right now.",
         }
     }
 
@@ -140,6 +144,37 @@ pub struct Recommendation {
     pub look_for: String,
 }
 
+/// Schema for [`Job::Skills`].
+pub fn skills_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "skills": {"type": "array", "items": {"type": "object", "properties": {
+                "name": {"type": "string"}, "role": {"type": "string"}, "button": {"type": "string"}, "notes": {"type": "string"},
+                "supports": {"type": "array", "items": {"type": "object", "properties": {
+                    "name": {"type": "string"}, "why": {"type": "string"}
+                }, "required": ["name", "why"]}}
+            }, "required": ["name", "role", "button", "supports"]}},
+            "rotations": {"type": "array", "items": {"type": "object", "properties": {
+                "situation": {"type": "string"}, "steps": {"type": "array", "items": {"type": "string"}}
+            }, "required": ["situation", "steps"]}}
+        },
+        "required": ["summary", "skills", "rotations"]
+    })
+}
+
+/// The structured object from a job's result (validated output, else the
+/// JSON in the result text).
+pub fn structured(result: &RunResult) -> Option<Value> {
+    if let Some(v) = result.structured_output.clone() {
+        return Some(v);
+    }
+    let text = result.result.as_deref()?;
+    let (start, end) = (text.find('{')?, text.rfind('}')?);
+    serde_json::from_str(text.get(start..=end)?).ok()
+}
+
 /// Reads a [`Rating`] from a rating job's result.
 pub fn parse_rating(result: &RunResult) -> Option<Rating> {
     if let Some(r) = result
@@ -190,6 +225,7 @@ impl ClaudeCli {
         cli.json_schema = Some(
             match job {
                 Job::Rating => rating_schema(),
+                Job::Skills => skills_schema(),
                 _ => report_schema(),
             }
             .to_string(),

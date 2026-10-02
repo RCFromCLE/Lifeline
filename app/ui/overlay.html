@@ -63,6 +63,11 @@
     .explain { font-size: 12.5px; background: rgba(36, 28, 21, 0.95); border: 1px solid #6e5226; border-radius: 8px; padding: 7px 9px; }
     .explain .s { color: #f3d08a; font-weight: 600; margin-bottom: 3px; }
     .rsum { font-size: 12px; color: #cdbfa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rot-tabs { display: flex; gap: 4px; margin-bottom: 4px; }
+    .rot-tab { cursor: pointer; font: inherit; font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; color: #8d7d66; background: transparent; border: 1px solid #2a221b; border-radius: 6px; padding: 1px 7px; }
+    .rot-tab.on { color: #f3d08a; border-color: #8a6430; background: rgba(110, 82, 38, 0.2); }
+    .rot-steps { margin: 0; padding-left: 18px; font-size: 12.5px; max-height: 110px; overflow-y: auto; }
+    .rot-steps li { margin-bottom: 2px; }
   </style>
 </head>
 <body>
@@ -85,10 +90,15 @@
       <div class="bar"><i id="plan-bar" style="width:0"></i></div>
       <div class="chips" id="plan-next"></div>
     </div>
+    <div id="rotation" class="hidden">
+      <div class="rot-tabs" id="rot-tabs"></div>
+      <ol class="rot-steps" id="rot-steps"></ol>
+    </div>
     <div class="actions">
       <button class="act primary hit" data-action="item_check" title="Check the item you have selected (controller) — with a mouse use the hotkey so the cursor stays on the item">Check item</button>
       <button class="act hit" data-action="what_next" title="Next 1–3 steps for where you are">What next</button>
       <button class="act hit" data-action="ask" title="Open the app's chat">Ask</button>
+      <button class="act hit" data-action="skills" title="Suggest skills, supports, buttons and rotations for where you are">Skills</button>
       <button class="act hit" data-action="record_equipped" title="Record the selected item as equipped (controller) — with a mouse use the hotkey">Record gear</button>
       <button class="act hit" data-action="move_overlay" title="Unlock to drag; click again to lock">Move</button>
       <button class="act hit" data-action="toggle_overlay" title="Hide the HUD (show it again with the hotkey or from the app)">Hide</button>
@@ -200,6 +210,11 @@
     }
     window.addEventListener("resize", reportRegions);
 
+    // diagnostics: log clicks the page receives
+    document.addEventListener("click", e => {
+      invoke("log_debug", { msg: `overlay click on ${e.target.id || e.target.className}` });
+    }, true);
+
     // ---- overlay buttons for every hotkey action ----
     document.querySelectorAll("[data-action]").forEach(b => b.addEventListener("click", () => {
       invoke("overlay_action", { action: b.dataset.action }).catch(e => listenNotice(e));
@@ -213,7 +228,31 @@
     el("open-app").addEventListener("click", () => invoke("open_in_game_chat"));
     el("close-answer").addEventListener("click", () => { el("answer-box").classList.add("hidden"); reportRegions(); });
 
+    // ---- rotation (from the skill coach): clickable situation tabs ----
+    let rotations = null, rotIndex = 1;
+    function renderRotation(rots) {
+      rotations = Array.isArray(rots) && rots.length ? rots : null;
+      el("rotation").classList.toggle("hidden", !rotations);
+      if (!rotations) { reportRegions(); return; }
+      rotIndex = Math.min(rotIndex, rotations.length - 1);
+      el("rot-tabs").innerHTML = rotations.map((r, i) => `<button class="rot-tab hit ${i === rotIndex ? "on" : ""}" data-i="${i}">${escapeHtml(r.situation)}</button>`).join("");
+      el("rot-tabs").querySelectorAll(".rot-tab").forEach(b => b.addEventListener("click", () => { rotIndex = Number(b.dataset.i); renderRotation(rotations); }));
+      el("rot-steps").innerHTML = rotations[rotIndex].steps.map(s => `<li>${escapeHtml(s)}</li>`).join("");
+      reportRegions();
+    }
+    listen("skills", ({ payload }) => renderRotation(payload.plan && payload.plan.rotations));
+    listen("skills-status", ({ payload }) => { if (payload.text) el("rsum").textContent = payload.text; });
+
     // ---- build rating: hover explains, click re-rates ----
+    let ratingStarted = 0, ratingTicker = null;
+    function ratingTick(on, text) {
+      clearInterval(ratingTicker);
+      if (!on) return;
+      ratingStarted = ratingStarted || Date.now();
+      const show = () => { el("rsum").textContent = `${text || "Rating your build"} · ${Math.round((Date.now() - ratingStarted) / 1000)}s`; };
+      show();
+      ratingTicker = setInterval(show, 1000);
+    }
     let rating = null;
     function renderGrade(r) {
       rating = r;
@@ -229,17 +268,25 @@
     el("grade").addEventListener("mouseleave", () => { el("explain").classList.add("hidden"); reportRegions(); });
     el("grade").addEventListener("click", () => {
       el("grade").classList.add("busy");
-      el("rsum").textContent = "Rating your build…";
+      ratingStarted = Date.now();
+      ratingTick(true, "Rating your build (Opus 5.5)");
       invoke("rate_now");
     });
-    listen("rating", ({ payload }) => { renderGrade(payload.rating); el("grade").classList.toggle("busy", !!payload.busy); });
+    listen("rating", ({ payload }) => {
+      renderGrade(payload.rating);
+      el("grade").classList.toggle("busy", !!payload.busy);
+      if (!payload.busy) { ratingTick(false); ratingStarted = 0; if (rating) el("rsum").textContent = `${rating.stage}: ${rating.summary}`; }
+    });
     listen("rating-status", ({ payload }) => {
       el("grade").classList.toggle("busy", !!payload.busy);
-      if (payload.text) el("rsum").textContent = payload.text;
-      else if (rating) el("rsum").textContent = `${rating.stage}: ${rating.summary}`;
+      if (payload.busy && payload.text) ratingTick(true, payload.text.replace(/…$/, ""));
+      else {
+        ratingTick(false); ratingStarted = 0;
+        if (payload.text) el("rsum").textContent = payload.text;
+        else if (rating) el("rsum").textContent = `${rating.stage}: ${rating.summary}`;
+      }
     });
-    invoke("hud").then(h => { render(h); renderGrade(h.rating); });
-    setInterval(refresh, 15000);
+    invoke("hud").then(h => { render(h); renderGrade(h.rating); renderRotation(h.rotations); });    setInterval(refresh, 15000);
   </script>
 </body>
 </html>

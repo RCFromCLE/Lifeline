@@ -147,6 +147,7 @@ pub struct Conversation {
 const CONVERSATIONS_FILE: &str = "conversations.json";
 const EQUIPPED_FILE: &str = "equipped.json";
 const RATING_FILE: &str = "rating.json";
+const SKILLS_FILE: &str = "skills.json";
 
 fn load_json<T: serde::de::DeserializeOwned>(dir: &Path, file: &str) -> Option<T> {
     std::fs::read_to_string(dir.join(file))
@@ -182,6 +183,12 @@ impl AppState {
             "cards": self.rating_cards.lock().unwrap().clone(),
         });
         let _ = std::fs::write(self.data_dir.join(RATING_FILE), v.to_string());
+    }
+
+    pub fn save_skills(&self) {
+        if let Some(p) = self.skills_plan.lock().unwrap().as_ref() {
+            let _ = std::fs::write(self.data_dir.join(SKILLS_FILE), p.to_string());
+        }
     }
 
     pub fn save_equipped(&self) {
@@ -254,6 +261,9 @@ pub struct AppState {
     pub rating_busy: std::sync::atomic::AtomicBool,
     /// Clickable areas of the HUD (CSS px: left, top, right, bottom); the rest is click-through.
     pub overlay_regions: Mutex<Vec<[f64; 4]>>,
+    /// Latest skill-coach plan (skills, supports, buttons, rotations).
+    pub skills_plan: Mutex<Option<serde_json::Value>>,
+    pub skills_busy: std::sync::atomic::AtomicBool,
     /// (port, bearer token) of the local MCP server.
     pub mcp: Mutex<Option<(u16, String)>>,
     pub settings: Mutex<Settings>,
@@ -285,6 +295,8 @@ impl AppState {
             ),
             rating_busy: std::sync::atomic::AtomicBool::new(false),
             overlay_regions: Mutex::new(Vec::new()),
+            skills_plan: Mutex::new(load_json(&data_dir, SKILLS_FILE)),
+            skills_busy: std::sync::atomic::AtomicBool::new(false),
             mcp: Mutex::new(None),
             settings: Mutex::new(settings),
             data_dir,

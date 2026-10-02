@@ -120,8 +120,18 @@ pub fn spawn_log_watcher(app: AppHandle) {
         let mut tailer = LogTailer::from_start(&path);
         let mut backfilled = false;
         let mut last_rated_act: Option<u8> = None;
+        crate::debug_log(&app.state::<AppState>(), &format!("log watcher started on {}", path.display()));
         loop {
-            if let Ok(lines) = tailer.poll() {
+            let started = std::time::Instant::now();
+            let polled = tailer.poll();
+            if !backfilled {
+                let state = app.state::<AppState>();
+                match &polled {
+                    Ok(lines) => crate::debug_log(&state, &format!("backfill read {} lines in {:?}", lines.len(), started.elapsed())),
+                    Err(e) => crate::debug_log(&state, &format!("backfill read failed: {e}")),
+                }
+            }
+            if let Ok(lines) = polled {
                 let state = app.state::<AppState>();
                 let mut changed = false;
                 for line in lines {
@@ -162,7 +172,12 @@ pub fn spawn_log_watcher(app: AppHandle) {
                     let _ = app.emit("character", &character);
                 }
                 if !backfilled {
-                    last_rated_act = state.character.lock().unwrap().act;
+                    let c = state.character.lock().unwrap().clone();
+                    last_rated_act = c.act;
+                    crate::debug_log(
+                        &state,
+                        &format!("backfill applied in {:?}: {:?} level {} in {}", started.elapsed(), c.name, c.level, c.zone),
+                    );
                 }
                 backfilled = true;
             }

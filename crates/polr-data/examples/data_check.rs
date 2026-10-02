@@ -41,6 +41,12 @@ fn main() {
         "  supports shortlist: {:?}",
         d.supports_for(spark[0], 8).iter().map(|g| &g.name).collect::<Vec<_>>()
     );
+    let slash = d.find_gems("whirling slash", 1)[0];
+    println!(
+        "compatible with Whirling Slash ({}): {:?}",
+        d.supports_for(slash, 200).len(),
+        d.supports_for(slash, 12).iter().map(|g| &g.name).collect::<Vec<_>>()
+    );
     println!(
         "SupportGemMartialTempo → {:?}",
         d.gem_name("Metadata/Items/Gems/SupportGemMartialTempo")

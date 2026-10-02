@@ -36,6 +36,16 @@ pub struct Gem {
     pub skill_types: Vec<String>,
     pub is_lineage: bool,
     pub recommended_supports: Vec<String>,
+    /// Supports: skill-type rules (reverse-Polish with AND/OR/NOT) from the
+    /// game data; a support works on a skill when `allowed` matches its types
+    /// and `excluded` doesn't.
+    pub support_allowed: Vec<String>,
+    pub support_excluded: Vec<String>,
+    /// Supports: what they do to the supported skill.
+    pub support_effects: Vec<String>,
+    /// Actives: cast time and mana cost at gem levels 1 / 10 / 20.
+    pub cast_time_ms: Option<u64>,
+    pub mana_cost: Vec<(u32, u64)>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -76,6 +86,26 @@ pub struct Area {
 pub struct Unique {
     pub name: String,
     pub item_class: String,
+}
+
+/// Evaluates a skill-type rule in reverse-Polish form (`["Persistent", "Buff",
+/// "AND"]`); leftover values are OR'ed, as the game does.
+pub fn type_rule(rule: &[String], types: &[String]) -> bool {
+    let mut stack: Vec<bool> = Vec::new();
+    for token in rule {
+        match token.as_str() {
+            "AND" | "OR" => {
+                let (b, a) = (stack.pop().unwrap_or(false), stack.pop().unwrap_or(false));
+                stack.push(if token == "AND" { a && b } else { a || b });
+            }
+            "NOT" => {
+                let a = stack.pop().unwrap_or(false);
+                stack.push(!a);
+            }
+            t => stack.push(types.iter().any(|x| x == t)),
+        }
+    }
+    stack.into_iter().any(|v| v)
 }
 
 #[derive(Debug, Default)]
@@ -129,6 +159,36 @@ impl GameData {
             serde_json::from_str(text).map_err(|e| format!("{name}.json: {e}"))
         };
         let skills = load("skills")?;
+        let support_rules = |granted: &[String]| -> (Vec<String>, Vec<String>, Vec<String>) {
+            for id in granted {
+                let s = &skills[id];
+                if s["support_gem"].is_object() {
+                    let effects = s["stat_sets"][0]["static"]["stat_text"]
+                        .as_object()
+                        .map(|m| m.values().filter_map(|v| v.as_str().map(plain)).collect())
+                        .unwrap_or_default();
+                    return (
+                        strings(&s["support_gem"]["allowed_types"]),
+                        strings(&s["support_gem"]["excluded_types"]),
+                        effects,
+                    );
+                }
+            }
+            (Vec::new(), Vec::new(), Vec::new())
+        };
+        let cost_info = |granted: &[String]| -> (Option<u64>, Vec<(u32, u64)>) {
+            for id in granted {
+                let s = &skills[id];
+                if s["active_skill"].is_object() {
+                    let costs = [1u32, 10, 20]
+                        .iter()
+                        .filter_map(|l| s["per_level"][l.to_string()]["costs"]["Mana"].as_u64().map(|c| (*l, c)))
+                        .collect();
+                    return (s["cast_time"].as_u64(), costs);
+                }
+            }
+            (None, Vec::new())
+        };
         let skill_info = |granted: &[String]| -> (Option<String>, Vec<String>) {
             for id in granted {
                 let active = &skills[id]["active_skill"];
@@ -159,7 +219,10 @@ impl GameData {
                 .collect::<Vec<_>>()
                 .join("/");
             let kind = g["gem_type"].as_str().unwrap_or("").to_owned();
-            let (desc, types) = skill_info(&strings(&g["grants_skills"]));
+            let granted = strings(&g["grants_skills"]);
+            let (desc, types) = skill_info(&granted);
+            let (support_allowed, support_excluded, support_effects) = support_rules(&granted);
+            let (cast_time_ms, mana_cost) = cost_info(&granted);
             let description = if kind == "support" {
                 g["support_text"].as_str().map(plain)
             } else {
@@ -178,6 +241,11 @@ impl GameData {
                     .iter()
                     .filter_map(|s| names.get(s).cloned())
                     .collect(),
+                support_allowed,
+                support_excluded,
+                support_effects,
+                cast_time_ms,
+                mana_cost,
             });
         }
 
@@ -282,36 +350,27 @@ impl GameData {
         best(&self.gems, query, |g| &g.name, limit)
     }
 
-    /// Supports whose text names one of the skill's types or tags — a
-    /// shortlist for the AI to judge, not a compatibility guarantee.
-    pub fn supports_for(&self, skill: &Gem, limit: usize) -> Vec<&Gem> {
-        let words: Vec<String> = skill
-            .skill_types
-            .iter()
-            .chain(skill.tags.iter())
-            .map(|t| t.to_lowercase())
-            .filter(|t| {
-                !matches!(
-                    t.as_str(),
-                    "grants_active_skill" | "repeatable" | "intelligence" | "strength" | "dexterity"
-                )
-            })
-            .collect();
-        let mut scored: Vec<(usize, &Gem)> = self
-            .gems
-            .iter()
-            .filter(|g| g.kind == "support")
-            .filter_map(|g| {
-                let text = g.description.as_deref().unwrap_or("").to_lowercase();
-                let hits = words.iter().filter(|w| text.contains(w.as_str())).count();
-                let recommended = skill.recommended_supports.contains(&g.name);
-                (hits > 0 || recommended).then_some((hits + if recommended { 10 } else { 0 }, g))
-            })
-            .collect();
-        scored.sort_by_key(|s| std::cmp::Reverse(s.0));
-        scored.into_iter().take(limit).map(|(_, g)| g).collect()
+    /// Whether `support` can support `skill`, by the game's own type rules.
+    pub fn is_compatible(support: &Gem, skill: &Gem) -> bool {
+        support.kind == "support"
+            && !support.support_allowed.is_empty()
+            && type_rule(&support.support_allowed, &skill.skill_types)
+            && !(!support.support_excluded.is_empty() && type_rule(&support.support_excluded, &skill.skill_types))
     }
 
+    /// Every support that works with `skill` (game rules), the game's
+    /// recommended ones first, then lineage, then by name.
+    pub fn supports_for(&self, skill: &Gem, limit: usize) -> Vec<&Gem> {
+        let mut found: Vec<&Gem> = self.gems.iter().filter(|g| Self::is_compatible(g, skill)).collect();
+        found.sort_by_key(|g| {
+            (
+                !skill.recommended_supports.contains(&g.name),
+                !g.is_lineage,
+                g.name.clone(),
+            )
+        });
+        found.into_iter().take(limit).collect()
+    }
     fn is_equipment_class(class: &str) -> bool {
         !class.is_empty()
             && ![
@@ -419,13 +478,15 @@ mod tests {
                 "gem_type": "active", "grants_skills": ["SparkPlayer"], "requirement_weights": {"dexterity": 0, "intelligence": 100, "strength": 0},
                 "tags": ["spell", "projectile", "lightning"], "recommended_supports": ["Metadata/Items/Gems/SupportGemPierce"]},
             "Metadata/Items/Gems/SupportGemPierce": {"base_item": {"display_name": "Pierce I", "id": "Metadata/Items/Gems/SupportGemPierce", "release_state": "released"},
-                "gem_type": "support", "grants_skills": [], "requirement_weights": {"dexterity": 100, "intelligence": 0, "strength": 0},
+                "gem_type": "support", "grants_skills": ["SupportPiercePlayer"], "requirement_weights": {"dexterity": 100, "intelligence": 0, "strength": 0},
                 "tags": ["support", "projectile"], "support_text": "Supports [Projectile|Projectile] skills, making them Pierce."},
             "Metadata/Items/Gems/SupportGemMartialTempo": {"base_item": {"display_name": "Rapid Attacks I", "id": "Metadata/Items/Gems/SupportGemMartialTempo", "release_state": "released"},
-                "gem_type": "support", "grants_skills": [], "requirement_weights": {"dexterity": 100, "intelligence": 0, "strength": 0},
+                "gem_type": "support", "grants_skills": ["SupportMartialTempoPlayer"], "requirement_weights": {"dexterity": 100, "intelligence": 0, "strength": 0},
                 "tags": ["support"], "support_text": "Supports [Attack|Attacks], causing them to [Attack] faster."}
         }"#.into());
-        f.insert("skills".into(), r#"{"SparkPlayer": {"active_skill": {"description": "Launch a spray of sparking [Projectile|Projectiles].", "types": ["Spell", "Projectile", "Lightning"]}}}"#.into());
+        f.insert("skills".into(), r#"{"SparkPlayer": {"active_skill": {"description": "Launch a spray of sparking [Projectile|Projectiles].", "types": ["Spell", "Projectile", "Lightning"]}, "cast_time": 700, "per_level": {"1": {"costs": {"Mana": 5}}, "20": {"costs": {"Mana": 56}}}},
+            "SupportPiercePlayer": {"support_gem": {"allowed_types": ["Projectile"], "excluded_types": ["ProjectileNoCollision"]}, "stat_sets": [{"static": {"stat_text": {"a": "[Projectile|Projectiles] from Supported Skills [Pierce] an Enemy"}}}]},
+            "SupportMartialTempoPlayer": {"support_gem": {"allowed_types": ["Attack"], "excluded_types": []}}}"#.into());
         f.insert("base_items".into(), r#"{"Metadata/Items/Armours/Boots/BootsDex1": {"name": "Lattice Sandals", "item_class": "Boots", "drop_level": 4, "release_state": "released", "implicits": [], "tags": ["boots", "armour", "default"], "properties": {"evasion": {"min": 22, "max": 22}}, "requirements": {"level": 4}}}"#.into());
         f.insert("mods".into(), r#"{"ColdResist1": {"domain": "item", "generation_type": "suffix", "name": "of the Seal", "text": "+(6-10)% to [Resistances|Cold Resistance]", "required_level": 1, "spawn_weights": [{"tag": "armour", "weight": 1}, {"tag": "default", "weight": 0}]}}"#.into());
         f.insert(
@@ -434,6 +495,25 @@ mod tests {
         );
         f.insert("world_areas".into(), r#"{"G1_1": {"name": "The Riverbank", "act": 1, "area_level": 1, "is_town": false, "has_waypoint": true, "bosses": []}}"#.into());
         f
+    }
+
+    #[test]
+    fn type_rules_evaluate_like_the_game() {
+        let t = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(type_rule(
+            &t(&["Persistent", "Buff", "AND"]),
+            &t(&["Buff", "Persistent", "Spell"])
+        ));
+        assert!(!type_rule(&t(&["Persistent", "Buff", "AND"]), &t(&["Buff"])));
+        assert!(type_rule(
+            &t(&["Bear", "Wolf", "OR", "Wyvern", "OR", "Shapeshift", "AND"]),
+            &t(&["Wolf", "Shapeshift"])
+        ));
+        assert!(
+            type_rule(&t(&["Attack", "Spell"]), &t(&["Spell"])),
+            "leftovers are OR'ed"
+        );
+        assert!(!type_rule(&t(&["Attack", "NOT"]), &t(&["Attack"])));
     }
 
     #[test]
@@ -449,7 +529,17 @@ mod tests {
             d.gem_name("Metadata/Items/Gems/SupportGemMartialTempo"),
             Some("Rapid Attacks I")
         );
-        assert_eq!(d.supports_for(spark, 5)[0].name, "Pierce I");
+        let supports = d.supports_for(spark, 5);
+        assert_eq!(supports.len(), 1, "Rapid Attacks needs Attack");
+        assert_eq!(supports[0].name, "Pierce I");
+        assert_eq!(
+            supports[0].support_effects,
+            ["Projectiles from Supported Skills Pierce an Enemy"]
+        );
+        assert_eq!(
+            (spark.cast_time_ms, spark.mana_cost.clone()),
+            (Some(700), vec![(1, 5), (20, 56)])
+        );
         assert_eq!(d.find_bases("boots", 5)[0].name, "Lattice Sandals");
         assert_eq!(
             d.find_mods("cold res", Some("boots"), 5)[0].text,

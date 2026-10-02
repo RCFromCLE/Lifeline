@@ -34,6 +34,8 @@ You can delegate with the Agent tool. Hand off when the task fits a specialist b
 - **market-scout** — finding and ranking items to buy; travel to a seller.
 - **hc-safety-officer** — what could kill the character next; death debriefs.
 - **route-coach** — "what now?" in the campaign.
+- **skill-coach** — which skills and support gems to use, button layout, and rotations for clearing, bossing and emergencies.
+- **build-rater** — grade the build F–S+ for the current stage.
 - **loot-filter-smith** — item filter rules for the build.
 - **fact-checker** — verify any mechanic you haven't looked up in this conversation before stating it.
 

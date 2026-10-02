@@ -21,6 +21,7 @@ pub const LOOT_FILTER_SMITH: &str = "loot-filter-smith";
 pub const FACT_CHECKER: &str = "fact-checker";
 pub const PATCH_ANALYST: &str = "patch-analyst";
 pub const BUILD_RATER: &str = "build-rater";
+pub const SKILL_COACH: &str = "skill-coach";
 
 pub const AGENTS_FILE: &str = "agents.json";
 
@@ -280,6 +281,27 @@ pub fn roster() -> Vec<AgentSpec> {
             effort: Some("high"),
             max_turns: Some(30),
         },
+        AgentSpec {
+            name: SKILL_COACH,
+            description: "Sets up skills for the current stage: which skills, which support gems (only ones the game \
+                          allows on each skill), which controller button, and rotations for clearing, bossing and \
+                          emergencies. Use for skill/support/rotation questions.",
+            role: include_str!("../prompts/agents/skill-coach.md"),
+            tools: tool_list(
+                &[&[
+                    CHARACTER_STATE,
+                    BUILD_PLAN,
+                    LOOKUP_GEM,
+                    LOOKUP_SUPPORTS_FOR,
+                    LOOKUP_PASSIVE,
+                    EQUIPPED_ITEMS,
+                ]],
+                &[STRUCTURED_OUTPUT],
+            ),
+            model: MODEL,
+            effort: Some("high"),
+            max_turns: Some(40),
+        },
     ]
 }
 
@@ -310,7 +332,7 @@ mod tests {
     fn every_agent_has_the_documented_fields() {
         let v = parsed();
         let agents = v.as_object().unwrap();
-        assert_eq!(agents.len(), 10);
+        assert_eq!(agents.len(), 11);
         for (name, spec) in agents {
             for field in ["description", "prompt", "tools", "model", "omitClaudeMd"] {
                 assert!(spec.get(field).is_some(), "{name} lacks {field}");

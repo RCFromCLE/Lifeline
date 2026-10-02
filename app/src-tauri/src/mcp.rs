@@ -16,7 +16,18 @@ pub fn start(app: AppHandle) -> Result<(u16, String), String> {
     let server = polr_ai::mcp_server::serve(
         "polr",
         tool_definitions(),
-        Arc::new(move |conv, name, args| call(&app, conv, name, args)),
+        Arc::new(move |conv, name, args| {
+            let result = call(&app, conv, name, args);
+            let preview = match &result {
+                Ok(v) => v.to_string().chars().take(160).collect::<String>(),
+                Err(e) => format!("ERROR {e}"),
+            };
+            crate::debug_log(
+                &app.state::<AppState>(),
+                &format!("tool {name} (scope {conv}) → {preview}"),
+            );
+            result
+        }),
     )?;
     Ok((server.port, server.token))
 }
@@ -170,8 +181,11 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 .find(|g| g.kind != "support")
                 .ok_or(format!("no skill gem matching '{skill}'"))?;
             let limit = args["limit"].as_u64().unwrap_or(15) as usize;
-            let supports: Vec<Value> = d.supports_for(gem, limit).iter().map(|s| json!({"name": s.name, "text": s.description, "attribute": s.attribute, "lineage": s.is_lineage})).collect();
-            Ok(json!({"skill": gem.name, "skill_types": gem.skill_types, "supports": supports}))
+            let all = d.supports_for(gem, 1000);
+            let supports: Vec<Value> = all.iter().take(limit).map(|s| json!({"name": s.name, "effects": s.support_effects, "text": s.description, "attribute": s.attribute, "lineage": s.is_lineage, "recommended_by_game": gem.recommended_supports.contains(&s.name)})).collect();
+            Ok(
+                json!({"skill": gem.name, "skill_types": gem.skill_types, "compatible_total": all.len(), "note": "Only supports the game allows on this skill (its type rules); game-recommended first. Ask with a larger limit for more.", "supports": supports}),
+            )
         }
         n if n == tools::LOOKUP_BASE => {
             let d = crate::gamedata::load(&state)?;

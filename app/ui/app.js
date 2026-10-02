@@ -299,6 +299,26 @@ listen("market", ({ payload }) => {
   const holder = document.getElementById(`r-cards-${i}`);
   if (holder) { holder.innerHTML = ""; holder.appendChild(renderMarket(payload.market)); }
 });
+// ---- skills, supports, buttons & rotations ----
+function renderSkills(snap) {
+  const p = snap.plan;
+  $("s-run").disabled = !!snap.busy;
+  $("s-summary").textContent = p ? p.summary : "No setup yet.";
+  $("s-meta").textContent = p ? `${p.stage} · level ${p.level}` : "";
+  $("s-skills").innerHTML = p ? p.skills.map(s => `
+    <div class="s-card">
+      <div class="top"><span class="nm">${escapeHtml(s.name)}</span><span class="btnchip">${escapeHtml(s.button)}</span></div>
+      <div class="role">${escapeHtml(s.role)}</div>
+      <ol class="s-sups">${(s.supports || []).map((x, i) => `<li title="${escapeHtml(x.why)}"><span class="ord">${i + 1}.</span><span class="sn">${escapeHtml(x.name)}</span><span class="sw">${escapeHtml(x.why)}</span></li>`).join("")}</ol>
+      ${s.notes ? `<div class="notes">${escapeHtml(s.notes)}</div>` : ""}
+    </div>`).join("") : "";
+  $("s-rotations").innerHTML = p ? p.rotations.map(r => `
+    <div class="rot"><h3>${escapeHtml(r.situation)}</h3><ol>${r.steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ol></div>`).join("")
+    : "<p class='hint'>Rotations appear after a setup. The bossing rotation also shows on the overlay.</p>";
+}
+$("s-run").addEventListener("click", () => invoke("run_skills"));
+listen("skills", ({ payload }) => renderSkills(payload));
+listen("skills-status", ({ payload }) => { $("s-status").textContent = payload.text || ""; $("s-run").disabled = !!payload.busy; });
 function sendAsk() {
   const text = $("ask-input").value.trim();
   if (!text || active === null) return;
@@ -444,6 +464,7 @@ listen("focus-chat", () => {
   refreshPlannerFiles();
   renderGear(await invoke("equipped"));
   renderRating(await invoke("rating_snapshot"));
+  renderSkills(await invoke("skills_snapshot"));
   convs = snap.conversations;
   for (const a of await invoke("pending_actions")) actions.set(a.id, a);
   const first = convs.filter(c => !c.in_game).sort((a, b) => b.id - a.id)[0];

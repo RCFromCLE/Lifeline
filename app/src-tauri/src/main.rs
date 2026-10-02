@@ -12,6 +12,7 @@ mod input;
 mod market;
 mod mcp;
 mod rating;
+mod skills;
 mod state;
 
 use serde::Serialize;
@@ -200,6 +201,8 @@ fn hud(state: tauri::State<'_, AppState>) -> serde_json::Value {
         "plan": plan,
         "equipped_slots": state.equipped.lock().unwrap().len(),
         "rating": state.rating.lock().unwrap().clone(),
+        "rotations": state.skills_plan.lock().unwrap().as_ref().map(|p| p["rotations"].clone()),
+        "skills_busy": state.skills_busy.load(std::sync::atomic::Ordering::SeqCst),
         "hotkeys": settings.hotkeys,
         "unlocked": state.overlay_unlocked.load(std::sync::atomic::Ordering::SeqCst)
     })
@@ -239,8 +242,37 @@ fn open_in_game_chat(app: AppHandle) {
     let _ = app.emit("open-conversation", id);
 }
 
+/// Appends a line to debug.log in the app data folder (diagnostics).
+pub fn debug_log(state: &AppState, msg: &str) {
+    use std::io::Write;
+    let path = state.data_dir.join("debug.log");
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        let t = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        let _ = writeln!(f, "{t} {msg}");
+    }
+}
+
+#[tauri::command]
+fn log_debug(state: tauri::State<'_, AppState>, msg: String) {
+    debug_log(&state, &msg);
+}
+
+#[tauri::command]
+fn skills_snapshot(state: tauri::State<'_, AppState>) -> serde_json::Value {
+    skills::snapshot(&state)
+}
+
+#[tauri::command]
+fn run_skills(app: AppHandle) {
+    skills::run(app);
+}
+
 #[tauri::command]
 fn rate_now(app: AppHandle) {
+    debug_log(&app.state::<AppState>(), "rate_now invoked");
     rating::run(app);
 }
 
@@ -278,7 +310,23 @@ fn spawn_overlay_hit_test(app: AppHandle) {
             let ignore = !(unlocked || over().unwrap_or(false));
             if ignore != ignoring {
                 ignoring = ignore;
-                let _ = w.set_ignore_cursor_events(ignore);
+                let result = w.set_ignore_cursor_events(ignore);
+                let cursor = app
+                    .cursor_position()
+                    .map(|p| format!("{:.0},{:.0}", p.x, p.y))
+                    .unwrap_or_default();
+                let origin = w
+                    .inner_position()
+                    .map(|p| format!("{},{}", p.x, p.y))
+                    .unwrap_or_default();
+                debug_log(
+                    &state,
+                    &format!(
+                        "hit-test clickable={} cursor={cursor} window={origin} scale={:?} result={result:?}",
+                        !ignore,
+                        w.scale_factor().ok()
+                    ),
+                );
             }
         }
     });
@@ -368,6 +416,9 @@ fn main() {
             rating_snapshot,
             rate_build,
             rate_now,
+            log_debug,
+            skills_snapshot,
+            run_skills,
             overlay_action,
             open_in_game_chat,
             overlay_regions,

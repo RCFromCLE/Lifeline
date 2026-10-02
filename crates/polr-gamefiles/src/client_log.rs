@@ -266,15 +266,21 @@ impl LogTailer {
         self.offset += buf.len() as u64;
         self.partial.extend_from_slice(&buf);
 
+        // Split in one pass and drop the consumed bytes once at the end:
+        // draining line by line from the front is quadratic and took minutes
+        // on a 13 MB log.
         let mut lines = Vec::new();
-        while let Some(pos) = self.partial.iter().position(|&b| b == b'\n') {
-            let raw: Vec<u8> = self.partial.drain(..=pos).collect();
-            let text = String::from_utf8_lossy(&raw);
+        let mut start = 0;
+        while let Some(rel) = self.partial[start..].iter().position(|&b| b == b'\n') {
+            let end = start + rel;
+            let text = String::from_utf8_lossy(&self.partial[start..end]);
             let text = text.trim_end_matches(['\r', '\n']);
             if !text.is_empty() {
                 lines.push(text.to_owned());
             }
+            start = end + 1;
         }
+        self.partial.drain(..start);
         Ok(lines)
     }
 }

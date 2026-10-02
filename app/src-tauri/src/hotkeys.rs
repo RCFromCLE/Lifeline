@@ -104,6 +104,10 @@ pub fn run_named(app: &AppHandle, name: &str) -> Result<(), String> {
         "toggle_overlay" => Action::ToggleOverlay,
         "record_equipped" => Action::RecordEquipped,
         "move_overlay" => Action::MoveOverlay,
+        "skills" => {
+            crate::skills::run(app.clone());
+            return Ok(());
+        }
         other => return Err(format!("unknown action {other}")),
     };
     run(app, action);
