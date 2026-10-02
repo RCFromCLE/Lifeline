@@ -310,6 +310,9 @@ pub struct AppState {
     pub listings: Mutex<std::collections::HashMap<String, String>>,
     /// Full listing data from recent searches (for image cards).
     pub listing_data: Mutex<std::collections::HashMap<String, lifeline_trade::Listing>>,
+    /// A Travel pressed while the trade window wasn't on pathofexile.com
+    /// (still loading, or the player signing in): (listing id, search id).
+    pub pending_travel: Mutex<Option<(String, String)>>,
     /// Item text the player recorded as equipped, by item class ("Boots").
     pub equipped: Mutex<std::collections::BTreeMap<String, String>>,
     pub overlay_unlocked: std::sync::atomic::AtomicBool,
@@ -348,6 +351,7 @@ impl AppState {
             market: lifeline_trade::Market::new(),
             listings: Mutex::new(Default::default()),
             listing_data: Mutex::new(Default::default()),
+            pending_travel: Mutex::new(None),
             equipped: Mutex::new(load_equipped(&data_dir)),
             overlay_unlocked: std::sync::atomic::AtomicBool::new(false),
             rating: Mutex::new(

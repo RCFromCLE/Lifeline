@@ -94,7 +94,7 @@ fn tool_definitions() -> Value {
         },
         {
             "name": tools::RATE_LISTINGS,
-            "description": "Show trade listings to the player as cards with the item image, price, mods, a colour-coded badge with your delta_pct (how much better + or worse − the item is for the current build than the reference) and a Travel button. Use after trade_search.",
+            "description": "Show trade listings to the player as cards with the item image, price, mods, a colour-coded badge with your delta_pct (how much better + or worse − the item is for the current build than the reference) and a Travel button. Use after trade_search, rating every listing it returned (up to 20).",
             "inputSchema": {"type": "object", "properties": {
                 "search_id": {"type": "string"},
                 "compared_to": {"type": "string", "description": "what the percentages compare against, e.g. 'your equipped Hunting Shoes'"},
@@ -289,6 +289,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
         n if n == tools::RATE_LISTINGS => {
             let compared_to = args["compared_to"].as_str().unwrap_or("your current item").to_owned();
             let data = state.listing_data.lock().unwrap().clone();
+            let searches = state.listings.lock().unwrap().clone();
             let mut cards = Vec::new();
             for r in args["ratings"].as_array().into_iter().flatten() {
                 let Some(id) = r["listing_id"].as_str() else { continue };
@@ -297,9 +298,12 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                     "listing_id": l.id, "icon": l.icon, "name": l.name, "base": l.base, "price": l.price,
                     "seller": l.seller, "instant_buyout": l.instant_buyout, "requires": l.requires,
                     "item_level": l.item_level, "corrupted": l.corrupted, "mods": l.mods,
-                    "delta_pct": r["delta_pct"].as_f64().unwrap_or(0.0), "verdict": r["verdict"]
+                    "delta_pct": r["delta_pct"].as_f64().unwrap_or(0.0), "verdict": r["verdict"],
+                    "search_id": searches.get(id),
                 }));
             }
+            // Best for the build first.
+            cards.sort_by(|a, b| b["delta_pct"].as_f64().unwrap_or(0.0).total_cmp(&a["delta_pct"].as_f64().unwrap_or(0.0)));
             if cards.is_empty() {
                 return Err("none of those listing_ids are from a recent trade_search".into());
             }
@@ -345,7 +349,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             if args["sort"].is_object() {
                 body["sort"] = args["sort"].clone();
             }
-            let max = args["max_listings"].as_u64().unwrap_or(10) as usize;
+            let max = (args["max_listings"].as_u64().unwrap_or(20) as usize).clamp(1, 20);
             let _ = app.emit(
                 "ai",
                 json!({"conv": conv, "type": "tool", "text": "searching market…"}),

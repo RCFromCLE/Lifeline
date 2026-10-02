@@ -329,8 +329,8 @@ async fn open_trade_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn travel(app: AppHandle, listing_id: String) -> Result<String, String> {
-    market::travel(&app, &listing_id)
+async fn travel(app: AppHandle, listing_id: String, search_id: Option<String>) -> Result<String, String> {
+    market::travel(&app, &listing_id, search_id.as_deref())
 }
 
 #[tauri::command]

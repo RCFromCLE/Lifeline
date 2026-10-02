@@ -197,9 +197,11 @@ function badgeClass(p) {
 function renderMarket(m) {
   const wrap = document.createElement("div");
   wrap.className = "market";
-  wrap.innerHTML = `<div class="market-head">Market · ± vs ${escapeHtml(m.compared_to)}</div><div class="market-grid"></div>`;
+  const cards = [...m.cards].sort((a, b) => (b.delta_pct || 0) - (a.delta_pct || 0));
+  const SHOWN = 8;
+  wrap.innerHTML = `<div class="market-head">Market · ${cards.length} listing${cards.length === 1 ? "" : "s"} graded · ± vs ${escapeHtml(m.compared_to)}</div><div class="market-grid"></div>`;
   const grid = wrap.querySelector(".market-grid");
-  for (const c of m.cards) {
+  cards.forEach((c, i) => {
     const pct = Math.round(c.delta_pct);
     const card = document.createElement("div");
     card.className = "mcard";
@@ -218,9 +220,23 @@ function renderMarket(m) {
     const go = card.querySelector(".go");
     if (go) go.addEventListener("click", async () => {
       go.disabled = true;
-      try { toast(await invoke("travel", { listingId: c.listing_id })); } catch (e) { toast(e); go.disabled = false; }
+      try { toast(await invoke("travel", { listingId: c.listing_id, searchId: c.search_id || null }), "ok"); }
+      catch (e) { toast(e, "err"); go.disabled = false; }
     });
+    if (i >= SHOWN) card.classList.add("hidden");
     grid.appendChild(card);
+  });
+  if (cards.length > SHOWN) {
+    const more = document.createElement("button");
+    more.className = "ghost market-more";
+    more.textContent = `Show all ${cards.length}`;
+    more.addEventListener("click", () => {
+      const open = more.dataset.open === "1";
+      grid.querySelectorAll(".mcard").forEach((el, i) => el.classList.toggle("hidden", open && i >= SHOWN));
+      more.dataset.open = open ? "" : "1";
+      more.textContent = open ? `Show all ${cards.length}` : `Show top ${SHOWN}`;
+    });
+    wrap.appendChild(more);
   }
   return wrap;
 }

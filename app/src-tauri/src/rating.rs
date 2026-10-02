@@ -152,8 +152,9 @@ fn shop(app: &AppHandle, state: &AppState) {
         );
         let prompt = format!(
             "Shop for this upgrade for the player.\nSlot: {slot}\nGoal: {}\nWhy: {}\nLook for: {}\nBudget: at most {budget} per item.\n\
-             Search Instant Buyout listings in their league within the budget, then call rate_listings with the best \
-             3–4 listings, rated against what they wear in that slot (equipped_items) or the plan. Reply with one sentence.",
+             Search Instant Buyout listings in their league within the budget (trade_search with max_listings 20), then \
+             call rate_listings once with every listing returned (up to 20), each rated against what they wear in that \
+             slot (equipped_items) or the plan. Reply with one sentence.",
             rec["title"].as_str().unwrap_or(""),
             rec["why"].as_str().unwrap_or(""),
             rec["look_for"].as_str().unwrap_or(""),
