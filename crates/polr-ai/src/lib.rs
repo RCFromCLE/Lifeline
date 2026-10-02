@@ -6,6 +6,7 @@
 
 pub mod agents;
 pub mod jobs;
+pub mod mcp_server;
 pub mod stream;
 pub mod tools;
 

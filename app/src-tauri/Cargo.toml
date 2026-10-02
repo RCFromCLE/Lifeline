@@ -17,10 +17,12 @@ polr-data = { path = "../../crates/polr-data" }
 polr-gamefiles = { path = "../../crates/polr-gamefiles" }
 polr-model = { path = "../../crates/polr-model" }
 polr-pob = { path = "../../crates/polr-pob" }
+polr-trade = { path = "../../crates/polr-trade" }
 serde.workspace = true
 serde_json.workspace = true
 tauri = "2"
 tauri-plugin-global-shortcut = "2"
+tiny_http = "0.12.0"
 ureq = "3.2.1"
 windows = { version = "0.61.3", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }
 

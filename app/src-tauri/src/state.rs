@@ -154,6 +154,18 @@ impl AppState {
     }
 }
 
+/// An action the AI proposed; nothing happens until the player confirms.
+#[derive(Debug, Clone, Serialize)]
+pub struct PendingAction {
+    pub id: u64,
+    pub conv: u64,
+    /// `travel` or `open_search`.
+    pub kind: String,
+    pub summary: String,
+    pub listing_id: Option<String>,
+    pub search_id: Option<String>,
+}
+
 pub struct AppState {
     pub data_dir: PathBuf,
     pub character: Mutex<Character>,
@@ -161,6 +173,12 @@ pub struct AppState {
     pub imported: Mutex<Option<Imported>>,
     pub tree: Mutex<Option<Arc<PassiveTree>>>,
     pub conversations: Mutex<Vec<Conversation>>,
+    pub actions: Mutex<Vec<PendingAction>>,
+    pub market: polr_trade::Market,
+    /// listing id → search id, so travel can re-fetch the listing.
+    pub listings: Mutex<std::collections::HashMap<String, String>>,
+    /// (port, bearer token) of the local MCP server.
+    pub mcp: Mutex<Option<(u16, String)>>,
     pub settings: Mutex<Settings>,
 }
 
@@ -173,6 +191,10 @@ impl AppState {
             imported: Mutex::new(None),
             tree: Mutex::new(None),
             conversations: Mutex::new(load_conversations(&data_dir)),
+            actions: Mutex::new(Vec::new()),
+            market: polr_trade::Market::new(),
+            listings: Mutex::new(Default::default()),
+            mcp: Mutex::new(None),
             settings: Mutex::new(settings),
             data_dir,
         }

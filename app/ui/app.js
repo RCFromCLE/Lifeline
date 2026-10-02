@@ -113,6 +113,7 @@ async function selectConv(id) {
     if (m.error) div.classList.add("error");
   }
   renderLive(id);
+  renderActions(id);
 }
 
 listen("conversations", ({ payload }) => { convs = payload; renderConvList(); });
@@ -145,6 +146,40 @@ listen("ai", ({ payload: e }) => {
   }
 });
 
+// ---- proposed actions (travel / open search) — only happen on a press ----
+const actions = new Map(); // id -> action
+
+function actionCard(a) {
+  const div = document.createElement("div");
+  div.className = "action-card";
+  div.dataset.action = a.id;
+  const label = a.kind === "travel" ? "Travel to hideout" : "Open search";
+  div.innerHTML = `<div class="s"><div class="k">${a.kind === "travel" ? "Buy" : "Trade search"}</div>${escapeHtml(a.summary)}</div>
+    <button class="primary go">${label}</button><button class="ghost no">Dismiss</button>`;
+  div.querySelector(".go").addEventListener("click", async () => {
+    try { toast(await invoke("confirm_action", { id: a.id })); } catch (e) { toast(e); }
+    actions.delete(a.id); div.remove();
+  });
+  div.querySelector(".no").addEventListener("click", () => { invoke("dismiss_action", { id: a.id }); actions.delete(a.id); div.remove(); });
+  return div;
+}
+
+function renderActions(conv) {
+  for (const a of actions.values()) {
+    if (a.conv === conv && !$("chat").querySelector(`[data-action="${a.id}"]`)) {
+      const live = liveMessage();
+      if (live) $("chat").insertBefore(actionCard(a), live); else $("chat").appendChild(actionCard(a));
+    }
+  }
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+
+listen("action", ({ payload: a }) => {
+  actions.set(a.id, a);
+  if (a.conv === active) renderActions(a.conv);
+  else { unread.add(a.conv); renderConvList(); }
+});
+$("btn-trade-login").addEventListener("click", () => invoke("open_trade_window").catch(toast));
 function sendAsk() {
   const text = $("ask-input").value.trim();
   if (!text || active === null) return;
@@ -282,6 +317,7 @@ listen("focus-chat", () => {
   if (snap.imported) renderImport(snap.imported);
   refreshPlannerFiles();
   convs = snap.conversations;
+  for (const a of await invoke("pending_actions")) actions.set(a.id, a);
   const first = convs.filter(c => !c.in_game).sort((a, b) => b.id - a.id)[0];
   if (first) await selectConv(first.id);
   else await selectConv(await invoke("new_conversation"));

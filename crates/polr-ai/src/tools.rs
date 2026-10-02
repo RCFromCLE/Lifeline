@@ -27,6 +27,7 @@ pub const WIKI: &str = "wiki";
 pub const VALIDATE_BUILD: &str = "validate_build";
 pub const PRICE: &str = "price";
 pub const TRADE_SEARCH: &str = "trade_search";
+pub const TRADE_FIND_STAT: &str = "trade_find_stat";
 pub const FILTER_PREVIEW: &str = "filter_preview";
 
 /// The only way any agent can change something outside the conversation:
@@ -67,7 +68,19 @@ pub const ALL: &[&str] = &[
     VALIDATE_BUILD,
     PRICE,
     TRADE_SEARCH,
+    TRADE_FIND_STAT,
     FILTER_PREVIEW,
+    PROPOSE_ACTION,
+];
+
+/// Tools the app's MCP server implements today; the rest of [`ALL`] arrives
+/// with the game-data server (PLAN.md §13 M3).
+pub const IMPLEMENTED: &[&str] = &[
+    CHARACTER_STATE,
+    BUILD_PLAN,
+    TRADE_FIND_STAT,
+    TRADE_SEARCH,
+    PRICE,
     PROPOSE_ACTION,
 ];
 

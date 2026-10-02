@@ -136,3 +136,10 @@ tr.chosen td:first-child::before { content: "★ "; }
   transition: transform .25s; max-width: 70%;
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
+
+.action-card {
+  align-self: flex-start; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 10px 12px; border-radius: 8px; border: 1px solid #8a6430; background: #2b2113; max-width: 92%;
+}
+.action-card .s { flex: 1; min-width: 200px; }
+.action-card .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }

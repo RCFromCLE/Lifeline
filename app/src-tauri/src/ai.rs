@@ -21,7 +21,7 @@ pub enum Origin {
     Hotkey,
 }
 
-fn companion(state: &AppState) -> Result<ClaudeCli, String> {
+fn companion(state: &AppState, conv: u64) -> Result<ClaudeCli, String> {
     static WRITE_AGENTS: Once = Once::new();
     let work = state.data_dir.join("claude");
     std::fs::create_dir_all(&work).map_err(|e| e.to_string())?;
@@ -33,10 +33,17 @@ fn companion(state: &AppState) -> Result<ClaudeCli, String> {
     cli.agents_file = Some(work.join(agents::AGENTS_FILE));
     cli.builtin_tools.push("Agent".into());
     cli.allowed_tools.push("Agent".into());
+    if let Some(config) = crate::mcp::config_for(state, conv) {
+        let path = work.join(format!("mcp-{conv}.json"));
+        std::fs::write(&path, config).map_err(|e| e.to_string())?;
+        cli.mcp_config = Some(path);
+        cli.allowed_tools
+            .extend(polr_ai::tools::qualified(polr_ai::tools::IMPLEMENTED));
+    }
     cli.disallowed_tools = agents::BUILT_IN_AGENTS.iter().map(|a| format!("Agent({a})")).collect();
     Ok(cli)
 }
-fn current_stage(act: Option<u8>, area_level: u32) -> Stage {
+pub fn current_stage(act: Option<u8>, area_level: u32) -> Stage {
     match act {
         Some(n) => Stage::Act(n),
         None if area_level >= 65 => Stage::Endgame,
@@ -49,9 +56,10 @@ fn context(state: &AppState) -> String {
     let c = state.character.lock().unwrap().clone();
     let league = state.settings.lock().unwrap().league.clone();
     let mut lines = vec![
-        "[Live context from PathOfLeastResistance. The polr tools are not connected in this build yet, \
-         so use this context plus web lookups (poe2db.tw, poe2wiki.net, pathofexile.com) and say what you \
-         could not verify.]"
+        "[Live context from PathOfLeastResistance. Connected polr tools: character_state, build_plan, \
+         trade_find_stat, trade_search, price, propose_action (market: delegate buying/selling to market-scout). \
+         Game-data lookups are not connected yet, so use web lookups (poe2db.tw, poe2wiki.net, pathofexile.com) \
+         for mechanics and say what you could not verify.]"
             .to_string(),
         format!("League: {league}"),
     ];
@@ -211,7 +219,7 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
             .iter()
             .find(|c| c.id == conv_id)
             .and_then(|c| c.session.clone());
-        let result = companion(&state).and_then(|cli| {
+        let result = companion(&state, conv_id).and_then(|cli| {
             cli.run_turn(&prompt, resume.as_deref(), |event| match event {
                 CliEvent::TextDelta(text) => emit(&app, conv_id, json!({"type": "delta", "text": text})),
                 CliEvent::Assistant { tool_uses, .. } => {
@@ -301,12 +309,25 @@ mod tests {
             let mut convs = state.conversations.lock().unwrap();
             for c in convs.iter_mut() {
                 let (q, a) = if c.id == boots {
-                    ("Find boots with cold res", "Bought Stormrider Boots: 25% MS, +32% cold res.")
+                    (
+                        "Find boots with cold res",
+                        "Bought Stormrider Boots: 25% MS, +32% cold res.",
+                    )
                 } else {
                     ("Is this ring good?", "Keep it: +40 life, +20% fire.")
                 };
-                c.messages.push(Message { role: "user".into(), label: "Chat".into(), text: q.into(), error: false });
-                c.messages.push(Message { role: "ai".into(), label: "Companion".into(), text: a.into(), error: false });
+                c.messages.push(Message {
+                    role: "user".into(),
+                    label: "Chat".into(),
+                    text: q.into(),
+                    error: false,
+                });
+                c.messages.push(Message {
+                    role: "ai".into(),
+                    label: "Companion".into(),
+                    text: a.into(),
+                    error: false,
+                });
             }
             convs.iter_mut().find(|c| c.id == boots).unwrap().busy = true;
         }

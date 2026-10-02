@@ -52,7 +52,7 @@ cargo build --release -p polr-app
 | `Alt+Shift+A` | **Ask** — brings the app up with the chat focused |
 | `Alt+Shift+O` | **HUD overlay** — show/hide the click-through overlay over the game |
 
-Tabs: **Play** (companion chat, live game feed, usage meters), **Build** (paste a PoB code or
+Tabs: **Play** (parallel conversations that know about each other, live game feed, usage meters; ask the market in plain words — the market scout searches, ranks listings for your build and gives you a **Travel to hideout** button; press **Trade site login** once first), **Build** (paste a PoB code or
 pobb.in link → act-by-act stages → write them into the in-game Build Planner), **Hotkeys & settings**
 (hotkeys, league — default HC Forbidden Rites). Play PoE2 in windowed fullscreen for the overlay.
 

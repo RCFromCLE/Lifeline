@@ -167,6 +167,7 @@ pub fn roster() -> Vec<AgentSpec> {
                     BUILD_PLAN,
                     CHARACTER_STATE,
                     TRADE_SEARCH,
+                    TRADE_FIND_STAT,
                     PRICE,
                     LOOKUP_BASE,
                     LOOKUP_MOD,

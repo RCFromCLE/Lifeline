@@ -1,0 +1,16 @@
+[package]
+name = "polr-trade"
+description = "PoE2 market: trade2 search/fetch with header-driven rate limiting, stat lookup, poe.ninja prices."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ureq = "3"
+regex.workspace = true
+
+[dev-dependencies]
+polr-ai = { path = "../polr-ai" }

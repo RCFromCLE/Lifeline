@@ -8,6 +8,8 @@ mod builds;
 mod game;
 mod hotkeys;
 mod input;
+mod market;
+mod mcp;
 mod state;
 
 use serde::Serialize;
@@ -110,6 +112,26 @@ fn conversation(state: tauri::State<'_, AppState>, conv: u64) -> Option<Conversa
         .cloned()
 }
 #[tauri::command]
+fn confirm_action(app: AppHandle, id: u64) -> Result<String, String> {
+    market::confirm(&app, id)
+}
+
+#[tauri::command]
+fn dismiss_action(state: tauri::State<'_, AppState>, id: u64) {
+    state.actions.lock().unwrap().retain(|a| a.id != id);
+}
+
+#[tauri::command]
+fn pending_actions(state: tauri::State<'_, AppState>) -> Vec<state::PendingAction> {
+    state.actions.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn open_trade_window(app: AppHandle) -> Result<(), String> {
+    market::open_trade_window(&app, None).map(|_| ())
+}
+
+#[tauri::command]
 fn toggle_overlay(app: AppHandle) {
     hotkeys::toggle_overlay(&app);
 }
@@ -159,6 +181,10 @@ fn main() {
             if !failed.is_empty() {
                 eprintln!("hotkeys not registered: {failed:?}");
             }
+            match mcp::start(handle.clone()) {
+                Ok(server) => *app.state::<AppState>().mcp.lock().unwrap() = Some(server),
+                Err(e) => eprintln!("tool server not started: {e}"),
+            }
             create_overlay(&handle)?;
             game::spawn_log_watcher(handle);
             Ok(())
@@ -175,6 +201,10 @@ fn main() {
             delete_conversation,
             conversation,
             toggle_overlay,
+            confirm_action,
+            dismiss_action,
+            pending_actions,
+            open_trade_window,
             save_settings
         ])
         .run(tauri::generate_context!())
