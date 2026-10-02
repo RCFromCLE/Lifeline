@@ -6,3 +6,4 @@
 *.log
 /app/src-tauri/gen
 /target-dist
+**/target-dist/
