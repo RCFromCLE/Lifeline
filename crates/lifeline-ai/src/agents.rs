@@ -274,13 +274,13 @@ pub fn roster() -> Vec<AgentSpec> {
             tools: tool_list(
                 &[
                     GAME_DATA,
-                    &[CHARACTER_STATE, BUILD_PLAN, EQUIPPED_ITEMS, CAMPAIGN_REWARDS],
+                    &[CHARACTER_STATE, BUILD_PLAN, EQUIPPED_ITEMS, CAMPAIGN_REWARDS, BUILD_ALIGNMENT],
                 ],
                 &[STRUCTURED_OUTPUT],
             ),
             model: MODEL,
             effort: Some("high"),
-            max_turns: Some(30),
+            max_turns: Some(40),
         },
         AgentSpec {
             name: SKILL_COACH,

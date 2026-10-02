@@ -88,6 +88,7 @@ fn rate(app: &AppHandle, state: &AppState) -> Result<(), String> {
     if state.imported.lock().unwrap().is_none() {
         lifeline_ai::cap_grade(&mut rating, "C-", "no build plan to measure progress against.");
     }
+    complete_pieces(&mut rating);
     let stage = match c.act {
         Some(a) => format!("Act {a}"),
         None if c.area_level >= 65 => "Endgame".into(),
@@ -104,6 +105,34 @@ fn rate(app: &AppHandle, state: &AppState) -> Result<(), String> {
     state.rating_cards.lock().unwrap().clear();
     let _ = app.emit("rating", snapshot(state));
     Ok(())
+}
+
+/// Every gear slot shows up (ungraded ones as unrecorded), and pieces are
+/// ordered by group the way the screen lists them.
+fn complete_pieces(rating: &mut lifeline_ai::Rating) {
+    let norm = |s: &str| s.to_lowercase().replace(['-', ' '], "");
+    for slot in lifeline_ai::GEAR_SLOTS {
+        if !rating.pieces.iter().any(|p| p.group == "Gear" && norm(&p.name) == norm(slot)) {
+            rating.pieces.push(lifeline_ai::RatingPiece {
+                group: "Gear".into(),
+                name: slot.into(),
+                grade: "F".into(),
+                have: String::new(),
+                note: "Not recorded".into(),
+                verified: false,
+            });
+        }
+    }
+    let group = |g: &str| lifeline_ai::PIECE_GROUPS.iter().position(|x| *x == g).unwrap_or(usize::MAX);
+    let slot = |p: &lifeline_ai::RatingPiece| {
+        if p.group == "Gear" {
+            lifeline_ai::GEAR_SLOTS.iter().position(|s| norm(s) == norm(&p.name)).unwrap_or(usize::MAX)
+        } else {
+            0
+        }
+    };
+    // Stable: the rater's order within a group is kept (except gear slots).
+    rating.pieces.sort_by_key(|p| (group(&p.group), slot(p)));
 }
 
 fn shop(app: &AppHandle, state: &AppState) {
@@ -145,4 +174,37 @@ fn shop(app: &AppHandle, state: &AppState) {
         }
     }
     let _ = app.emit("rating-status", json!({"busy": false, "text": ""}));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_gear_slot_is_listed_in_order() {
+        let piece = |group: &str, name: &str| lifeline_ai::RatingPiece {
+            group: group.into(),
+            name: name.into(),
+            grade: "B".into(),
+            have: String::new(),
+            note: String::new(),
+            verified: true,
+        };
+        let mut r = lifeline_ai::Rating {
+            grade: "C".into(),
+            score: 40.0,
+            summary: String::new(),
+            explanation: String::new(),
+            categories: vec![],
+            pieces: vec![piece("Defences", "Fire res"), piece("Gear", "Boots"), piece("Skills", "Spear Throw"), piece("Gear", "off hand")],
+            recommendations: vec![],
+        };
+        complete_pieces(&mut r);
+        let gear: Vec<&str> = r.pieces.iter().filter(|p| p.group == "Gear").map(|p| p.name.as_str()).collect();
+        assert_eq!(gear.len(), 10);
+        assert_eq!(&gear[..2], &["Weapon", "off hand"]);
+        assert_eq!(r.pieces[10].name, "Spear Throw");
+        assert_eq!(r.pieces[11].name, "Fire res");
+        assert!(r.pieces.iter().any(|p| p.name == "Weapon" && p.grade == "F" && !p.verified));
+    }
 }

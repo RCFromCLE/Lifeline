@@ -136,11 +136,19 @@ pub fn rating_schema() -> Value {
             "categories": {"type": "array", "items": {"type": "object", "properties": {
                 "name": {"type": "string"}, "grade": {"type": "string", "enum": GRADES}, "note": {"type": "string"}
             }, "required": ["name", "grade", "note"]}},
+            "pieces": {"type": "array", "items": {"type": "object", "properties": {
+                "group": {"type": "string", "enum": PIECE_GROUPS},
+                "name": {"type": "string"},
+                "grade": {"type": "string", "enum": GRADES},
+                "have": {"type": "string"},
+                "note": {"type": "string"},
+                "verified": {"type": "boolean"}
+            }, "required": ["group", "name", "grade", "note", "verified"]}},
             "recommendations": {"type": "array", "items": {"type": "object", "properties": {
                 "slot": {"type": "string"}, "title": {"type": "string"}, "why": {"type": "string"}, "look_for": {"type": "string"}
             }, "required": ["slot", "title", "why", "look_for"]}}
         },
-        "required": ["grade", "score", "summary", "explanation", "categories", "recommendations"]
+        "required": ["grade", "score", "summary", "explanation", "categories", "pieces", "recommendations"]
     })
 }
 
@@ -151,7 +159,31 @@ pub struct Rating {
     pub summary: String,
     pub explanation: String,
     pub categories: Vec<RatingCategory>,
+    /// Every graded piece: each gear slot, skill, defence, passives, flasks.
+    #[serde(default)]
+    pub pieces: Vec<RatingPiece>,
     pub recommendations: Vec<Recommendation>,
+}
+
+/// Groups the rating screen shows pieces under, in order.
+pub const PIECE_GROUPS: [&str; 5] = ["Gear", "Skills", "Defences", "Passives", "Flasks & charms"];
+
+/// Gear slots every rating grades, recorded or not.
+pub const GEAR_SLOTS: [&str; 10] =
+    ["Weapon", "Off-hand", "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Belt"];
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RatingPiece {
+    pub group: String,
+    pub name: String,
+    pub grade: String,
+    /// What the character has there (item name, skill and supports, value).
+    #[serde(default)]
+    pub have: String,
+    pub note: String,
+    /// False when the game doesn't show it (unrecorded slot, gems).
+    #[serde(default)]
+    pub verified: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -355,6 +387,7 @@ mod tests {
             summary: String::new(),
             explanation: "Looks fine.".into(),
             categories: vec![],
+            pieces: vec![],
             recommendations: vec![],
         };
         cap_grade(&mut r, "D+", "no gear recorded.");

@@ -274,6 +274,7 @@ function renderRating(snap) {
   $("r-cats").innerHTML = r ? r.categories.map(c => `
     <div class="r-cat tip"><span class="grade small ${gradeClass(c.grade)}">${escapeHtml(c.grade)}</span>
       <div><div class="n">${escapeHtml(c.name)}</div><div class="t">${escapeHtml(c.note)}</div></div></div>`).join("") : "";
+  renderPieces(r);
   const recs = r ? r.recommendations : [];
   $("r-recs").innerHTML = recs.length ? "" : "<p class='hint'>None yet.</p>";
   recs.forEach((rec, i) => {
@@ -287,6 +288,33 @@ function renderRating(snap) {
     if (cards) holder.appendChild(renderMarket(cards));
     else if (i < 3) holder.innerHTML = `<p class="hint">${snap.busy ? "Searching the market…" : "No market picks yet."}</p>`;
   });
+}
+
+// Every graded piece, grouped: gear slots, skills, defences, passives, flasks.
+function renderPieces(r) {
+  const pieces = r?.pieces || [];
+  if (!pieces.length) {
+    $("r-pieces").innerHTML = `<p class="hint">${r ? "Rate again to grade each slot, skill and defence." : "Rate to grade each slot, skill and defence."}</p>`;
+    return;
+  }
+  const groups = [];
+  for (const p of pieces) {
+    let g = groups.find(x => x.name === p.group);
+    if (!g) groups.push(g = { name: p.group, items: [] });
+    g.items.push(p);
+  }
+  $("r-pieces").innerHTML = groups.map(g => `
+    <div class="r-group"><h3>${escapeHtml(g.name)} <span class="hint">${g.items.length}</span></h3>
+      <div class="r-pieces">${g.items.map(p => `
+        <div class="r-piece${p.verified ? "" : " unverified"}">
+          <span class="grade small ${gradeClass(p.grade)}">${escapeHtml(p.grade)}</span>
+          <div class="body">
+            <div class="n">${escapeHtml(p.name)}${p.verified ? "" : ` <span class="unv" title="The game doesn't show this; graded from the plan or missing data">unverified</span>`}</div>
+            ${p.have ? `<div class="have">${escapeHtml(p.have)}</div>` : ""}
+            <div class="t">${escapeHtml(p.note)}</div>
+          </div>
+        </div>`).join("")}
+      </div></div>`).join("");
 }
 
 $("r-run").addEventListener("click", () => {
