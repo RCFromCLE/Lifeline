@@ -215,6 +215,8 @@ pub fn spawn_log_watcher(app: AppHandle) {
                     let _ = app.emit("character", &character);
                 }
                 if !backfilled {
+                    // The window may have asked for the feed before the log was read.
+                    let _ = app.emit("feed-all", state.feed.lock().unwrap().clone());
                     let c = state.character.lock().unwrap().clone();
                     last_rated_act = c.act;
                     crate::debug_log(

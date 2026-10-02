@@ -30,7 +30,10 @@ function renderCharacter(c) {
 
 function feedItem(item) {
   const li = document.createElement("li");
-  li.innerHTML = `<time>${escapeHtml(item.time.slice(11, 16))}</time><span class="k-${item.kind}">${escapeHtml(item.text)}</span>`;
+  // Log times are "YYYY/MM/DD HH:MM:SS"; show the date too when it isn't today.
+  const d = new Date(), today = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  const when = item.time.startsWith(today) ? item.time.slice(11, 16) : `${item.time.slice(5, 10).replace("/", "-")} ${item.time.slice(11, 16)}`;
+  li.innerHTML = `<time>${escapeHtml(when)}</time><span class="k-${item.kind}">${escapeHtml(item.text)}</span>`;
   return li;
 }
 
@@ -453,6 +456,7 @@ document.querySelectorAll(".sound-tests button").forEach(b => b.addEventListener
 listen("character", ({ payload }) => renderCharacter(payload));
 listen("feed", ({ payload }) => { $("feed").prepend(feedItem(payload)); if (payload.kind === "death") toast(payload.text); });
 listen("usage", ({ payload }) => renderUsage(payload));
+listen("feed-all", ({ payload }) => renderFeed(payload));
 listen("notice", ({ payload }) => toast(payload));
 listen("item", () => toast("Checking item…"));
 listen("open-conversation", ({ payload: id }) => {

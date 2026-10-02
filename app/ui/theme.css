@@ -284,3 +284,6 @@ select { background: rgba(10, 7, 5, 0.85); color: var(--text); border: 1px solid
 .wl-hint { flex: 1; text-align: center; color: var(--muted); font-size: 12px; }
 .update { font-family: var(--display); color: var(--gold-3); border-color: #b9822f; background: linear-gradient(180deg, #5a3c14, #3a2509); box-shadow: 0 0 14px rgba(232, 160, 70, 0.35); }
 .update.hidden { display: none; }
+
+/* anything marked hidden stays hidden (setup banner etc.) */
+.hidden { display: none !important; }
