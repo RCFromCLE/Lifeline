@@ -189,14 +189,26 @@ impl GameData {
             }
             (None, Vec::new())
         };
+        // Description from the first active skill; types from all of them
+        // (crossbow ammo and other gems grant several skills, and supports
+        // apply to any of them).
         let skill_info = |granted: &[String]| -> (Option<String>, Vec<String>) {
+            let mut desc = None;
+            let mut types: Vec<String> = Vec::new();
             for id in granted {
                 let active = &skills[id]["active_skill"];
                 if active.is_object() {
-                    return (active["description"].as_str().map(plain), strings(&active["types"]));
+                    if desc.is_none() {
+                        desc = active["description"].as_str().map(plain);
+                    }
+                    for t in strings(&active["types"]) {
+                        if !types.contains(&t) {
+                            types.push(t);
+                        }
+                    }
                 }
             }
-            (None, Vec::new())
+            (desc, types)
         };
 
         let mut gems = Vec::new();
@@ -364,10 +376,23 @@ impl GameData {
             && !(!support.support_excluded.is_empty() && type_rule(&support.support_excluded, &skill.skill_types))
     }
 
-    /// Every support that works with `skill` (game rules), the game's
-    /// recommended ones first, then lineage, then by name.
+    /// Whether `skill` makes minions or companions. Supports on such gems
+    /// support the minions' own skills, whose types the data doesn't list,
+    /// so the type rules can't rule a support out.
+    pub fn is_minion_skill(skill: &Gem) -> bool {
+        skill.skill_types.iter().any(|t| t == "Minion" || t == "Companion")
+    }
+
+    /// `is_compatible`, or not ruled out because `skill` is a minion skill.
+    pub fn may_support(support: &Gem, skill: &Gem) -> bool {
+        Self::is_compatible(support, skill) || (support.kind == "support" && Self::is_minion_skill(skill))
+    }
+
+    /// Every support that works with `skill` (game rules; for minion skills,
+    /// every support not ruled out), the game's recommended ones first, then
+    /// lineage, then by name.
     pub fn supports_for(&self, skill: &Gem, limit: usize) -> Vec<&Gem> {
-        let mut found: Vec<&Gem> = self.gems.iter().filter(|g| Self::is_compatible(g, skill)).collect();
+        let mut found: Vec<&Gem> = self.gems.iter().filter(|g| Self::may_support(g, skill)).collect();
         found.sort_by_key(|g| {
             (
                 !skill.recommended_supports.contains(&g.name),

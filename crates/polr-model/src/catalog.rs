@@ -119,7 +119,7 @@ pub fn check(a: &Archetype, tree: &PassiveTree, data: &GameData) -> Vec<String> 
                         .collect();
                     p.push(format!("unknown support '{sup}' (close: {})", near.join(", ")));
                 }
-                Some(sg) if !GameData::is_compatible(sg, gem) => {
+                Some(sg) if !GameData::may_support(sg, gem) => {
                     p.push(format!("'{}' can't support '{}' (game rules)", sg.name, gem.name))
                 }
                 Some(_) => {}

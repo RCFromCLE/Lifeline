@@ -354,7 +354,7 @@ pub fn realize(design: &BuildDesign, tree: &PassiveTree, data: &GameData) -> Res
                         r.problems.push(format!("Unknown support '{s}' on {}{}", gem.name, close(&near)))
                     }
                     Some(sg) if sg.kind != "support" => r.problems.push(format!("{} isn't a support", sg.name)),
-                    Some(sg) if !GameData::is_compatible(sg, gem) => {
+                    Some(sg) if !GameData::may_support(sg, gem) => {
                         r.problems.push(format!("{} can't support {} (game rules) — dropped", sg.name, gem.name))
                     }
                     Some(sg) => {

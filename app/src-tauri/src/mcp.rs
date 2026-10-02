@@ -210,7 +210,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             let all = d.supports_for(gem, 1000);
             let supports: Vec<Value> = all.iter().take(limit).map(|s| json!({"name": s.name, "effects": s.support_effects, "text": s.description, "attribute": s.attribute, "lineage": s.is_lineage, "recommended_by_game": gem.recommended_supports.contains(&s.name)})).collect();
             Ok(
-                json!({"skill": gem.name, "skill_types": gem.skill_types, "compatible_total": all.len(), "note": "Only supports the game allows on this skill (its type rules); game-recommended first. Ask with a larger limit for more.", "supports": supports}),
+                json!({"skill": gem.name, "skill_types": gem.skill_types, "compatible_total": all.len(), "note": if polr_data::GameData::is_minion_skill(gem) { "Minion/companion skill: supports apply to the minions' own skills, which the data doesn't list, so this isn't filtered by type. Prefer game-recommended and minion supports." } else { "Only supports the game allows on this skill (its type rules); game-recommended first. Ask with a larger limit for more." }, "supports": supports}),
             )
         }
         n if n == tools::LOOKUP_BASE => {
