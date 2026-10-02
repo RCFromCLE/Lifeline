@@ -77,7 +77,7 @@ fn run(app: &AppHandle, action: Action) {
             std::thread::spawn(move || match crate::input::copy_hovered_item() {
                 Ok(item) => {
                     let _ = app.emit("item", &item);
-                    ai::ask(&app, ai::item_question(&item), "Item check", Origin::Hotkey);
+                    ai::ask(&app, None, ai::item_question(&item), "Item check", Origin::Hotkey);
                 }
                 Err(e) => {
                     let _ = app.emit("notice", &e);
@@ -87,7 +87,7 @@ fn run(app: &AppHandle, action: Action) {
                 }
             });
         }
-        Action::WhatNext => ai::ask(app, ai::WHAT_NEXT.into(), "What next", Origin::Hotkey),
+        Action::WhatNext => ai::ask(app, None, ai::WHAT_NEXT.into(), "What next", Origin::Hotkey),
         Action::Ask => {
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.unminimize();

@@ -1,7 +1,6 @@
 //! Shared app state and the persisted settings.
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use polr_data::PassiveTree;
@@ -84,14 +83,84 @@ impl Settings {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Message {
+    /// `user` or `ai`.
+    pub role: String,
+    pub label: String,
+    pub text: String,
+    #[serde(default)]
+    pub error: bool,
+}
+
+/// One chat thread with its own Claude session. Several can run at once;
+/// each turn is told what the others are about (see `ai::awareness`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Conversation {
+    pub id: u64,
+    pub title: String,
+    /// Claude Code session to `--resume`.
+    pub session: Option<String>,
+    pub messages: Vec<Message>,
+    /// The thread hotkey answers go to.
+    #[serde(default)]
+    pub in_game: bool,
+    #[serde(skip)]
+    pub busy: bool,
+}
+
+const CONVERSATIONS_FILE: &str = "conversations.json";
+
+fn load_conversations(dir: &Path) -> Vec<Conversation> {
+    std::fs::read_to_string(dir.join(CONVERSATIONS_FILE))
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+impl AppState {
+    pub fn save_conversations(&self) {
+        let convs = self.conversations.lock().unwrap().clone();
+        if let Ok(text) = serde_json::to_string_pretty(&convs) {
+            let _ = std::fs::write(self.data_dir.join(CONVERSATIONS_FILE), text);
+        }
+    }
+
+    /// Creates a conversation and returns its id.
+    pub fn new_conversation(&self, title: &str, in_game: bool) -> u64 {
+        let mut convs = self.conversations.lock().unwrap();
+        let id = convs.iter().map(|c| c.id).max().unwrap_or(0) + 1;
+        convs.push(Conversation {
+            id,
+            title: title.to_owned(),
+            session: None,
+            messages: Vec::new(),
+            in_game,
+            busy: false,
+        });
+        id
+    }
+
+    /// The pinned "In-game" thread for hotkey answers, created on demand.
+    pub fn in_game_conversation(&self) -> u64 {
+        let existing = self
+            .conversations
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|c| c.in_game)
+            .map(|c| c.id);
+        existing.unwrap_or_else(|| self.new_conversation("In-game (hotkeys)", true))
+    }
+}
+
 pub struct AppState {
     pub data_dir: PathBuf,
     pub character: Mutex<Character>,
     pub feed: Mutex<Vec<FeedItem>>,
     pub imported: Mutex<Option<Imported>>,
     pub tree: Mutex<Option<Arc<PassiveTree>>>,
-    pub ai_session: Mutex<Option<String>>,
-    pub ai_busy: AtomicBool,
+    pub conversations: Mutex<Vec<Conversation>>,
     pub settings: Mutex<Settings>,
 }
 
@@ -99,14 +168,13 @@ impl AppState {
     pub fn new(data_dir: PathBuf) -> Self {
         let settings = Settings::load(&data_dir);
         Self {
-            data_dir,
             character: Mutex::new(Character::default()),
             feed: Mutex::new(Vec::new()),
             imported: Mutex::new(None),
             tree: Mutex::new(None),
-            ai_session: Mutex::new(None),
-            ai_busy: AtomicBool::new(false),
+            conversations: Mutex::new(load_conversations(&data_dir)),
             settings: Mutex::new(settings),
+            data_dir,
         }
     }
 }

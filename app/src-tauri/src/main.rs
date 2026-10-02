@@ -11,10 +11,10 @@ mod input;
 mod state;
 
 use serde::Serialize;
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::ai::Origin;
-use crate::state::{AppState, Character, FeedItem, Settings};
+use crate::state::{AppState, Character, Conversation, FeedItem, Settings};
 
 #[derive(Serialize)]
 struct Snapshot {
@@ -24,6 +24,7 @@ struct Snapshot {
     imported: Option<builds::ImportView>,
     planner_files: Vec<String>,
     hotkey_errors: Vec<String>,
+    conversations: serde_json::Value,
 }
 
 #[tauri::command]
@@ -35,6 +36,7 @@ fn snapshot(state: tauri::State<'_, AppState>) -> Snapshot {
         imported: state.imported.lock().unwrap().as_ref().map(|i| builds::view(i, None)),
         planner_files: builds::planner_files(),
         hotkey_errors: Vec::new(),
+        conversations: ai::conversation_list(&state),
     }
 }
 
@@ -58,25 +60,55 @@ fn planner_files() -> Vec<String> {
 }
 
 #[tauri::command]
-fn ask(app: AppHandle, text: String) {
-    ai::ask(&app, text, "Chat", Origin::Chat);
+fn ask(app: AppHandle, conv: u64, text: String) {
+    ai::ask(&app, Some(conv), text, "Chat", Origin::Chat);
 }
 
 #[tauri::command]
-fn what_next(app: AppHandle) {
-    ai::ask(&app, ai::WHAT_NEXT.into(), "What next", Origin::Chat);
+fn what_next(app: AppHandle, conv: u64) {
+    ai::ask(&app, Some(conv), ai::WHAT_NEXT.into(), "What next", Origin::Chat);
 }
 
 #[tauri::command]
-fn check_item_text(app: AppHandle, text: String) {
-    ai::ask(&app, ai::item_question(&text), "Item check", Origin::Chat);
+fn check_item_text(app: AppHandle, conv: u64, text: String) {
+    ai::ask(&app, Some(conv), ai::item_question(&text), "Item check", Origin::Chat);
 }
 
 #[tauri::command]
-fn new_chat(state: tauri::State<'_, AppState>) {
-    *state.ai_session.lock().unwrap() = None;
+fn new_conversation(app: AppHandle) -> u64 {
+    let state = app.state::<AppState>();
+    let count = state.conversations.lock().unwrap().len() + 1;
+    let id = state.new_conversation(&format!("New conversation {count}"), false);
+    state.save_conversations();
+    let _ = app.emit("conversations", ai::conversation_list(&state));
+    id
 }
 
+#[tauri::command]
+fn delete_conversation(app: AppHandle, conv: u64) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    {
+        let mut convs = state.conversations.lock().unwrap();
+        if convs.iter().any(|c| c.id == conv && c.busy) {
+            return Err("That conversation is still answering.".into());
+        }
+        convs.retain(|c| c.id != conv);
+    }
+    state.save_conversations();
+    let _ = app.emit("conversations", ai::conversation_list(&state));
+    Ok(())
+}
+
+#[tauri::command]
+fn conversation(state: tauri::State<'_, AppState>, conv: u64) -> Option<Conversation> {
+    state
+        .conversations
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|c| c.id == conv)
+        .cloned()
+}
 #[tauri::command]
 fn toggle_overlay(app: AppHandle) {
     hotkeys::toggle_overlay(&app);
@@ -139,7 +171,9 @@ fn main() {
             ask,
             what_next,
             check_item_text,
-            new_chat,
+            new_conversation,
+            delete_conversation,
+            conversation,
             toggle_overlay,
             save_settings
         ])

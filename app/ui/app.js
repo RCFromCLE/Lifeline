@@ -1,7 +1,6 @@
 // Main window.
 const $ = id => document.getElementById(id);
 let settings = null;
-let current = null; // the AI message being streamed
 
 function toast(text) {
   const t = $("toast");
@@ -50,7 +49,26 @@ function renderUsage(u) {
   }).join("");
 }
 
-// ---- chat ----
+// ---- conversations + chat ----
+// Each conversation is its own Claude session; several can answer at once.
+let convs = [];          // [{id, title, busy, in_game, count}]
+let active = null;       // selected conversation id
+const live = {};         // conv id -> {raw, tools} while answering
+const unread = new Set();
+
+function renderConvList() {
+  $("conv-list").innerHTML = convs.slice().sort((a, b) => (b.in_game - a.in_game) || (b.id - a.id)).map(c => `
+    <li data-id="${c.id}" class="${c.id === active ? "active" : ""} ${c.in_game ? "in-game" : ""}" tabindex="0">
+      <span class="t">${escapeHtml(c.title)}</span>
+      ${c.busy ? '<span class="busy">●</span>' : unread.has(c.id) ? '<span class="unread"></span>' : ""}
+    </li>`).join("");
+  $("conv-list").querySelectorAll("li").forEach(li => {
+    const open = () => selectConv(Number(li.dataset.id));
+    li.addEventListener("click", open);
+    li.addEventListener("keydown", ev => { if (ev.key === "Enter") open(); });
+  });
+}
+
 function addMessage(kind, label, html) {
   const div = document.createElement("div");
   div.className = `msg ${kind}`;
@@ -60,41 +78,97 @@ function addMessage(kind, label, html) {
   return div;
 }
 
+function liveMessage() {
+  return $("chat").querySelector(".msg.live");
+}
+
+function renderLive(conv) {
+  const l = live[conv];
+  if (!l || conv !== active) return;
+  let m = liveMessage();
+  if (!m) { m = addMessage("ai live", "Companion", ""); }
+  m.querySelector(".body").innerHTML = l.raw ? renderMarkdown(l.raw) : "<em>Thinking…</em>";
+  if (l.tool) {
+    let t = m.querySelector(".tools");
+    if (!t) { t = document.createElement("div"); t.className = "tools"; m.appendChild(t); }
+    t.textContent = `↳ ${l.tool}`;
+  }
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+
+async function selectConv(id) {
+  active = id;
+  unread.delete(id);
+  renderConvList();
+  const c = await invoke("conversation", { conv: id });
+  $("chat").innerHTML = "";
+  if (!c) return;
+  if (!c.messages.length) {
+    addMessage("ai", "Companion", renderMarkdown(c.in_game
+      ? "Hotkey answers land here: item checks and what-next."
+      : "New conversation. Other open conversations are shared with me as context, so you can refer to them."));
+  }
+  for (const m of c.messages) {
+    const div = addMessage(m.role === "user" ? "user" : "ai", m.label, renderMarkdown(m.text));
+    if (m.error) div.classList.add("error");
+  }
+  renderLive(id);
+}
+
+listen("conversations", ({ payload }) => { convs = payload; renderConvList(); });
+
 listen("ai", ({ payload: e }) => {
+  const conv = e.conv;
   if (e.type === "start") {
-    addMessage("user", e.label, renderMarkdown(e.question));
-    current = addMessage("ai", "Companion", "<em>Thinking…</em>");
-    current.raw = "";
-  } else if (e.type === "delta" && current) {
-    current.raw += e.text;
-    current.querySelector(".body").innerHTML = renderMarkdown(current.raw);
-  } else if (e.type === "tool" && current) {
-    let tools = current.querySelector(".tools");
-    if (!tools) { tools = document.createElement("div"); tools.className = "tools"; current.appendChild(tools); }
-    tools.textContent = `↳ ${e.text}`;
+    live[conv] = { raw: "", tool: "" };
+    if (conv === active) { addMessage("user", e.label, renderMarkdown(e.question)); renderLive(conv); }
+  } else if (e.type === "delta") {
+    if (live[conv]) { live[conv].raw += e.text; renderLive(conv); }
+  } else if (e.type === "tool") {
+    if (live[conv]) { live[conv].tool = e.text; renderLive(conv); }
   } else if (e.type === "done") {
-    if (!current) current = addMessage("ai", "Companion", "");
-    current.querySelector(".body").innerHTML = renderMarkdown(e.text || current.raw);
-    if (e.error) current.classList.add("error");
-    current = null;
+    delete live[conv];
+    if (conv === active) {
+      const m = liveMessage() || addMessage("ai", "Companion", "");
+      m.classList.remove("live");
+      m.querySelector(".body").innerHTML = renderMarkdown(e.text);
+      if (e.error) m.classList.add("error");
+      $("chat").scrollTop = $("chat").scrollHeight;
+    } else {
+      unread.add(conv);
+      const c = convs.find(x => x.id === conv);
+      toast(`Answer ready in "${c ? c.title : "another conversation"}"`);
+      renderConvList();
+    }
   } else if (e.type === "error") {
     toast(e.text);
   }
-  $("chat").scrollTop = $("chat").scrollHeight;
 });
 
 function sendAsk() {
   const text = $("ask-input").value.trim();
-  if (!text) return;
+  if (!text || active === null) return;
   $("ask-input").value = "";
-  invoke("ask", { text });
+  invoke("ask", { conv: active, text });
 }
 $("ask-form").addEventListener("submit", ev => { ev.preventDefault(); sendAsk(); });
 $("ask-input").addEventListener("keydown", ev => {
   if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); sendAsk(); }
 });
-$("btn-next").addEventListener("click", () => invoke("what_next"));
-$("btn-new-chat").addEventListener("click", () => { invoke("new_chat"); $("chat").innerHTML = ""; toast("New conversation started."); });
+$("btn-next").addEventListener("click", () => invoke("what_next", { conv: active }));
+$("btn-new-conv").addEventListener("click", async () => {
+  const id = await invoke("new_conversation");
+  await selectConv(id);
+  $("ask-input").focus();
+});
+$("btn-delete-conv").addEventListener("click", async () => {
+  if (active === null) return;
+  try {
+    await invoke("delete_conversation", { conv: active });
+    const next = convs.find(c => c.id !== active);
+    if (next) selectConv(next.id); else { active = null; $("chat").innerHTML = ""; }
+  } catch (e) { toast(e); }
+});
 $("btn-overlay").addEventListener("click", () => invoke("toggle_overlay"));
 $("btn-paste-item").addEventListener("click", async () => {
   let text = "";
@@ -103,9 +177,8 @@ $("btn-paste-item").addEventListener("click", async () => {
     toast("Copy an item in game first (Ctrl+Alt+C), or use the item-check hotkey while hovering it.");
     return;
   }
-  invoke("check_item_text", { text });
+  invoke("check_item_text", { conv: active, text });
 });
-
 // ---- build import ----
 function renderImport(v) {
   const rows = v.stages.map(s => `<tr class="${s.chosen ? "chosen" : ""}">
@@ -208,7 +281,9 @@ listen("focus-chat", () => {
   fillSettings(snap.settings);
   if (snap.imported) renderImport(snap.imported);
   refreshPlannerFiles();
-  addMessage("ai", "Companion", renderMarkdown(
-    `Ready. Hover an item in game and press **${snap.settings.hotkeys.item_check}** to check it, ` +
-    `**${snap.settings.hotkeys.what_next}** for your next steps, or just ask here.`));
+  convs = snap.conversations;
+  const first = convs.filter(c => !c.in_game).sort((a, b) => b.id - a.id)[0];
+  if (first) await selectConv(first.id);
+  else await selectConv(await invoke("new_conversation"));
+  toast(`Hover an item in game and press ${snap.settings.hotkeys.item_check} to check it; ${snap.settings.hotkeys.what_next} for next steps.`);
 })();

@@ -30,17 +30,25 @@
     <section class="view active" id="view-play">
       <div class="col">
         <div class="card">
-          <h2>Companion <small>Claude Opus 5.5 · your subscription</small></h2>
+          <h2>Companion <small>Claude Opus 5.5 · your subscription · conversations run in parallel and know about each other</small></h2>
+          <div class="chat-layout">
+          <aside class="convs">
+            <button id="btn-new-conv" class="primary">+ New conversation</button>
+            <ul id="conv-list"></ul>
+          </aside>
+          <div class="chat-main">
           <div class="chat" id="chat"></div>
           <div class="quick">
             <button id="btn-next" class="primary">What next?</button>
             <button id="btn-paste-item">Check item from clipboard</button>
-            <button id="btn-new-chat" class="ghost">New conversation</button>
+            <button id="btn-delete-conv" class="ghost">Delete conversation</button>
           </div>
           <form id="ask-form" class="ask">
             <textarea id="ask-input" rows="2" placeholder="Ask anything — gear, supports, bosses, what to buy…  (Enter to send, Shift+Enter for a new line)"></textarea>
             <button type="submit" class="primary">Ask</button>
           </form>
+          </div>
+          </div>
         </div>
       </div>
       <div class="col narrow">

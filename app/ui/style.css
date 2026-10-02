@@ -70,6 +70,21 @@ h2 small { color: var(--muted); font-weight: 400; margin-left: 8px; }
 .hint { color: var(--muted); margin: 0 0 10px; font-size: 13px; }
 code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
 
+.chat-layout { flex: 1; display: flex; gap: 12px; min-height: 0; }
+.convs { width: 210px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.convs ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.convs li {
+  padding: 8px 10px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; margin-bottom: 4px;
+  display: flex; gap: 6px; align-items: center; font-size: 13px;
+}
+.convs li:hover { border-color: var(--line); }
+.convs li.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold-2); }
+.convs li .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.convs li .busy { color: var(--blue); animation: pulse 1s infinite; }
+.convs li .unread { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+.convs li.in-game .t::before { content: "🎮 "; }
+@keyframes pulse { 50% { opacity: .3; } }
+.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .chat { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; min-height: 120px; }
 .msg { padding: 10px 12px; border-radius: 8px; max-width: 92%; white-space: normal; }
 .msg.user { align-self: flex-end; background: #2e2418; border: 1px solid #4a3a26; }

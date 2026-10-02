@@ -33,6 +33,7 @@
   <script src="common.js"></script>
   <script>
     let raw = "";
+    let hudConv = null; // only hotkey-thread answers appear on the HUD
     const el = id => document.getElementById(id);
     function renderCharacter(c) {
       const d = describeCharacter(c);
@@ -43,7 +44,8 @@
     }
     listen("character", ({ payload }) => renderCharacter(payload));
     listen("ai", ({ payload: e }) => {
-      if (e.type === "start") { raw = ""; el("status").textContent = `${e.label}…`; el("answer").innerHTML = ""; }
+      if (e.type === "start") { if (!e.hotkey) return; hudConv = e.conv; raw = ""; el("status").textContent = `${e.label}…`; el("answer").innerHTML = ""; }
+      else if (e.conv !== hudConv) return;
       else if (e.type === "tool") el("status").textContent = `↳ ${e.text}`;
       else if (e.type === "delta") { raw += e.text; el("answer").innerHTML = renderMarkdown(raw); }
       else if (e.type === "done") {
