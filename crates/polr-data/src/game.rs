@@ -362,10 +362,19 @@ impl GameData {
         best(&self.gems, query, |g| &g.name, limit)
     }
 
-    /// The gem whose display name is exactly `name` (case-insensitive).
+    /// The gem whose display name is exactly `name` (case-insensitive),
+    /// preferring a skill gem when a support shares the name ("Unleash").
     pub fn gem_named(&self, name: &str) -> Option<&Gem> {
         let name = name.trim();
-        self.gems.iter().find(|g| g.name.eq_ignore_ascii_case(name))
+        let mut found = self.gems.iter().filter(|g| g.name.eq_ignore_ascii_case(name));
+        let first = found.next()?;
+        Some(if first.kind == "support" { found.find(|g| g.kind != "support").unwrap_or(first) } else { first })
+    }
+
+    /// The support gem named exactly `name` (case-insensitive).
+    pub fn support_named(&self, name: &str) -> Option<&Gem> {
+        let name = name.trim();
+        self.gems.iter().find(|g| g.kind == "support" && g.name.eq_ignore_ascii_case(name))
     }
 
     /// Whether `support` can support `skill`, by the game's own type rules.

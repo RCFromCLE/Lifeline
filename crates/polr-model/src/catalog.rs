@@ -109,7 +109,7 @@ pub fn check(a: &Archetype, tree: &PassiveTree, data: &GameData) -> Vec<String> 
             return;
         }
         for sup in &s.supports {
-            match data.gem_named(sup) {
+            match data.support_named(sup).or_else(|| data.gem_named(sup)) {
                 None => {
                     let near: Vec<&str> = data
                         .find_gems(sup, 4)

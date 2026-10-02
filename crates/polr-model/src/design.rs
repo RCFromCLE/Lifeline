@@ -348,7 +348,7 @@ pub fn realize(design: &BuildDesign, tree: &PassiveTree, data: &GameData) -> Res
             }];
             let mut used = Vec::new();
             for s in &sk.supports {
-                match data.gem_named(s) {
+                match data.support_named(s).or_else(|| data.gem_named(s)) {
                     None => {
                         let near = listing(data.find_gems(s, 3).iter().filter(|g| g.kind == "support").map(|g| g.name.as_str()));
                         r.problems.push(format!("Unknown support '{s}' on {}{}", gem.name, close(&near)))
