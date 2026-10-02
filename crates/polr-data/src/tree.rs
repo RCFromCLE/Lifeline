@@ -78,6 +78,27 @@ pub struct AscendancyInfo {
     /// Empty for ascendancies not in the game yet.
     #[serde(default, deserialize_with = "null_as_empty")]
     pub name: String,
+    /// Alternate ascendancies (`Witch3b`, Abyssal Lich) reuse another
+    /// ascendancy's nodes: base node id → `skillOverrides` key.
+    #[serde(default, rename = "overridePairs", deserialize_with = "override_pairs")]
+    pub overrides: HashMap<u32, String>,
+}
+
+fn override_pairs<'de, D: serde::Deserializer<'de>>(d: D) -> Result<HashMap<u32, String>, D::Error> {
+    Ok(match Option::<Value>::deserialize(d)? {
+        Some(Value::Object(map)) => map
+            .into_iter()
+            .filter_map(|(k, v)| {
+                let to = match v {
+                    Value::String(s) => s,
+                    Value::Number(n) => n.to_string(),
+                    _ => return None,
+                };
+                Some((k.parse().ok()?, to))
+            })
+            .collect(),
+        _ => HashMap::new(),
+    })
 }
 
 fn as_node_id(v: &Value) -> Option<u32> {
@@ -105,6 +126,8 @@ struct RawExport {
     nodes: HashMap<String, TreeNode>,
     #[serde(default)]
     classes: Vec<ClassInfo>,
+    #[serde(default, rename = "skillOverrides")]
+    skill_overrides: HashMap<String, TreeNode>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -113,6 +136,7 @@ pub struct PassiveTree {
     /// Undirected links (`out` ∪ `in`).
     links: HashMap<u32, Vec<u32>>,
     classes: Vec<ClassInfo>,
+    skill_overrides: HashMap<String, TreeNode>,
 }
 
 /// Why a target passive couldn't be added.
@@ -148,7 +172,31 @@ impl PassiveTree {
             nodes,
             links,
             classes: raw.classes,
+            skill_overrides: raw.skill_overrides,
         })
+    }
+
+    fn ascendancy_info(&self, ascendancy_id: &str) -> Option<&AscendancyInfo> {
+        self.classes.iter().flat_map(|c| &c.ascendancies).find(|a| a.id == ascendancy_id)
+    }
+
+    /// The ascendancy whose nodes `ascendancy_id` uses: itself, or for an
+    /// alternate one with no nodes of its own (`Witch3b`) the base (`Witch3`).
+    pub fn ascendancy_tree_id(&self, ascendancy_id: &str) -> String {
+        if self.nodes.values().any(|n| n.ascendancy_id.as_deref() == Some(ascendancy_id)) {
+            return ascendancy_id.to_owned();
+        }
+        ascendancy_id.trim_end_matches(|c: char| c.is_ascii_lowercase()).to_owned()
+    }
+
+    /// The passive a node is for this ascendancy: its alternate-ascendancy
+    /// replacement if there is one, else the node itself.
+    pub fn node_for(&self, skill: u32, ascendancy_id: Option<&str>) -> Option<&TreeNode> {
+        let replaced = ascendancy_id
+            .and_then(|a| self.ascendancy_info(a))
+            .and_then(|a| a.overrides.get(&skill))
+            .and_then(|key| self.skill_overrides.get(key));
+        replaced.or_else(|| self.node(skill))
     }
 
     pub fn classes(&self) -> &[ClassInfo] {
@@ -189,9 +237,10 @@ impl PassiveTree {
     }
 
     pub fn ascendancy_start(&self, ascendancy_id: &str) -> Option<u32> {
+        let tree_id = self.ascendancy_tree_id(ascendancy_id);
         self.nodes
             .iter()
-            .find(|(_, n)| n.is_ascendancy_start && n.ascendancy_id.as_deref() == Some(ascendancy_id))
+            .find(|(_, n)| n.is_ascendancy_start && n.ascendancy_id.as_deref() == Some(tree_id.as_str()))
             .map(|(&id, _)| id)
     }
 
@@ -199,12 +248,17 @@ impl PassiveTree {
     /// one ascendancy when `ascendancy` is set. Notables and keystones first.
     pub fn nodes_named(&self, name: &str, ascendancy: Option<&str>) -> Vec<u32> {
         let name = name.trim();
+        let tree_id = ascendancy.map(|a| self.ascendancy_tree_id(a));
         let mut found: Vec<(u32, &TreeNode)> = self
             .nodes
             .iter()
-            .filter(|(_, n)| !n.id.is_empty() && n.name.eq_ignore_ascii_case(name))
-            .filter(|(_, n)| n.ascendancy_id.as_deref() == ascendancy)
-            .map(|(&id, n)| (id, n))
+            .filter(|(_, n)| n.ascendancy_id.as_deref() == tree_id.as_deref())
+            .filter_map(|(&id, n)| {
+                // Match the passive as this ascendancy sees it (alternate
+                // ascendancies rename some nodes); keep the base node's flags.
+                let shown = self.node_for(id, ascendancy)?;
+                (!shown.id.is_empty() && shown.name.eq_ignore_ascii_case(name)).then_some((id, n))
+            })
             .collect();
         found.sort_by_key(|(id, n)| (!n.is_keystone, !n.is_notable, *id));
         found.into_iter().map(|(id, _)| id).collect()

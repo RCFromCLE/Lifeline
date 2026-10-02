@@ -67,9 +67,11 @@ fn main() {
         "asc" => {
             let asc = tree.ascendancy(&args[3], &args[4..].join(" ")).expect("ascendancy");
             println!("{} ({})", asc.name, asc.id);
+            let tree_id = tree.ascendancy_tree_id(&asc.id);
             for id in 0..70000u32 {
-                if let Some(n) = tree.node(id).filter(|n| n.ascendancy_id.as_deref() == Some(&asc.id) && !n.name.is_empty()) {
-                    let kind = if n.is_notable { "NOTABLE" } else if n.is_ascendancy_start { "start" } else { "small" };
+                if let Some(base) = tree.node(id).filter(|n| n.ascendancy_id.as_deref() == Some(tree_id.as_str()) && !n.name.is_empty()) {
+                    let n = tree.node_for(id, Some(&asc.id)).unwrap_or(base);
+                    let kind = if base.is_notable { "NOTABLE" } else if base.is_ascendancy_start { "start" } else { "small" };
                     println!("  [{kind}] {}: {}", n.name, n.stats.join(" / ").replace('\n', " "));
                 }
             }

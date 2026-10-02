@@ -281,7 +281,8 @@ pub fn to_planner_build(
         .iter()
         .filter(|&&n| tree.is_plannable(n))
         .filter_map(|&n| {
-            let id = tree.node(n)?.id.clone();
+            // Alternate ascendancies (Abyssal Lich) swap some nodes for their own passives.
+            let id = tree.node_for(n, spec.ascendancy_internal_id.as_deref())?.id.clone();
             let weapon_set = if spec.weapon_set1.contains(&n) {
                 Some(1)
             } else if spec.weapon_set2.contains(&n) {

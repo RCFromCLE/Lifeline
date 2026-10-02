@@ -239,7 +239,9 @@ pub fn realize(design: &BuildDesign, tree: &PassiveTree, data: &GameData) -> Res
                 .and_then(|u| u.ascendancy.as_deref())
                 .map_or(true, |a| asc_id.as_deref() == Some(a))
     };
-    let asc_usable = |_: u32, n: &TreeNode| !n.id.is_empty() && n.ascendancy_id.is_some() && n.ascendancy_id == asc_id;
+    let asc_tree = asc_id.as_deref().map(|a| tree.ascendancy_tree_id(a));
+    let asc_usable =
+        |_: u32, n: &TreeNode| !n.id.is_empty() && n.ascendancy_id.is_some() && n.ascendancy_id.as_deref() == asc_tree.as_deref();
     let main_cost = |n: u32| tree.is_main_point(n);
     let asc_cost = |n: u32| tree.is_ascendancy_point(n);
 
