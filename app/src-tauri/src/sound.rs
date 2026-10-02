@@ -21,6 +21,17 @@ pub enum Cue {
 }
 
 impl Cue {
+    pub fn name(self) -> &'static str {
+        match self {
+            Cue::LevelUp => "level_up",
+            Cue::NewAct => "new_act",
+            Cue::BossArea => "boss_area",
+            Cue::Penalty => "penalty",
+            Cue::Death => "death",
+            Cue::Ready => "ready",
+        }
+    }
+
     pub fn from_name(name: &str) -> Option<Cue> {
         Some(match name {
             "level_up" => Cue::LevelUp,
@@ -137,12 +148,19 @@ fn sender() -> &'static Mutex<Sender<(Cue, f32)>> {
     })
 }
 
-/// Plays `cue` if sounds are on (Settings).
+/// Plays `cue` if sounds are on and this cue is enabled (Settings).
 pub fn play(app: &tauri::AppHandle, cue: Cue) {
     let state = app.state::<AppState>();
     let (on, volume) = {
         let s = state.settings.lock().unwrap();
-        (s.sound, s.volume)
+        // A cue missing from saved settings falls back to its default.
+        let enabled = s
+            .sound_cues
+            .get(cue.name())
+            .copied()
+            .or_else(|| crate::state::default_cues().get(cue.name()).copied())
+            .unwrap_or(true);
+        (s.sound && enabled, s.volume)
     };
     if on {
         let _ = sender().lock().unwrap().send((cue, volume.clamp(0.0, 1.0)));
@@ -168,6 +186,12 @@ mod tests {
             assert!((0.3..6.0).contains(&secs), "{cue:?} lasts {secs}s");
         }
         assert_eq!(Cue::from_name("death"), Some(Cue::Death));
+        let defaults = crate::state::default_cues();
+        assert!(!defaults["level_up"], "level-up sound is opt-in");
+        assert!(!defaults["death"], "death sound is opt-in");
+        for cue in [Cue::LevelUp, Cue::NewAct, Cue::BossArea, Cue::Penalty, Cue::Death, Cue::Ready] {
+            assert!(defaults.contains_key(cue.name()));
+        }
         assert_eq!(Cue::from_name("nope"), None);
     }
 }

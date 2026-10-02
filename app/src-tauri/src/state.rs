@@ -86,6 +86,10 @@ pub struct Settings {
     pub sound: bool,
     #[serde(default = "default_volume")]
     pub volume: f32,
+    /// Each cue on or off ("level_up", "new_act", "boss_area", "penalty",
+    /// "death", "ready"). Level up and death are off unless chosen.
+    #[serde(default = "default_cues")]
+    pub sound_cues: std::collections::BTreeMap<String, bool>,
     /// How the player plays: "playstation", "xbox" or "keyboard".
     #[serde(default = "default_input")]
     pub input: String,
@@ -109,6 +113,13 @@ pub fn controls(input: &str) -> &'static str {
 
 fn default_volume() -> f32 {
     0.6
+}
+
+pub fn default_cues() -> std::collections::BTreeMap<String, bool> {
+    [("level_up", false), ("new_act", true), ("boss_area", true), ("penalty", true), ("death", false), ("ready", true)]
+        .into_iter()
+        .map(|(k, v)| (k.to_owned(), v))
+        .collect()
 }
 
 fn default_true() -> bool {
@@ -137,6 +148,7 @@ impl Default for Settings {
             auto_rate_on_act: false,
             sound: true,
             volume: default_volume(),
+            sound_cues: default_cues(),
             input: default_input(),
             onboarded: false,
             overlay_on_hotkey: true,

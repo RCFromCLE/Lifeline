@@ -63,8 +63,8 @@ claude auth login --claudeai             # sign in with your Claude account (ope
   when the app is in front it shrinks to just the grade. Drag the Lifeline logo on its left to move it (remembered).
   Buttons: grade (click to rate; hover for why), resistance penalty (▲ = the next act lowers it),
   🔍 check item, → what next, ⚡ rotation, 🛡 record gear, 💬 open app, ✕ hide.
-- **Sounds:** short cues play for a level up, a new act, entering a boss area, a resistance penalty drop,
-  death and answers being ready. Turn them off or change the volume in *Settings → Sounds*.
+- **Sounds:** short cues for a new act, entering a boss area, a resistance penalty drop and answers being ready.
+  Level-up and death sounds are off unless you turn them on. Switch each cue on or off, preview it, or change the volume in *Settings → Sounds*.
 
 ### Upgrading from 0.1.x (when it was called "PathOfLeastResistance")
 

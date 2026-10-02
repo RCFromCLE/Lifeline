@@ -204,12 +204,12 @@
             <label class="check"><input type="checkbox" name="sound"> Sound cues while you play</label>
             <label>Volume<input type="range" name="volume" min="0" max="1" step="0.05"></label>
             <div class="sound-tests">
-              <button type="button" data-cue="level_up">Level up</button>
-              <button type="button" data-cue="new_act">New act</button>
-              <button type="button" data-cue="boss_area">Boss area</button>
-              <button type="button" data-cue="penalty">Res penalty</button>
-              <button type="button" data-cue="death">Death</button>
-              <button type="button" data-cue="ready">Answer ready</button>
+              <div class="cue"><label class="check"><input type="checkbox" name="cue_level_up"> Level up</label><button type="button" class="ghost" data-cue="level_up" title="Play">▶</button></div>
+              <div class="cue"><label class="check"><input type="checkbox" name="cue_new_act"> New act</label><button type="button" class="ghost" data-cue="new_act" title="Play">▶</button></div>
+              <div class="cue"><label class="check"><input type="checkbox" name="cue_boss_area"> Boss area</label><button type="button" class="ghost" data-cue="boss_area" title="Play">▶</button></div>
+              <div class="cue"><label class="check"><input type="checkbox" name="cue_penalty"> Resistance penalty</label><button type="button" class="ghost" data-cue="penalty" title="Play">▶</button></div>
+              <div class="cue"><label class="check"><input type="checkbox" name="cue_death"> Death</label><button type="button" class="ghost" data-cue="death" title="Play">▶</button></div>
+              <div class="cue"><label class="check"><input type="checkbox" name="cue_ready"> Answer ready</label><button type="button" class="ghost" data-cue="ready" title="Play">▶</button></div>
             </div>
             <button type="submit" class="primary">Save</button>
             <div id="settings-status" class="status"></div>

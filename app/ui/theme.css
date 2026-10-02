@@ -287,3 +287,8 @@ select { background: rgba(10, 7, 5, 0.85); color: var(--text); border: 1px solid
 
 /* anything marked hidden stays hidden (setup banner etc.) */
 .hidden { display: none !important; }
+
+.sound-tests { flex-direction: column; gap: 4px; }
+.sound-tests .cue { display: flex; align-items: center; gap: 10px; }
+.sound-tests .cue label { flex: 1; color: var(--text); font-size: 14px; }
+.sound-tests .cue button { padding: 2px 12px; }

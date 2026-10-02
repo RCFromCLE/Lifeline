@@ -88,7 +88,7 @@
           <div><h3>Builds</h3><p>Builds → Showcase: pick class, ascendancy and what matters. <b>Create full build</b> plans every stage, and one click writes it into the game's Build Planner.</p></div>
           <div><h3>Rating and Skills</h3><p>A strict F to S+ grade for where you are, plus skills, supports and rotations for your controls.</p></div>
           <div><h3>Market</h3><p>Ask in chat ("find boots with life and cold res under 5 ex"). Press <b>Trade login</b> once so <b>Travel</b> can take you to the seller.</p></div>
-          <div><h3>Sounds</h3><p>Cues for level ups, new acts, boss areas, resistance drops and death. Adjust in Settings → Sounds.</p></div>
+          <div><h3>Sounds</h3><p>Cues for a new act, boss areas, resistance drops and answers being ready. Level-up and death sounds are optional. Turn each on or off in Settings → Sounds.</p></div>
         </div>
         <p class="wl-note">Keyboard: <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>5</kbd> switch tabs · <kbd>/</kbd> jump to chat · <kbd>Esc</kbd> closes panels · <kbd>Tab</kbd> moves between controls.</p>`;
     } else {

@@ -409,6 +409,9 @@ async function refreshPlannerFiles() {
 }
 
 // ---- settings ----
+// Sound cues, each on or off; level up and death start off.
+const CUES = ["level_up", "new_act", "boss_area", "penalty", "death", "ready"];
+const CUE_DEFAULTS = { level_up: false, new_act: true, boss_area: true, penalty: true, death: false, ready: true };
 const HOTKEY_KEYS = ["item_check", "what_next", "ask", "toggle_overlay", "record_equipped", "move_overlay"];
 function renderKeysSummary(s) {
   if (!$("keys-summary")) return;
@@ -426,6 +429,7 @@ function fillSettings(s) {
   f.elements.sound.checked = s.sound !== false;
   f.elements.volume.value = s.volume ?? 0.6;
   f.elements.input.value = s.input || "keyboard";
+  for (const c of CUES) f.elements["cue_" + c].checked = (s.sound_cues || {})[c] ?? CUE_DEFAULTS[c];
   renderKeysSummary(s);
 }
 
@@ -441,6 +445,7 @@ $("settings-form").addEventListener("submit", async ev => {
     sound: f.elements.sound.checked,
     volume: Number(f.elements.volume.value),
     input: f.elements.input.value,
+    sound_cues: Object.fromEntries(CUES.map(c => [c, f.elements["cue_" + c].checked])),
   };
   const failed = await invoke("save_settings", { settings: next });
   settings = next;
