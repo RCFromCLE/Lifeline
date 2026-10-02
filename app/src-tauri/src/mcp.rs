@@ -44,6 +44,11 @@ fn tool_definitions() -> Value {
             "inputSchema": {"type": "object", "properties": {}}
         },
         {
+            "name": tools::BUILD_ALIGNMENT,
+            "description": "How the character lines up with the build being followed, for the stage that fits its level: planned vs allocated passives (from the game log: percent, missing with notables first, off-plan), the stage's skills and supports, and each gear slot's goal vs the item the player recorded. The game doesn't log gems; ask the player what's socketed.",
+            "inputSchema": {"type": "object", "properties": {}}
+        },
+        {
             "name": tools::LOOKUP_GEM,
             "description": "Look up skill, spirit or support gems by name in the current game data: description, tags, attribute, recommended supports. Support gem names can differ from their ids (e.g. 'Rapid Attacks I').",
             "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}
@@ -192,6 +197,10 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 "stages": i.stages.iter().filter(|s| s.chosen).map(|s| json!({"stage": s.stage, "spec": s.title, "level": s.estimated_level, "passives": s.main_points})).collect::<Vec<_>>(),
                 "current_stage_skills": skills
             }))
+        }
+        n if n == tools::BUILD_ALIGNMENT => {
+            let _ = crate::builds::load_tree(&state);
+            Ok(crate::alignment::alignment(&state))
         }
         n if n == tools::LOOKUP_GEM => {
             let d = crate::gamedata::load(&state)?;

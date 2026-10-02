@@ -39,6 +39,8 @@ pub struct Imported {
     pub stages: Vec<SpecStage>,
     pub link: Option<String>,
     pub name: String,
+    /// Where it came from: "Lifeline", "Path of Building" or "In-game planner".
+    pub source: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

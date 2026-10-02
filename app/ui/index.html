@@ -14,6 +14,7 @@
     <div id="char" class="char">
       <div class="char-name" id="char-name">Waiting for the game log…</div>
       <div class="char-meta" id="char-meta"></div>
+      <button class="following hidden" id="following" title="Open your current build"></button>
     </div>
     <button class="update hidden" id="update" title="A newer Lifeline is available">New version</button>
     <div class="stats">
@@ -127,11 +128,20 @@
     <section class="view scroll" id="view-build">
       <div class="col">
         <nav class="subtabs" id="subtabs">
+          <button class="subtab" data-sub="current">Current</button>
           <button class="subtab active" data-sub="showcase">Showcase</button>
           <button class="subtab" data-sub="mine">My builds <span class="count" id="mine-count"></span></button>
+          <button class="subtab" data-sub="planner">In game</button>
           <button class="subtab" data-sub="import">Import</button>
         </nav>
 
+        <div class="sub" id="sub-current">
+          <div class="card" id="cur-card"><p class="hint">Not following a build yet. Pick one in <b>Showcase</b>, use one from <b>My builds</b>, or <b>Follow</b> one that's already in the game's planner (<b>In game</b>).</p></div>
+          <div class="card hidden" id="align-card">
+            <div class="step-h"><h2>How you line up</h2><span class="hint" id="align-stage"></span><button id="align-refresh" class="ghost" title="Refresh">↻</button></div>
+            <div id="align-body"></div>
+          </div>
+        </div>
         <div class="sub active" id="sub-showcase">
           <div class="card">
             <div class="step-h"><span class="step-n" data-n="1">1</span><h2>Class</h2><span class="hint" id="w-char"></span></div>
@@ -162,14 +172,17 @@
 
         <div class="sub" id="sub-mine">
           <div class="card">
-            <div class="step-h"><h2>Build Planner in game</h2><span class="hint" id="planner-hint"></span>
-              <button id="planner-open" class="ghost">Open folder</button><button id="planner-refresh" class="ghost" title="Refresh">↻</button></div>
-            <p class="hint">Builds here show up in the game's Build Planner. If the game is already running, reopen the Build Planner (or restart the game) to see new ones.</p>
-            <div id="planner-files" class="planner"></div>
-          </div>
-          <div class="card">
             <h2>My builds</h2>
             <div class="build-grid" id="mine"></div>
+          </div>
+        </div>
+
+        <div class="sub" id="sub-planner">
+          <div class="card">
+            <div class="step-h"><h2>Build Planner in game</h2><span class="hint" id="planner-hint"></span>
+              <button id="planner-open" class="ghost">Open folder</button><button id="planner-refresh" class="ghost" title="Refresh">↻</button></div>
+            <p class="hint">These are the builds in the game's Build Planner. The game picks up changes right away. <b>Follow</b> makes one your current build in Lifeline; <b>Delete</b> removes it from the game too.</p>
+            <div id="planner-files" class="planner"></div>
           </div>
         </div>
 

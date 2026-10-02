@@ -7,6 +7,7 @@
 #![recursion_limit = "256"]
 
 mod ai;
+mod alignment;
 mod builds;
 mod game;
 mod gamedata;
@@ -78,6 +79,40 @@ fn planner_list() -> Vec<builds::PlannerFile> {
 #[tauri::command]
 fn delete_planner_files(files: Vec<String>) -> Result<usize, String> {
     builds::delete_planner_files(&files)
+}
+
+#[tauri::command]
+async fn follow_planner(app: AppHandle, files: Vec<String>) -> Result<builds::ImportView, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let view = builds::follow_planner(&state, &files)?;
+        let _ = app.emit("imported", &view);
+        Ok(view)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn build_alignment(app: AppHandle) -> serde_json::Value {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _ = builds::load_tree(&state);
+        alignment::alignment(&state)
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Opens a "Build check" chat that compares the character with the plan.
+#[tauri::command]
+fn build_check_chat(app: AppHandle) -> u64 {
+    let state = app.state::<AppState>();
+    let id = state.new_conversation("Build check", false);
+    state.save_conversations();
+    let _ = app.emit("conversations", ai::conversation_list(&state));
+    ai::ask(&app, Some(id), ai::BUILD_CHECK.into(), "Build check", Origin::Chat);
+    id
 }
 
 #[tauri::command]
@@ -653,6 +688,9 @@ fn main() {
             planner_list,
             delete_planner_files,
             open_planner_folder,
+            follow_planner,
+            build_alignment,
+            build_check_chat,
             check_update,
             fit_overlay,
             skills_snapshot,

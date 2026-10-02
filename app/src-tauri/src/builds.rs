@@ -55,6 +55,7 @@ pub fn load_tree(state: &AppState) -> Result<Arc<PassiveTree>, String> {
 #[derive(Debug, Clone, Serialize)]
 pub struct ImportView {
     pub name: String,
+    pub source: String,
     pub class_name: Option<String>,
     pub ascendancy: Option<String>,
     pub level: Option<u32>,
@@ -75,6 +76,7 @@ pub fn view(imported: &Imported, warning: Option<String>) -> ImportView {
     };
     ImportView {
         name: imported.name.clone(),
+        source: imported.source.clone(),
         class_name: b.class_name.clone(),
         ascendancy: b.ascend_class_name.clone(),
         level: b.level,
@@ -115,6 +117,7 @@ pub fn import(state: &AppState, input: &str) -> Result<ImportView, String> {
         stages,
         link: link.clone(),
         name: format!("{name} (Lifeline)"),
+        source: "Path of Building".into(),
     };
     let v = view(&imported, warning);
     *state.imported.lock().unwrap() = Some(imported);
@@ -128,6 +131,8 @@ pub fn import(state: &AppState, input: &str) -> Result<ImportView, String> {
 enum SavedBuild {
     Pob { code: String, link: Option<String> },
     Design { design: BuildDesign },
+    /// Following a build that's in the game's Build Planner (its stage files).
+    Planner { files: Vec<String> },
 }
 
 const SAVED_BUILD: &str = "build.json";
@@ -149,7 +154,8 @@ pub fn realize_design(state: &AppState, design: &BuildDesign) -> Result<(Importe
         build: realized.build,
         stages,
         link: None,
-        name: format!("{} (Lifeline)", design.name.trim()),
+        name: design.name.trim().to_owned(),
+        source: "Lifeline".into(),
     };
     Ok((imported, realized.report))
 }
@@ -190,13 +196,53 @@ pub fn restore(state: &AppState) -> Option<ImportView> {
                 stages,
                 link,
                 name: format!("{name} (Lifeline)"),
+                source: "Path of Building".into(),
             };
             let v = view(&imported, None);
             *state.imported.lock().unwrap() = Some(imported);
             Some(v)
         }
         SavedBuild::Design { design } => create(state, &design).ok().map(|(_, v)| v),
+        SavedBuild::Planner { files } => follow_planner(state, &files).ok(),
     }
+}
+
+/// Follows a build that's in the game's Build Planner: its stage files
+/// ("Act 1 - Name.build", "Act 2 - Name.build", …) become the active build.
+pub fn follow_planner(state: &AppState, files: &[String]) -> Result<ImportView, String> {
+    let dir = planner_dir().ok_or("Couldn't find the Build Planner folder.")?;
+    let tree = load_tree(state)?;
+    let data = crate::gamedata::load(state).ok();
+    let mut stages = Vec::new();
+    let mut name = String::new();
+    for f in files {
+        if f.contains(['/', '\\']) || !f.ends_with(".build") {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(dir.join(f)) else { continue };
+        let Ok(b) = build_planner::PlannerBuild::from_json(&text) else { continue };
+        let (label, build_name) = lifeline_model::split_file_name(f);
+        if build_name.len() > name.len() {
+            name = build_name;
+        }
+        stages.push((if label.is_empty() { "Endgame".to_owned() } else { label }, b));
+    }
+    if stages.is_empty() {
+        return Err("None of those planner files could be read.".into());
+    }
+    let build = lifeline_model::from_planner(&stages, &tree, data.as_deref());
+    let plan = plan_stages(&build, Some(&tree));
+    let imported = Imported {
+        build,
+        stages: plan,
+        link: None,
+        name,
+        source: "In-game planner".into(),
+    };
+    let v = view(&imported, None);
+    *state.imported.lock().unwrap() = Some(imported);
+    save(state, &SavedBuild::Planner { files: files.to_vec() });
+    Ok(v)
 }
 
 /// Writes one `.build` per chosen stage into the game's BuildPlanner folder.

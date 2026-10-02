@@ -5,9 +5,11 @@ use std::collections::BTreeMap;
 
 pub mod catalog;
 pub mod design;
+pub mod planner;
 
 pub use catalog::{rank, Archetype, Preferences, Ranked, Ratings};
 pub use design::{realize, stage_budget, BuildDesign, DesignReport, Realized};
+pub use planner::{from_planner, split_file_name};
 
 use lifeline_data::PassiveTree;
 use lifeline_gamefiles::build_planner::{InventorySlot, PassiveRef, PlannerBuild, SkillRef, SupportRef};

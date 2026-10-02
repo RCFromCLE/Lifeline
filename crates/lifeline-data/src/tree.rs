@@ -137,6 +137,8 @@ pub struct PassiveTree {
     links: HashMap<u32, Vec<u32>>,
     classes: Vec<ClassInfo>,
     skill_overrides: HashMap<String, TreeNode>,
+    /// Passive id (what the game logs and planner files store) → node.
+    by_id: HashMap<String, u32>,
 }
 
 /// Why a target passive couldn't be added.
@@ -168,12 +170,38 @@ impl PassiveTree {
             list.sort_unstable();
             list.dedup();
         }
+        let mut by_id: HashMap<String, u32> = nodes
+            .iter()
+            .filter(|(_, n)| !n.id.is_empty())
+            .map(|(&k, n)| (n.id.clone(), k))
+            .collect();
+        // Alternate-ascendancy passives (Abyssal Lich) sit on base nodes.
+        for asc in raw.classes.iter().flat_map(|c| &c.ascendancies) {
+            for (&base, key) in &asc.overrides {
+                if let Some(o) = raw.skill_overrides.get(key).filter(|o| !o.id.is_empty()) {
+                    by_id.entry(o.id.clone()).or_insert(base);
+                }
+            }
+        }
         Ok(Self {
             nodes,
             links,
             classes: raw.classes,
             skill_overrides: raw.skill_overrides,
+            by_id,
         })
+    }
+
+    /// The node for a passive id such as `projectiles15`.
+    pub fn node_by_id(&self, id: &str) -> Option<u32> {
+        self.by_id.get(id).copied()
+    }
+
+    /// The class whose ascendancy has this id (`Huntress2` → Huntress).
+    pub fn class_of_ascendancy(&self, ascendancy_id: &str) -> Option<(&ClassInfo, &AscendancyInfo)> {
+        self.classes
+            .iter()
+            .find_map(|c| c.ascendancies.iter().find(|a| a.id == ascendancy_id).map(|a| (c, a)))
     }
 
     fn ascendancy_info(&self, ascendancy_id: &str) -> Option<&AscendancyInfo> {

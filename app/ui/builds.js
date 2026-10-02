@@ -130,7 +130,8 @@ document.querySelectorAll("#sub-showcase .chips").forEach(group => group.addEven
   loadShowcase();
 }));
 
-document.querySelectorAll("#subtabs .subtab").forEach(t => t.addEventListener("click", () => showSub(t.dataset.sub)));
+let userPickedSub = false;
+document.querySelectorAll("#subtabs .subtab").forEach(t => t.addEventListener("click", () => { userPickedSub = true; showSub(t.dataset.sub); }));
 function showSub(name) {
   document.querySelectorAll("#subtabs .subtab").forEach(x => x.classList.toggle("active", x.dataset.sub === name));
   document.querySelectorAll("#view-build .sub").forEach(x => x.classList.toggle("active", x.id === `sub-${name}`));
@@ -250,9 +251,11 @@ function openSaved(e) {
     const use = async write => {
       try {
         const r = await invoke("use_saved", { id: e.id, write });
-        toast(write ? `Wrote ${r.files.length} stages to the game's Build Planner. Open it in game (reopen it if it was open) and pick a stage.` : "Active build set.");
+        toast(write ? `✓ Saved to the game's Build Planner: ${r.files.length} stages. They appear in game right away; pick the stage for your level.` : "✓ Now following this build.", "ok");
+        closeModal();
+        showSub("current");
         if (write) refreshPlannerFiles();
-      } catch (err) { toast(err); }
+      } catch (err) { toast(`Couldn't save to the Build Planner: ${err}`, "err"); }
     };
     $("d-write").addEventListener("click", () => use(true));
     $("d-use").addEventListener("click", () => use(false));
@@ -292,4 +295,80 @@ function openShowcase() {
   await loadShowcase();
   const st = await invoke("build_status");
   if (st.busy) toast("A build is still being generated.");
+})();
+
+// ---- Current build: what Lifeline follows, and how the character lines up ----
+let CURRENT = null;
+function renderCurrent(v) {
+  CURRENT = v;
+  const f = $("following");
+  if (!v) { f.classList.add("hidden"); return; }
+  f.textContent = `Following: ${v.name}`;
+  f.classList.remove("hidden");
+  const asc = v.ascendancy || "", cls = v.class_name || classOf(asc).cls;
+  const chosen = v.stages.filter(s => s.chosen);
+  $("cur-card").innerHTML = `<div class="d-head">${portrait(cls, asc, 104)}<div class="grow">
+      <div class="state">${esc(v.source)}</div><h1>${esc(v.name)}</h1>
+      <div class="sub2">${esc(cls)}${asc ? " · " + esc(asc) : ""} · ${chosen.length} stages</div>
+      <div class="cur-stages">${chosen.map(s => `<span class="cstage" data-stage="${esc(s.stage)}">${esc(s.stage)} <small>≈${s.estimated_level}</small></span>`).join("")}</div></div></div>
+    <div class="d-actions">
+      <button class="primary" id="cur-check">Check my build with AI</button>
+      <button id="cur-write" title="Write this build's stages into the game's Build Planner">Save to Build Planner</button>
+      <button class="ghost" id="cur-change">Change build</button>
+    </div>`;
+  $("cur-check").addEventListener("click", async () => {
+    const id = await invoke("build_check_chat");
+    document.querySelector('.tab[data-tab="play"]').click();
+    if (typeof selectConv === "function") selectConv(id);
+  });
+  $("cur-write").addEventListener("click", async () => {
+    try {
+      const files = await invoke("write_stages");
+      toast(`✓ Saved to the game's Build Planner: ${files.length} stages.`, "ok");
+      refreshPlannerFiles();
+    } catch (e) { toast(`Couldn't save to the Build Planner: ${e}`, "err"); }
+  });
+  $("cur-change").addEventListener("click", () => showSub("showcase"));
+  refreshAlignment();
+}
+
+let alignTimer = null;
+function refreshAlignment() {
+  clearTimeout(alignTimer);
+  alignTimer = setTimeout(async () => {
+    if (!CURRENT) { $("align-card").classList.add("hidden"); return; }
+    const a = await invoke("build_alignment");
+    $("align-card").classList.remove("hidden");
+    if (!a.passives) { $("align-body").innerHTML = `<p class="hint">${esc(a.note || "")}</p>`; return; }
+    $("align-stage").textContent = `${a.stage} plan · ${a.character.name || "character"} level ${a.character.level}`;
+    document.querySelectorAll(".cstage").forEach(s => s.classList.toggle("on", s.dataset.stage === a.stage));
+    const p = a.passives;
+    const gear = a.gear.map(g => {
+      const goal = g.goal_unique ? `<b>${esc(g.goal_unique)}</b>` : esc(g.goal.slice(0, 3).join(", ") || "—");
+      return `<tr><td>${esc(g.slot)}</td><td>${goal}</td><td class="${g.recorded ? "okc" : "noc"}">${g.recorded ? "✓ " + esc(g.recorded) : "not recorded"}</td></tr>`;
+    }).join("");
+    $("align-body").innerHTML = `
+      <div class="align-top"><div class="align-pct">${p.percent}<small>%</small></div>
+        <div class="grow"><div class="bars" style="grid-template-columns:110px 1fr"><span>Passives</span><div class="b"><i class="hc" style="width:${p.percent}%"></i></div></div>
+        <div class="hint" style="margin:6px 0 0">${p.allocated_of_plan} of ${p.planned} planned passives for ${esc(a.stage)} allocated · ${p.off_plan.length} off-plan</div></div></div>
+      <div class="d-grid">
+        <div class="d-sec"><h3>Take next</h3><ul>${p.missing.slice(0, 10).map(m => `<li class="${m.notable ? "notable" : ""}">${esc(m.name)}</li>`).join("") || "<li>Nothing — on plan</li>"}</ul>${p.missing.length > 10 ? `<div class="hint">+${p.missing.length - 10} more</div>` : ""}</div>
+        <div class="d-sec"><h3>Off-plan passives</h3><ul>${p.off_plan.slice(0, 10).map(n => `<li>${esc(n)}</li>`).join("") || "<li>None</li>"}</ul></div>
+        <div class="d-sec"><h3>Skills for this stage</h3><ul>${a.skills.map(s => `<li><span class="gem">${esc(s.skill)}</span>${s.supports.length ? ` <span class="sups">+ ${s.supports.map(esc).join(", ")}</span>` : ""}</li>`).join("") || "<li>—</li>"}</ul>
+          <div class="hint">The game doesn't log gems; the AI will ask what you have socketed.</div></div>
+      </div>
+      <div class="d-sec" style="margin-top:12px"><h3>Gear</h3><table class="gear-align"><thead><tr><th>Slot</th><th>Goal</th><th>You</th></tr></thead><tbody>${gear || `<tr><td colspan="3" class="hint">This build has no gear goals.</td></tr>`}</tbody></table>
+        <div class="hint">Record what you wear: hover an item in game and press your Record gear hotkey.</div></div>`;
+  }, 250);
+}
+
+$("following").addEventListener("click", () => { document.querySelector('.tab[data-tab="build"]').click(); showSub("current"); });
+$("align-refresh").addEventListener("click", refreshAlignment);
+listen("imported", ({ payload }) => { const first = !CURRENT; renderCurrent(payload); if (first && !userPickedSub) showSub("current"); });
+let alignThrottle = 0;
+listen("character", () => { if (CURRENT && Date.now() - alignThrottle > 5000) { alignThrottle = Date.now(); refreshAlignment(); } });
+listen("equipped", () => CURRENT && refreshAlignment());
+(async () => {
+  const snap = await invoke("snapshot");
+  if (snap.imported) { renderCurrent(snap.imported); showSub("current"); }
 })();

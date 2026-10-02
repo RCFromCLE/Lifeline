@@ -7,6 +7,8 @@ use crate::mcp_tool_name;
 // Live state and the player's plan.
 pub const CHARACTER_STATE: &str = "character_state";
 pub const BUILD_PLAN: &str = "build_plan";
+/// How the character lines up with the followed build for its current stage.
+pub const BUILD_ALIGNMENT: &str = "build_alignment";
 pub const NEXT_STEPS: &str = "next_steps";
 pub const CAMPAIGN_REWARDS: &str = "campaign_rewards";
 pub const DEATH_JOURNAL: &str = "death_journal";
@@ -59,6 +61,7 @@ pub const GAME_DATA: &[&str] = &[
 pub const ALL: &[&str] = &[
     CHARACTER_STATE,
     BUILD_PLAN,
+    BUILD_ALIGNMENT,
     NEXT_STEPS,
     CAMPAIGN_REWARDS,
     DEATH_JOURNAL,
@@ -88,6 +91,7 @@ pub const ALL: &[&str] = &[
 pub const IMPLEMENTED: &[&str] = &[
     CHARACTER_STATE,
     BUILD_PLAN,
+    BUILD_ALIGNMENT,
     LOOKUP_GEM,
     LOOKUP_SUPPORTS_FOR,
     LOOKUP_BASE,

@@ -2,12 +2,13 @@
 const $ = id => document.getElementById(id);
 let settings = null;
 
-function toast(text) {
+/** A notification above everything (dialogs included). kind: "ok", "err" or "info". */
+function toast(text, kind = "info") {
   const t = $("toast");
-  t.textContent = text;
-  t.classList.add("show");
+  t.textContent = String(text);
+  t.className = `toast show ${kind}`;
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.remove("show"), 4500);
+  toast.timer = setTimeout(() => t.classList.remove("show"), kind === "err" ? 8000 : 5500);
 }
 
 // ---- tabs (also D-pad/arrow friendly: they're plain buttons) ----
@@ -433,7 +434,7 @@ async function refreshPlannerFiles() {
   $("planner-files").innerHTML = [...groups.values()].map((g, gi) => `
     <div class="pgroup">
       <div class="phead2"><b>${escapeHtml(g.build)}</b><span class="hint">${g.files.length} file${g.files.length > 1 ? "s" : ""}${g.author ? " · by " + escapeHtml(g.author) : ""}</span>
-        <button class="ghost del-group" data-g="${gi}">Delete all</button></div>
+        <button class="primary follow-group" data-g="${gi}" title="Make this your current build in Lifeline">Follow</button><button class="ghost del-group" data-g="${gi}">Delete all</button></div>
       <ul>${g.files.map(f => `<li><span>${escapeHtml(f.stage || f.name)}</span><button class="ghost del-one" data-file="${escapeHtml(f.file)}" title="Delete ${escapeHtml(f.file)}">Delete</button></li>`).join("")}</ul>
     </div>`).join("");
   const list = [...groups.values()];
@@ -442,6 +443,13 @@ async function refreshPlannerFiles() {
     catch (e) { toast(e); }
     refreshPlannerFiles();
   };
+  $("planner-files").querySelectorAll(".follow-group").forEach(b => b.addEventListener("click", async () => {
+    try {
+      const v = await invoke("follow_planner", { files: list[b.dataset.g].files.map(f => f.file) });
+      toast(`✓ Now following ${v.name}.`, "ok");
+      showSub("current");
+    } catch (e) { toast(`Couldn't follow that build: ${e}`, "err"); }
+  }));
   $("planner-files").querySelectorAll(".del-one").forEach(b => b.addEventListener("click", () => confirmClick(b, "Sure?", () => remove([b.dataset.file]))));
   $("planner-files").querySelectorAll(".del-group").forEach(b => b.addEventListener("click", () =>
     confirmClick(b, `Delete ${list[b.dataset.g].files.length}?`, () => remove(list[b.dataset.g].files.map(f => f.file)))));

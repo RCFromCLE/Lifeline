@@ -309,6 +309,11 @@ pub fn item_question(item: &str) -> String {
     )
 }
 
+pub const BUILD_CHECK: &str = "How well does my character line up with the build I'm following right now? Use build_alignment, \
+     character_state and equipped_items. Lead with how aligned I am, then the biggest gaps (passives, gear, \
+     skills) and what to do next, most important first. Ask me which skills and supports I have socketed if \
+     you need that.";
+
 pub const CREATE_BUILD: &str = "Create a complete build for me, Act 1 to Endgame, that I can follow in the game's \
      Build Planner. Ask me what you need first.";
 
