@@ -290,7 +290,27 @@ pub fn read_dir(dir: &Path) -> Result<Vec<ScannedBuild>, Error> {
 
 /// Writes `build` into `dir` via a temp file + rename so the game never sees a
 /// half-written file. Returns the final path.
+/// The build as the game itself writes it: the name inside equals the file
+/// name (40 characters at most), no description, no built-in weapon attacks
+/// (`…PlayerDefault…` aren't gems), and every skill and support carries a
+/// level interval. Files that differ are skipped by the in-game planner.
+pub fn for_game(build: &PlannerBuild) -> PlannerBuild {
+    let mut b = build.clone();
+    let file = file_name_for(&build.name);
+    b.name = file.trim_end_matches(&format!(".{FILE_EXTENSION}")).to_owned();
+    b.description = None;
+    b.skills.retain(|s| !s.id.contains("PlayerDefault"));
+    for s in &mut b.skills {
+        s.level_interval.get_or_insert(LevelInterval::Range([1, 100]));
+        for sup in &mut s.support_skills {
+            sup.level_interval.get_or_insert(LevelInterval::Range([1, 100]));
+        }
+    }
+    b
+}
+
 pub fn write(dir: &Path, build: &PlannerBuild) -> Result<PathBuf, Error> {
+    let build = for_game(build);
     let path = dir.join(file_name_for(&build.name));
     let tmp = path.with_extension("build.tmp");
     fs::write(&tmp, build.to_json()?).map_err(|source| Error::io(&tmp, source))?;
@@ -369,5 +389,19 @@ mod tests {
             "Act 1 - [0.5] CaptainLance9's Spirit Wal.build"
         );
         assert_eq!(file_name_for("a/b:c?"), "a_b_c_.build");
+    }
+
+    #[test]
+    fn written_builds_match_the_games_own_format() {
+        let mut b = PlannerBuild::from_json(SAMPLE).unwrap();
+        b.name = "Act 2 - Silverfist Companion Spirit Walker (Lifeline)".into();
+        b.description = Some("x".into());
+        b.skills.insert(0, SkillRef { id: "Metadata/Items/Gem/SkillGemPlayerDefaultSpear".into(), level_interval: None, additional_text: None, support_skills: vec![], extra: Default::default() });
+        let g = for_game(&b);
+        assert!(g.name.chars().count() <= MAX_NAME_CHARS);
+        assert_eq!(format!("{}.{FILE_EXTENSION}", g.name), file_name_for(&b.name), "name equals the file name");
+        assert!(g.description.is_none());
+        assert!(g.skills.iter().all(|s| !s.id.contains("PlayerDefault")));
+        assert!(g.skills.iter().all(|s| s.level_interval.is_some() && s.support_skills.iter().all(|x| x.level_interval.is_some())));
     }
 }

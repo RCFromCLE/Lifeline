@@ -250,7 +250,7 @@ function openSaved(e) {
     const use = async write => {
       try {
         const r = await invoke("use_saved", { id: e.id, write });
-        toast(write ? `Active build set; wrote ${r.files.length} stages. Pick one in the game's Build Planner.` : "Active build set.");
+        toast(write ? `Wrote ${r.files.length} stages to the game's Build Planner. Open it in game (reopen it if it was open) and pick a stage.` : "Active build set.");
         if (write) refreshPlannerFiles();
       } catch (err) { toast(err); }
     };

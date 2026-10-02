@@ -162,6 +162,12 @@
 
         <div class="sub" id="sub-mine">
           <div class="card">
+            <div class="step-h"><h2>Build Planner in game</h2><span class="hint" id="planner-hint"></span>
+              <button id="planner-open" class="ghost">Open folder</button><button id="planner-refresh" class="ghost" title="Refresh">↻</button></div>
+            <p class="hint">Builds here show up in the game's Build Planner. If the game is already running, reopen the Build Planner (or restart the game) to see new ones.</p>
+            <div id="planner-files" class="planner"></div>
+          </div>
+          <div class="card">
             <h2>My builds</h2>
             <div class="build-grid" id="mine"></div>
           </div>
@@ -177,10 +183,7 @@
             <div id="import-status" class="status"></div>
             <div id="import-result"></div>
           </div>
-          <div class="card">
-            <h2>Planner files</h2>
-            <ul class="files" id="planner-files"></ul>
-          </div>
+
         </div>
       </div>
     </section>

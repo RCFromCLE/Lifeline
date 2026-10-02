@@ -236,3 +236,61 @@ pub fn planner_files() -> Vec<String> {
         })
         .unwrap_or_default()
 }
+
+/// The game's Build Planner folder.
+pub fn planner_dir() -> Option<std::path::PathBuf> {
+    paths::user_dir().map(|d| paths::build_planner_dir(&d))
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlannerFile {
+    pub file: String,
+    pub name: String,
+    pub author: Option<String>,
+}
+
+/// Every .build file in the planner folder, with its name and author.
+pub fn planner_list() -> Vec<PlannerFile> {
+    let Some(dir) = planner_dir() else {
+        return Vec::new();
+    };
+    let mut out: Vec<PlannerFile> = build_planner::read_dir(&dir)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(path, parsed)| {
+            let file = path.file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+            match parsed {
+                Ok(b) => PlannerFile { file, name: b.name, author: b.author },
+                Err(_) => PlannerFile { name: format!("{file} (unreadable)"), file, author: None },
+            }
+        })
+        .collect();
+    out.sort_by_key(|a| a.file.to_lowercase());
+    out
+}
+
+/// Deletes planner files by file name. Only plain `.build` names inside the
+/// planner folder are accepted.
+pub fn delete_planner_files(files: &[String]) -> Result<usize, String> {
+    let dir = planner_dir().ok_or("Couldn't find the Build Planner folder.")?;
+    let mut deleted = 0;
+    for f in files {
+        let plain = !f.contains(['/', '\\', ':']) && !f.contains("..") && f.ends_with(".build");
+        if !plain {
+            return Err(format!("Not a Build Planner file: {f}"));
+        }
+        let path = dir.join(f);
+        if path.is_file() {
+            std::fs::remove_file(&path).map_err(|e| format!("Couldn't delete {f}: {e}"))?;
+            deleted += 1;
+        }
+    }
+    Ok(deleted)
+}
+
+/// Opens the planner folder in Explorer.
+pub fn open_planner_folder() -> Result<(), String> {
+    let dir = planner_dir().ok_or("Couldn't find the Build Planner folder.")?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::process::Command::new("explorer.exe").arg(&dir).spawn().map(|_| ()).map_err(|e| e.to_string())
+}

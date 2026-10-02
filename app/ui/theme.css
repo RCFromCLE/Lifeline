@@ -292,3 +292,14 @@ select { background: rgba(10, 7, 5, 0.85); color: var(--text); border: 1px solid
 .sound-tests .cue { display: flex; align-items: center; gap: 10px; }
 .sound-tests .cue label { flex: 1; color: var(--text); font-size: 14px; }
 .sound-tests .cue button { padding: 2px 12px; }
+
+/* Build Planner manager */
+.planner { display: flex; flex-direction: column; gap: 10px; }
+.pgroup { border: 1px solid rgba(59, 44, 31, 0.9); border-radius: 6px; background: rgba(20, 15, 11, 0.55); padding: 8px 12px; }
+.phead2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.phead2 b { color: var(--gold-2); font-family: var(--display); }
+.phead2 .hint { margin: 0; flex: 1; }
+.pgroup ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 4px 12px; }
+.pgroup li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; padding: 2px 0; border-bottom: 1px solid rgba(42, 34, 27, 0.8); }
+.pgroup li button, .phead2 button { padding: 2px 10px; font-size: 12px; }
+button.danger { border-color: var(--red) !important; color: #ffb3a8 !important; box-shadow: 0 0 10px rgba(216, 87, 74, 0.35) !important; }

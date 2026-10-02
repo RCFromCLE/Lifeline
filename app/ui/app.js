@@ -403,10 +403,51 @@ async function writeStages() {
   }
 }
 
-async function refreshPlannerFiles() {
-  const files = await invoke("planner_files");
-  $("planner-files").innerHTML = files.map(f => `<li>${escapeHtml(f)}</li>`).join("") || "<li class='hint'>None yet.</li>";
+// ---- the game's Build Planner folder: grouped by build, delete with a confirm ----
+function confirmClick(button, label, action) {
+  if (button.dataset.armed) { action(); return; }
+  button.dataset.armed = "1";
+  const old = button.textContent;
+  button.textContent = label;
+  button.classList.add("danger");
+  setTimeout(() => { delete button.dataset.armed; button.textContent = old; button.classList.remove("danger"); }, 3000);
 }
+
+async function refreshPlannerFiles() {
+  const files = await invoke("planner_list");
+  $("planner-hint").textContent = files.length ? `${files.length} files` : "";
+  if (!files.length) { $("planner-files").innerHTML = "<p class='hint'>No builds in the game's planner yet.</p>"; return; }
+  // "Act 2 - Silverfist Companion…" → group by author and the build part of the name.
+  const groups = new Map();
+  for (const f of files) {
+    const base = f.file.replace(/\.build$/, "");
+    const cut = base.indexOf(" - ");
+    const stage = cut > 0 ? base.slice(0, cut) : "";
+    const build = cut > 0 ? base.slice(cut + 3) : base;
+    const key = `${f.author || ""}|${build.slice(0, 16)}`;
+    if (!groups.has(key)) groups.set(key, { build, author: f.author, files: [] });
+    const g = groups.get(key);
+    if (build.length > g.build.length) g.build = build;
+    g.files.push({ ...f, stage });
+  }
+  $("planner-files").innerHTML = [...groups.values()].map((g, gi) => `
+    <div class="pgroup">
+      <div class="phead2"><b>${escapeHtml(g.build)}</b><span class="hint">${g.files.length} file${g.files.length > 1 ? "s" : ""}${g.author ? " · by " + escapeHtml(g.author) : ""}</span>
+        <button class="ghost del-group" data-g="${gi}">Delete all</button></div>
+      <ul>${g.files.map(f => `<li><span>${escapeHtml(f.stage || f.name)}</span><button class="ghost del-one" data-file="${escapeHtml(f.file)}" title="Delete ${escapeHtml(f.file)}">Delete</button></li>`).join("")}</ul>
+    </div>`).join("");
+  const list = [...groups.values()];
+  const remove = async names => {
+    try { await invoke("delete_planner_files", { files: names }); toast(`Deleted ${names.length} file${names.length > 1 ? "s" : ""}.`); }
+    catch (e) { toast(e); }
+    refreshPlannerFiles();
+  };
+  $("planner-files").querySelectorAll(".del-one").forEach(b => b.addEventListener("click", () => confirmClick(b, "Sure?", () => remove([b.dataset.file]))));
+  $("planner-files").querySelectorAll(".del-group").forEach(b => b.addEventListener("click", () =>
+    confirmClick(b, `Delete ${list[b.dataset.g].files.length}?`, () => remove(list[b.dataset.g].files.map(f => f.file)))));
+}
+$("planner-open").addEventListener("click", () => invoke("open_planner_folder").catch(e => toast(e)));
+$("planner-refresh").addEventListener("click", refreshPlannerFiles);
 
 // ---- settings ----
 // Sound cues, each on or off; level up and death start off.

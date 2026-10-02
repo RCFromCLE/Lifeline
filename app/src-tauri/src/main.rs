@@ -71,6 +71,21 @@ fn planner_files() -> Vec<String> {
 }
 
 #[tauri::command]
+fn planner_list() -> Vec<builds::PlannerFile> {
+    builds::planner_list()
+}
+
+#[tauri::command]
+fn delete_planner_files(files: Vec<String>) -> Result<usize, String> {
+    builds::delete_planner_files(&files)
+}
+
+#[tauri::command]
+fn open_planner_folder() -> Result<(), String> {
+    builds::open_planner_folder()
+}
+
+#[tauri::command]
 fn ask(app: AppHandle, conv: u64, text: String) {
     ai::ask(&app, Some(conv), text, "Chat", Origin::Chat);
 }
@@ -635,6 +650,9 @@ fn main() {
             setup_action,
             finish_setup,
             open_url,
+            planner_list,
+            delete_planner_files,
+            open_planner_folder,
             check_update,
             fit_overlay,
             skills_snapshot,
