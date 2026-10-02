@@ -66,11 +66,25 @@ pub fn register(app: &AppHandle, hotkeys: &Hotkeys) -> Vec<String> {
 
 pub fn toggle_overlay(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("overlay") {
-        if w.is_visible().unwrap_or(false) {
-            let _ = w.hide();
-        } else {
-            let _ = w.show();
-        }
+        let show = !w.is_visible().unwrap_or(false);
+        let _ = if show { w.show() } else { w.hide() };
+        remember_overlay(app, Some(show), None);
+    }
+}
+
+/// Persists the HUD's on/off state and/or position (logical px) when they change.
+pub fn remember_overlay(app: &AppHandle, visible: Option<bool>, pos: Option<(f64, f64)>) {
+    let state = app.state::<AppState>();
+    let mut settings = state.settings.lock().unwrap();
+    let before = (settings.overlay_visible, settings.overlay_pos);
+    if let Some(v) = visible {
+        settings.overlay_visible = v;
+    }
+    if let Some(p) = pos {
+        settings.overlay_pos = Some((p.0.round(), p.1.round()));
+    }
+    if (settings.overlay_visible, settings.overlay_pos) != before {
+        let _ = settings.save(&state.data_dir);
     }
 }
 
@@ -84,14 +98,15 @@ pub fn toggle_move_mode(app: &AppHandle) {
     let unlock = !state.overlay_unlocked.load(Ordering::SeqCst);
     state.overlay_unlocked.store(unlock, Ordering::SeqCst);
     let _ = w.show();
-    if !unlock {
-        if let (Ok(pos), Ok(scale)) = (w.outer_position(), w.scale_factor()) {
-            let logical = pos.to_logical::<f64>(scale);
-            let mut settings = state.settings.lock().unwrap();
-            settings.overlay_pos = Some((logical.x, logical.y));
-            let _ = settings.save(&state.data_dir);
+    let pos = (w.outer_position(), w.scale_factor());
+    let pos = match pos {
+        (Ok(p), Ok(scale)) if !unlock => {
+            let l = p.to_logical::<f64>(scale);
+            Some((l.x, l.y))
         }
-    }
+        _ => None,
+    };
+    remember_overlay(app, Some(true), pos);
     let _ = app.emit("overlay-mode", unlock);
 }
 

@@ -72,12 +72,19 @@ pub struct Settings {
     /// Saved HUD position (logical px).
     #[serde(default)]
     pub overlay_pos: Option<(f64, f64)>,
+    /// Whether the HUD was on when last toggled; restored at startup.
+    #[serde(default = "default_true")]
+    pub overlay_visible: bool,
     /// Max price per recommended item, e.g. "10 exalted".
     #[serde(default = "default_budget")]
     pub rating_budget: String,
     /// Re-rate automatically when entering a new act (off: the player triggers it).
     #[serde(default)]
     pub auto_rate_on_act: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_budget() -> String {
@@ -97,6 +104,7 @@ impl Default for Settings {
                 move_overlay: default_move_overlay(),
             },
             overlay_pos: None,
+            overlay_visible: true,
             rating_budget: default_budget(),
             auto_rate_on_act: false,
             overlay_on_hotkey: true,

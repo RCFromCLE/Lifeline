@@ -50,7 +50,7 @@ cargo build --release -p polr-app
 | `Alt+Shift+D` | **Item check** — with an item hovered in PoE2, sends one Ctrl+Alt+C, the Opus 5.5 gear appraiser judges it, answer shows on the HUD |
 | `Alt+Shift+N` | **What next** — route coach's next 1–3 steps for where you are |
 | `Alt+Shift+A` | **Ask** — brings the app up with the chat focused |
-| `Alt+Shift+O` | **HUD overlay** — show/hide the click-through overlay over the game |
+| `Alt+Shift+O` | **HUD overlay** — show/hide the click-through overlay over the game (on/off is remembered; starts on the left edge, clear of the minimap) |
 | `Alt+Shift+E` | **Record equipped** — hover an item you're wearing; used for ±% on market cards and the build rating |
 | `Alt+Shift+M` | **Move HUD** — drag the overlay anywhere, press again to lock (position is remembered) |
 

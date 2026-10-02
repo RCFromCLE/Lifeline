@@ -338,8 +338,14 @@ fn toggle_overlay(app: AppHandle) {
 }
 
 #[tauri::command]
-fn save_settings(app: AppHandle, settings: Settings) -> Result<Vec<String>, String> {
+fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, String> {
     let state = app.state::<AppState>();
+    {
+        // The HUD's place and on/off state are owned by the HUD, not the form.
+        let current = state.settings.lock().unwrap();
+        settings.overlay_pos = current.overlay_pos;
+        settings.overlay_visible = current.overlay_visible;
+    }
     settings.save(&state.data_dir)?;
     let failed = hotkeys::register(&app, &settings.hotkeys);
     *state.settings.lock().unwrap() = settings;
@@ -359,16 +365,46 @@ fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
         .focused(false)
         .focusable(false)
         .visible(false);
-    let saved = app.state::<AppState>().settings.lock().unwrap().overlay_pos;
-    if let Some((x, y)) = saved {
-        builder = builder.position(x, y);
+    let state = app.state::<AppState>();
+    let (saved, visible) = {
+        let s = state.settings.lock().unwrap();
+        (s.overlay_pos, s.overlay_visible)
+    };
+    // A saved spot only counts if it's still on a connected monitor.
+    let monitors = app.available_monitors().unwrap_or_default();
+    let on_screen = |(x, y): (f64, f64)| {
+        monitors.iter().any(|m| {
+            let s = m.scale_factor();
+            let (mx, my) = (m.position().x as f64 / s, m.position().y as f64 / s);
+            let (mw, mh) = (m.size().width as f64 / s, m.size().height as f64 / s);
+            x + 40.0 >= mx && x < mx + mw - 40.0 && y >= my - 10.0 && y < my + mh - 40.0
+        })
+    };
+    if let Some(pos) = saved.filter(|&p| on_screen(p)) {
+        builder = builder.position(pos.0, pos.1);
     } else if let Ok(Some(monitor)) = app.primary_monitor() {
-        let scale = monitor.scale_factor();
-        let width = monitor.size().width as f64 / scale;
-        builder = builder.position(width - 470.0, 90.0);
+        // Left edge, below PoE2's top-left buff bar and well clear of the
+        // top-right minimap.
+        let s = monitor.scale_factor();
+        let (mx, my) = (monitor.position().x as f64 / s, monitor.position().y as f64 / s);
+        let height = monitor.size().height as f64 / s;
+        builder = builder.position(mx + 16.0, my + (height * 0.16).round());
     }
     let window = builder.build()?;
     window.set_ignore_cursor_events(true)?;
+    let handle = app.clone();
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::Moved(pos) = event {
+            if let Some(w) = handle.get_webview_window("overlay") {
+                let scale = w.scale_factor().unwrap_or(1.0);
+                let l = pos.to_logical::<f64>(scale);
+                hotkeys::remember_overlay(&handle, None, Some((l.x, l.y)));
+            }
+        }
+    });
+    if visible {
+        window.show()?;
+    }
     Ok(())
 }
 
