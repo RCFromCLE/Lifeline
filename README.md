@@ -11,48 +11,44 @@ mouse/keyboard support.
 > Status: early but playable. See [PLAN.md](PLAN.md) for the full,
 > research-grounded plan and roadmap.
 
-## Install on your gaming PC (laptop)
+## Install
 
-You don't need Rust or any developer tools for this. You need **Windows 10 or 11**,
-**Path of Exile 2** (Steam on any drive, or the standalone client), and your
-**Claude Pro/Max** subscription.
+You need:
+- **Windows 10 or 11**
+- **Path of Exile 2** (Steam on any drive, or the standalone client)
+- A **Claude Pro or Max** subscription. Lifeline's AI runs on your own plan, with no API key and no extra bill.
 
-### 1. Install Claude Code and log in (one time)
+You don't need any developer tools.
 
-The app talks to Claude through Claude Code, using your subscription, not an API key.
-Open **PowerShell** (Start → type `powershell` → Enter) and run these one at a time:
+### 1. Download
 
-```powershell
-winget install --id Git.Git -e          # Claude Code on Windows uses Git for Windows
-irm https://claude.ai/install.ps1 | iex # installs Claude Code
-```
+Go to **https://github.com/RCFromCLE/Lifeline/releases/latest**. Under **Assets**, download **`Lifeline_<version>_x64-setup.exe`**.
 
-Close PowerShell, open a **new** one, then log in:
+### 2. Install
 
-```powershell
-claude --version   # should print a version number
-claude             # opens your browser: choose "Claude account with subscription" and approve
-```
-
-When it says you're logged in, type `/exit` and close PowerShell.
-
-### 2. Download the installer
-
-1. In your browser, sign in to GitHub as **RCFromCLE** (the repo is private).
-2. Go to **https://github.com/RCFromCLE/Lifeline/releases/latest**.
-3. Under **Assets**, click **`Lifeline_<version>_x64-setup.exe`** to download it.
-
-(Or from PowerShell, if you use the GitHub CLI: `gh release download --repo RCFromCLE/Lifeline --pattern "*setup.exe"`.)
-
-### 3. Install and run it
-
-1. Double-click the downloaded `…_x64-setup.exe`.
-2. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway**.
-   The installer isn't code-signed, so Windows warns about it.
+1. Double-click the downloaded file.
+2. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway**. The installer isn't code-signed yet, so Windows warns about it.
 3. Click through the installer. It installs just for your user, so it doesn't need admin rights.
 4. Start **Lifeline** from the Start menu.
 
-### 4. First-run checklist
+### 3. The welcome takes it from there
+
+On first start, Lifeline walks you through everything:
+1. **Connect Claude:** it checks for Claude Code (Anthropic's free app that Lifeline runs your AI through) and Git for Windows. Missing pieces get **Install** buttons; then **Sign in** opens your browser to log in with your Claude account. Each step ticks off by itself.
+2. **Your game:** it finds PoE2 and asks how you play (PlayStation controller, Xbox controller, or mouse and keyboard) and your league.
+3. **How it works:** a one-page tour of the HUD, hotkeys, builds, rating, market and sounds.
+
+You can reopen the tour any time from **Settings → Welcome tour**.
+
+<details><summary>Prefer to set up Claude Code by hand?</summary>
+
+```powershell
+winget install --id Git.Git -e           # Git for Windows (Claude Code uses it)
+irm https://claude.ai/install.ps1 | iex  # Claude Code
+claude auth login --claudeai             # sign in with your Claude account (opens the browser)
+```
+</details>
+### Good to know
 
 - **PoE2 display mode:** Options → Graphics → Display Mode → **Windowed Fullscreen**.
   The HUD can't draw over exclusive fullscreen.

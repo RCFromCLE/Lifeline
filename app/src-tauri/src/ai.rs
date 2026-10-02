@@ -53,7 +53,10 @@ pub fn current_stage(act: Option<u8>, area_level: u32) -> Stage {
 /// Live context attached to every question until the MCP tools land (M3).
 fn context(state: &AppState) -> String {
     let c = state.character.lock().unwrap().clone();
-    let league = state.settings.lock().unwrap().league.clone();
+    let (league, input) = {
+        let s = state.settings.lock().unwrap();
+        (s.league.clone(), s.input.clone())
+    };
     let mut lines = vec![
         "[Live context from Lifeline. The lifeline tools are connected: live character state, the imported build, \
          game data for the current patch (gems, supports, item bases, mods, uniques, passives, areas) and the trade market. \
@@ -61,6 +64,7 @@ fn context(state: &AppState) -> String {
          what you could not verify.]"
             .to_string(),
         format!("League: {league}"),
+        format!("Controls: {}", crate::state::controls(&input)),
     ];
     match &c.name {
         Some(name) => lines.push(format!("Character: {name} ({}) level {}", c.class, c.level)),

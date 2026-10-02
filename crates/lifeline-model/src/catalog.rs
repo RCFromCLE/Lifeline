@@ -66,6 +66,9 @@ pub struct Archetype {
     #[serde(default)]
     pub league_start: bool,
     pub sources: Vec<String>,
+    /// Video guides (YouTube links), shown as "Watch" in the app.
+    #[serde(default)]
+    pub videos: Vec<String>,
 }
 
 /// Problems with one archetype's names and numbers (empty = good).
@@ -97,6 +100,11 @@ pub fn check(a: &Archetype, tree: &PassiveTree, data: &GameData) -> Vec<String> 
     }
     if a.sources.is_empty() {
         p.push("needs at least one source URL".into());
+    }
+    for url in a.sources.iter().chain(&a.videos) {
+        if !url.starts_with("https://") {
+            p.push(format!("'{url}' must be an https:// link"));
+        }
     }
     let check_skill = |s: &SkillDesign, p: &mut Vec<String>| {
         let Some(gem) = data.gem_named(&s.gem) else {

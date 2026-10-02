@@ -86,6 +86,25 @@ pub struct Settings {
     pub sound: bool,
     #[serde(default = "default_volume")]
     pub volume: f32,
+    /// How the player plays: "playstation", "xbox" or "keyboard".
+    #[serde(default = "default_input")]
+    pub input: String,
+    /// The first-run welcome (Claude Code setup, game, tour) is done.
+    #[serde(default)]
+    pub onboarded: bool,
+}
+
+fn default_input() -> String {
+    "keyboard".into()
+}
+
+/// How to name controls for this player, for the AI.
+pub fn controls(input: &str) -> &'static str {
+    match input {
+        "playstation" => "PlayStation controller: name buttons Cross, Circle, Square, Triangle, L1, R1, L2, R2 (and combos like R2+Triangle).",
+        "xbox" => "Xbox controller: name buttons A, B, X, Y, LB, RB, LT, RT (and combos like RT+Y).",
+        _ => "Mouse and keyboard: name skill slots by their keys (left, middle and right click, Q, W, E, R, T) and say \"dodge roll\" rather than guessing a key.",
+    }
 }
 
 fn default_volume() -> f32 {
@@ -118,6 +137,8 @@ impl Default for Settings {
             auto_rate_on_act: false,
             sound: true,
             volume: default_volume(),
+            input: default_input(),
+            onboarded: false,
             overlay_on_hotkey: true,
         }
     }

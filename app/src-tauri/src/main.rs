@@ -15,6 +15,7 @@ mod input;
 mod market;
 mod mcp;
 mod rating;
+mod setup;
 mod skills;
 mod sound;
 mod state;
@@ -139,6 +140,41 @@ async fn use_saved(app: AppHandle, id: u64, write: bool) -> Result<serde_json::V
 #[tauri::command]
 fn generate_build(app: AppHandle, id: String, prefs: lifeline_model::Preferences) -> Result<(), String> {
     wizard::generate(app, id, prefs)
+}
+
+#[tauri::command]
+async fn setup_status(app: AppHandle) -> serde_json::Value {
+    tauri::async_runtime::spawn_blocking(move || setup::status(&app.state::<AppState>()))
+        .await
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn setup_action(action: String) -> Result<(), String> {
+    match action.as_str() {
+        "install_claude" => setup::install_claude(),
+        "install_git" => setup::install_git(),
+        "login" => setup::login_claude(),
+        _ => Err("unknown setup action".into()),
+    }
+}
+
+#[tauri::command]
+fn finish_setup(app: AppHandle, league: String, input: String) -> Result<Settings, String> {
+    let state = app.state::<AppState>();
+    setup::finish(&state, league, input)?;
+    let settings = state.settings.lock().unwrap().clone();
+    Ok(settings)
+}
+
+#[tauri::command]
+async fn check_update() -> serde_json::Value {
+    tauri::async_runtime::spawn_blocking(setup::update_available).await.ok().flatten().unwrap_or_default()
+}
+
+#[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+    setup::open_url(&url)
 }
 
 /// Settings → Sounds: hear a cue.
@@ -595,6 +631,11 @@ fn main() {
             generate_build,
             build_status,
             play_sound,
+            setup_status,
+            setup_action,
+            finish_setup,
+            open_url,
+            check_update,
             fit_overlay,
             skills_snapshot,
             run_skills,

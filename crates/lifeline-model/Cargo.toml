@@ -12,3 +12,6 @@ lifeline-gamefiles = { path = "../lifeline-gamefiles" }
 lifeline-pob = { path = "../lifeline-pob" }
 serde.workspace = true
 serde_json.workspace = true
+
+[dev-dependencies]
+ureq = "3.2.1"

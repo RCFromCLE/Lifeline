@@ -137,9 +137,15 @@ function showSub(name) {
 }
 
 // ---- details, generation, my builds ----
+const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch (_) { return url; } };
+
 function openModal(html) {
   $("modal-body").innerHTML = html;
   $("build-modal").classList.remove("hidden");
+  $("modal-body").querySelectorAll(".link[data-url]").forEach(l =>
+    l.addEventListener("click", () => invoke("open_url", { url: l.dataset.url }).catch(e => toast(e))));
+  const first = $("modal-body").querySelector("button.primary") || $("modal-x");
+  first.focus();
 }
 function closeModal() { $("build-modal").classList.add("hidden"); }
 $("modal-x").addEventListener("click", closeModal);
@@ -164,7 +170,8 @@ function archetypeDetail(a) {
       ${a.gear ? `<div class="d-sec"><h3>Gear</h3><p style="margin:0;font-size:13px">${esc(a.gear)}</p></div>` : ""}
       ${list("Strengths", a.strengths)}
       ${list("Weaknesses", a.weaknesses)}
-      <div class="d-sec sources"><h3>Sources</h3>${(a.sources || []).map(s => `<div>${esc(s)}</div>`).join("")}</div>
+      ${a.videos?.length ? `<div class="d-sec"><h3>Video guides</h3>${a.videos.map((v, i) => `<button class="link video" data-url="${esc(v)}">▶ Watch guide${a.videos.length > 1 ? " " + (i + 1) : ""}</button>`).join("")}</div>` : ""}
+      <div class="d-sec sources"><h3>Sources</h3>${(a.sources || []).map(s => `<button class="link" data-url="${esc(s)}" title="${esc(s)}">${esc(hostOf(s))}</button>`).join("")}</div>
     </div>`;
 }
 

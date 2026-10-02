@@ -422,6 +422,7 @@ function fillSettings(s) {
   f.elements.overlay_on_hotkey.checked = s.overlay_on_hotkey;
   f.elements.sound.checked = s.sound !== false;
   f.elements.volume.value = s.volume ?? 0.6;
+  f.elements.input.value = s.input || "keyboard";
   renderKeysSummary(s);
 }
 
@@ -436,6 +437,7 @@ $("settings-form").addEventListener("submit", async ev => {
     hotkeys: Object.fromEntries(HOTKEY_KEYS.map(k => [k, f.elements[k].value.trim()])),
     sound: f.elements.sound.checked,
     volume: Number(f.elements.volume.value),
+    input: f.elements.input.value,
   };
   const failed = await invoke("save_settings", { settings: next });
   settings = next;

@@ -30,8 +30,9 @@ pub fn run(app: AppHandle) {
     std::thread::spawn(move || {
         let state = app.state::<AppState>();
         let c = state.character.lock().unwrap().clone();
-        let context =
-            json!({"character": c.name, "class": c.class, "level": c.level, "act": c.act, "area_level": c.area_level});
+        let input = state.settings.lock().unwrap().input.clone();
+        let context = json!({"character": c.name, "class": c.class, "level": c.level, "act": c.act, "area_level": c.area_level,
+                             "controls": crate::state::controls(&input)});
         let result = crate::ai::companion(&state, SKILLS_SCOPE).and_then(|cli| {
             cli.for_job(Job::Skills)
                 .run_turn(&Job::Skills.prompt(&context.to_string()), None, |e| {

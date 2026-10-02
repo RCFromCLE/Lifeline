@@ -15,6 +15,7 @@
       <div class="char-name" id="char-name">Waiting for the game log…</div>
       <div class="char-meta" id="char-meta"></div>
     </div>
+    <button class="update hidden" id="update" title="A newer Lifeline is available">New version</button>
     <div class="stats">
       <div class="stat" id="penalty-pill" title="Elemental resistance penalty in the current area">Res —</div>
       <div class="stat danger" id="deaths-pill" title="Deaths for this character">☠ 0</div>
@@ -35,6 +36,7 @@
       <div class="col">
         <div class="card">
           <h2>Chat</h2>
+          <div class="setup-banner hidden" id="setup-banner"><span>Claude isn't connected yet, so the AI can't answer.</span><button class="primary" id="setup-banner-go">Set up Claude</button></div>
           <div class="chat-layout">
           <aside class="convs">
             <button id="btn-new-conv" class="primary">+ New</button>
@@ -194,7 +196,9 @@
             <label>HUD on/off<input name="toggle_overlay"></label>
             <label>Record gear<input name="record_equipped"></label>
             <label>Move HUD<input name="move_overlay"></label>
-            <label>League<input name="league"></label>
+            <label>League<input name="league" list="leagues"></label>
+            <datalist id="leagues"><option value="HC Forbidden Rites"><option value="Forbidden Rites"><option value="Hardcore"><option value="Standard"></datalist>
+            <label>Controls<select name="input"><option value="keyboard">Mouse and keyboard</option><option value="playstation">PlayStation controller</option><option value="xbox">Xbox controller</option></select></label>
             <label class="check"><input type="checkbox" name="overlay_on_hotkey"> Show hotkey answers on the HUD</label>
             <h2 class="sub-h">Sounds</h2>
             <label class="check"><input type="checkbox" name="sound"> Sound cues while you play</label>
@@ -216,7 +220,7 @@
         <div class="card">
           <h2>About</h2>
           <p class="hint">Reads your PoE2 log. Writes only files you approve. Not affiliated with Grinding Gear Games.</p>
-          <div class="quick"><button id="btn-overlay" class="ghost">HUD on/off</button></div>
+          <div class="quick"><button id="btn-overlay" class="ghost">HUD on/off</button><button id="btn-welcome" class="ghost">Welcome tour</button></div>
         </div>
       </div>
     </section>
@@ -227,10 +231,21 @@
       <div id="modal-body"></div>
     </div>
   </div>
-  <div id="toast" class="toast"></div>
+  <div class="welcome hidden" id="welcome" role="dialog" aria-modal="true" aria-labelledby="wl-title">
+    <div class="wl-box">
+      <ol class="wl-dots" id="wl-dots" aria-hidden="true"><li></li><li></li><li></li><li></li><li></li></ol>
+      <div class="wl-body" id="wl-body"></div>
+      <div class="wl-nav">
+        <button class="ghost" id="wl-back">Back</button>
+        <span class="wl-hint">Enter / → next · Esc closes</span>
+        <button class="primary" id="wl-next">Next</button>
+      </div>
+    </div>
+  </div>  <div id="toast" class="toast"></div>
   <script src="common.js"></script>
   <script src="app.js"></script>
   <script src="builds.js"></script>
   <script src="embers.js"></script>
+  <script src="welcome.js"></script>
 </body>
 </html>
