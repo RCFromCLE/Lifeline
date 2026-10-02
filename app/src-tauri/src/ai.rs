@@ -302,6 +302,9 @@ pub fn item_question(item: &str) -> String {
     )
 }
 
+pub const CREATE_BUILD: &str = "Create a complete build for me, Act 1 to Endgame, that I can follow in the game's \
+     Build Planner. Ask me what you need first.";
+
 pub const WHAT_NEXT: &str = "What should I do next? Delegate to the route-coach. At most three steps of a few words \
      each, safety first if anything is pressing.";
 

@@ -2490,6 +2490,7 @@ dependencies = [
  "polr-gamefiles",
  "polr-pob",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

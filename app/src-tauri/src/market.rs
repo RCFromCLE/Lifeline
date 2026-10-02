@@ -143,6 +143,14 @@ pub fn confirm(app: &AppHandle, action_id: u64) -> Result<String, String> {
             open_trade_window(app, Some(&url))?;
             Ok("Opened the search in the trade window.".into())
         }
+        "write_planner" => {
+            let files = crate::builds::write_stages(&state)?;
+            let _ = app.emit("planner-files", crate::builds::planner_files());
+            Ok(format!(
+                "Wrote {} stages to the Build Planner. In game: open the Build Planner and pick one.",
+                files.len()
+            ))
+        }
         other => Err(format!("unknown action {other}")),
     }
 }

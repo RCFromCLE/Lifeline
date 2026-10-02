@@ -106,15 +106,16 @@ pub fn roster() -> Vec<AgentSpec> {
     vec![
         AgentSpec {
             name: BUILD_ARCHITECT,
-            description: "Designs or reworks the player's build as a staged Act 1 to Endgame plan \
-                          (passives, skills and supports, gear priorities, hardcore safety plan) \
-                          validated against current game data. Use for new builds, respecs and \
-                          reworking a stage.",
+            description: "Designs the player's whole build for their class (Act 1 to Endgame: \
+                          passives, ascendancy, skills and supports, gear goals, hardcore safety) and \
+                          saves it in the app with design_build, which checks paths, points and gems. \
+                          Give it the player's answers (playstyle, ascendancy, trade/budget, safety). \
+                          Use for new builds, respecs and reworking a stage.",
             role: include_str!("../prompts/agents/build-architect.md"),
             tools: tool_list(
                 &[
                     GAME_DATA,
-                    &[BUILD_PLAN, CHARACTER_STATE, VALIDATE_BUILD, PROPOSE_ACTION],
+                    &[BUILD_PLAN, CHARACTER_STATE, DESIGN_BUILD, PROPOSE_ACTION],
                 ],
                 &["WebSearch", "WebFetch", consults],
             ),

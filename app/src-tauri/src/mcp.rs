@@ -123,10 +123,36 @@ fn tool_definitions() -> Value {
             "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}
         },
         {
-            "name": tools::PROPOSE_ACTION,
-            "description": "Offer the player an action as a button in the chat; it only happens if they press it. kind 'travel' = travel to the seller's hideout for a listing (needs listing_id and search_id from trade_search); kind 'open_search' = open the search on the trade site (needs search_id).",
+            "name": tools::DESIGN_BUILD,
+            "description": "Make a designed build the player's build. The app computes the passive paths from your ordered target passives within each stage's points (cumulative: later stages keep earlier picks), checks every gem and support against game data and the game's support rules, and returns a report per stage: points used/budget/unspent, ascendancy points, reached and missed targets, problems. Budgets at stage end: Act 1 lvl 13/16 pts/0 asc, Act 2 lvl 29/36/2, Act 3 lvl 45/56/4, Act 4 lvl 52/67/4, Interludes lvl 65/86/4, Endgame lvl 90/113/8. Use exact names (lookup_passive, lookup_gem, lookup_supports_for). Fix what the report lists and call again until it's clean and most points are spent. Calling again replaces the build.",
             "inputSchema": {"type": "object", "properties": {
-                "kind": {"type": "string", "enum": ["travel", "open_search"]},
+                "name": {"type": "string", "description": "short build name, e.g. 'Storm Spear Amazon'"},
+                "class": {"type": "string", "description": "the character's class, e.g. 'Huntress'"},
+                "ascendancy": {"type": "string", "description": "e.g. 'Amazon'"},
+                "summary": {"type": "string", "description": "one sentence"},
+                "endgame_level": {"type": "integer", "minimum": 65, "maximum": 100},
+                "stages": {"type": "array", "description": "Act 1, Act 2, Act 3, Act 4, Interludes, Endgame", "items": {"type": "object", "properties": {
+                    "stage": {"type": "string"},
+                    "passives": {"type": "array", "items": {"type": "string"}, "description": "passive names to reach this stage, in order (notables, keystones, jewel sockets, or small passives)"},
+                    "ascendancy": {"type": "array", "items": {"type": "string"}, "description": "ascendancy passive names to take this stage, in order"},
+                    "skills": {"type": "array", "items": {"type": "object", "properties": {
+                        "gem": {"type": "string"},
+                        "supports": {"type": "array", "items": {"type": "string"}}
+                    }, "required": ["gem"]}, "description": "omit to keep the previous stage's skills"},
+                    "gear": {"type": "array", "items": {"type": "object", "properties": {
+                        "slot": {"type": "string", "description": "Weapon, Offhand, Helmet, Body Armour, Gloves, Boots, Amulet, Ring, Belt"},
+                        "unique": {"type": "string"},
+                        "base": {"type": "string"},
+                        "stats": {"type": "array", "items": {"type": "string"}}
+                    }, "required": ["slot"]}, "description": "omit to keep the previous stage's gear goals"},
+                    "notes": {"type": "string"}
+                }, "required": ["stage"]}}
+            }, "required": ["name", "class", "stages"]}
+        },        {
+            "name": tools::PROPOSE_ACTION,
+            "description": "Offer the player an action as a button in the chat; it only happens if they press it. kind 'travel' = travel to the seller's hideout for a listing (needs listing_id and search_id from trade_search); kind 'open_search' = open the search on the trade site (needs search_id); kind 'write_planner' = write the current build's stages into the game's Build Planner (after design_build or an import).",
+            "inputSchema": {"type": "object", "properties": {
+                "kind": {"type": "string", "enum": ["travel", "open_search", "write_planner"]},
                 "summary": {"type": "string", "description": "one line shown on the button card, e.g. 'Hypnotic Tread — 37% cold, 86 life — 1 alch'"},
                 "listing_id": {"type": "string"},
                 "search_id": {"type": "string"}
@@ -148,7 +174,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
         n if n == tools::BUILD_PLAN => {
             let imported = state.imported.lock().unwrap();
             let Some(i) = imported.as_ref() else {
-                return Ok(json!("No build imported yet."));
+                return Ok(json!("No build yet. Offer the player two options: paste a Path of Building link on the Build tab, or create one together now (ask your build questions, then delegate to build-architect)."));
             };
             let c = state.character.lock().unwrap().clone();
             let stage = crate::ai::current_stage(c.act, c.area_level);
@@ -346,6 +372,19 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 Ok(json!({"league": league, "source": "poe.ninja", "prices": hits}))
             }
         }
+        n if n == tools::DESIGN_BUILD => {
+            let design: polr_model::BuildDesign =
+                serde_json::from_value(args.clone()).map_err(|e| format!("design doesn't match the schema: {e}"))?;
+            let (report, view) = crate::builds::create(&state, &design)?;
+            let _ = app.emit("imported", &view);
+            let unspent: u32 = report.stages.last().map_or(0, |s| s.points_unspent);
+            let next = if report.is_clean() && unspent <= 10 {
+                "Clean. The build is saved in the app. Summarise it for the player, then offer propose_action kind 'write_planner'."
+            } else {
+                "Saved, but fix what's listed (missed targets, problems, unspent points) and call design_build again."
+            };
+            Ok(json!({"report": report, "next": next}))
+        }
         n if n == tools::PROPOSE_ACTION => {
             let kind = args["kind"].as_str().unwrap_or("");
             let summary = args["summary"].as_str().unwrap_or("").to_owned();
@@ -363,7 +402,11 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 }
                 "open_search" if search_id.is_none() => return Err("open_search needs search_id".into()),
                 "open_search" => {}
-                _ => return Err("kind must be 'travel' or 'open_search'".into()),
+                "write_planner" if state.imported.lock().unwrap().is_none() => {
+                    return Err("no build yet — call design_build (or have the player import one) first".into())
+                }
+                "write_planner" => {}
+                _ => return Err("kind must be 'travel', 'open_search' or 'write_planner'".into()),
             }
             let action = {
                 let mut actions = state.actions.lock().unwrap();

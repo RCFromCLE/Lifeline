@@ -3,9 +3,13 @@
 
 use std::collections::BTreeMap;
 
+pub mod design;
+
+pub use design::{realize, stage_budget, BuildDesign, DesignReport, Realized};
+
 use polr_data::PassiveTree;
 use polr_gamefiles::build_planner::{InventorySlot, PassiveRef, PlannerBuild, SkillRef, SupportRef};
-use polr_pob::{classify_title, estimate_level, resolve_stage, ItemSet, PobBuild, SkillSet, Stage, POE2_0_5_ACTS};
+use polr_pob::{classify_title, estimate_level, resolve_stage, ItemSet, PobBuild, SkillSet, Stage, StageHint, POE2_0_5_ACTS};
 use serde::Serialize;
 
 /// One tree spec of the imported build, placed in the playthrough.
@@ -85,9 +89,21 @@ fn is_campaign(stage: Stage) -> bool {
     !matches!(stage, Stage::Endgame)
 }
 
-/// Picks the set for a stage: a set titled for leveling/acts for campaign
-/// stages, one titled for endgame/maps otherwise, else the first set.
+/// Picks the set for a stage: one titled for exactly that stage ("Act 2",
+/// "Interludes", "Endgame"), else one titled for leveling/acts for campaign
+/// stages or endgame/maps otherwise, else the first set.
 fn pick_set<T>(sets: &[T], title: impl Fn(&T) -> &str, stage: Stage) -> Option<&T> {
+    let exact = sets.iter().find(|s| {
+        match classify_title(title(s), "0_5") {
+            Some(StageHint::Act(n)) => stage == Stage::Act(n),
+            Some(StageHint::Interludes) => stage == Stage::Interludes,
+            Some(StageHint::Endgame) => stage == Stage::Endgame,
+            _ => false,
+        }
+    });
+    if exact.is_some() {
+        return exact;
+    }
     let lower = |s: &T| title(s).to_lowercase();
     let campaign_like = |t: &str| t.contains("level") || t.contains("act") || t.contains("campaign");
     let endgame_like = |t: &str| t.contains("end") || t.contains("map") || t.contains("default") || t.is_empty();

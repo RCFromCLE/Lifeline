@@ -350,6 +350,12 @@ impl GameData {
         best(&self.gems, query, |g| &g.name, limit)
     }
 
+    /// The gem whose display name is exactly `name` (case-insensitive).
+    pub fn gem_named(&self, name: &str) -> Option<&Gem> {
+        let name = name.trim();
+        self.gems.iter().find(|g| g.name.eq_ignore_ascii_case(name))
+    }
+
     /// Whether `support` can support `skill`, by the game's own type rules.
     pub fn is_compatible(support: &Gem, skill: &Gem) -> bool {
         support.kind == "support"

@@ -43,6 +43,7 @@
           <div class="quick">
             <button id="btn-next" class="primary">What next</button>
             <button id="btn-paste-item" title="Judge the item text on your clipboard">Check item</button>
+            <button id="btn-create-build-play" title="Answer a few questions; the AI designs every stage and writes it to the in-game Build Planner">Create build</button>
             <button id="btn-trade-login" title="Log in to pathofexile.com once so Travel works">Trade login</button>
             <button id="btn-delete-conv" class="ghost">Delete</button>
           </div>
@@ -127,7 +128,8 @@
     <section class="view" id="view-build">
       <div class="col">
         <div class="card">
-          <h2>Import build</h2>
+          <h2>Build</h2>
+          <div class="quick"><button id="btn-create-build" class="primary" title="Answer a few questions; the AI designs Act 1 to Endgame and writes it to the in-game Build Planner">Create with AI</button><span class="hint" style="align-self:center;margin:0">or import:</span></div>
           <form id="import-form" class="ask">
             <textarea id="import-input" rows="3" placeholder="PoB code or link (pobb.in, Maxroll, poe2db, pastebin)"></textarea>
             <button type="submit" class="primary">Import</button>

@@ -25,6 +25,9 @@ pub const WIKI: &str = "wiki";
 
 // Checks and market.
 pub const VALIDATE_BUILD: &str = "validate_build";
+/// Turn a designed build (class, ascendancy, per-stage passives, skills,
+/// gear) into the player's build: paths computed, gems checked, report back.
+pub const DESIGN_BUILD: &str = "design_build";
 pub const PRICE: &str = "price";
 pub const TRADE_SEARCH: &str = "trade_search";
 pub const TRADE_FIND_STAT: &str = "trade_find_stat";
@@ -70,6 +73,7 @@ pub const ALL: &[&str] = &[
     SEARCH_GAME_DATA,
     WIKI,
     VALIDATE_BUILD,
+    DESIGN_BUILD,
     PRICE,
     TRADE_SEARCH,
     TRADE_FIND_STAT,
@@ -97,6 +101,7 @@ pub const IMPLEMENTED: &[&str] = &[
     RATE_LISTINGS,
     EQUIPPED_ITEMS,
     PRICE,
+    DESIGN_BUILD,
     PROPOSE_ACTION,
 ];
 

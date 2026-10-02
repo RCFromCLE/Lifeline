@@ -5,9 +5,9 @@ use std::time::{Duration, SystemTime};
 
 use polr_data::{PassiveTree, TREE_EXPORT_URL};
 use polr_gamefiles::{build_planner, paths};
-use polr_model::{plan_stages, to_planner_build, SpecStage};
+use polr_model::{plan_stages, realize, to_planner_build, BuildDesign, DesignReport, SpecStage};
 use polr_pob::{decode, parse_xml, resolve, BuildSource};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::state::{AppState, Imported};
 
@@ -113,12 +113,75 @@ pub fn import(state: &AppState, input: &str) -> Result<ImportView, String> {
     let imported = Imported {
         build,
         stages,
-        link,
+        link: link.clone(),
         name: format!("{name} (PoLR)"),
     };
     let v = view(&imported, warning);
     *state.imported.lock().unwrap() = Some(imported);
+    save(state, &SavedBuild::Pob { code, link });
     Ok(v)
+}
+
+/// The current build, kept across restarts (`build.json`).
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "source", rename_all = "lowercase")]
+enum SavedBuild {
+    Pob { code: String, link: Option<String> },
+    Design { design: BuildDesign },
+}
+
+const SAVED_BUILD: &str = "build.json";
+
+fn save(state: &AppState, saved: &SavedBuild) {
+    if let Ok(text) = serde_json::to_string_pretty(saved) {
+        let _ = std::fs::write(state.data_dir.join(SAVED_BUILD), text);
+    }
+}
+
+/// Makes `design` the player's build (paths computed, gems checked). The
+/// report says what didn't fit so the designer can fix it and call again.
+pub fn create(state: &AppState, design: &BuildDesign) -> Result<(DesignReport, ImportView), String> {
+    let tree = load_tree(state)?;
+    let data = crate::gamedata::load(state)?;
+    let realized = realize(design, &tree, &data)?;
+    let stages = plan_stages(&realized.build, Some(&tree));
+    let imported = Imported {
+        build: realized.build,
+        stages,
+        link: None,
+        name: format!("{} (PoLR)", design.name.trim()),
+    };
+    let v = view(&imported, None);
+    *state.imported.lock().unwrap() = Some(imported);
+    save(state, &SavedBuild::Design { design: design.clone() });
+    Ok((realized.report, v))
+}
+
+/// Restores the saved build at startup; returns its view.
+pub fn restore(state: &AppState) -> Option<ImportView> {
+    let text = std::fs::read_to_string(state.data_dir.join(SAVED_BUILD)).ok()?;
+    match serde_json::from_str::<SavedBuild>(&text).ok()? {
+        SavedBuild::Pob { code, link } => {
+            let build = parse_xml(&decode(&code).ok()?).ok()?;
+            let tree = load_tree(state).ok();
+            let stages = plan_stages(&build, tree.as_deref());
+            let name = build
+                .ascend_class_name
+                .clone()
+                .or_else(|| build.class_name.clone())
+                .unwrap_or_else(|| "Build".into());
+            let imported = Imported {
+                build,
+                stages,
+                link,
+                name: format!("{name} (PoLR)"),
+            };
+            let v = view(&imported, None);
+            *state.imported.lock().unwrap() = Some(imported);
+            Some(v)
+        }
+        SavedBuild::Design { design } => create(state, &design).ok().map(|(_, v)| v),
+    }
 }
 
 /// Writes one `.build` per chosen stage into the game's BuildPlanner folder.

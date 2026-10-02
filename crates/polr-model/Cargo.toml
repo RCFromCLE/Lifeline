@@ -11,3 +11,6 @@ polr-data = { path = "../polr-data" }
 polr-gamefiles = { path = "../polr-gamefiles" }
 polr-pob = { path = "../polr-pob" }
 serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

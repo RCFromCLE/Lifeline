@@ -3,6 +3,9 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// The MCP tool list is one large json! literal.
+#![recursion_limit = "256"]
+
 mod ai;
 mod builds;
 mod game;
@@ -86,6 +89,18 @@ fn new_conversation(app: AppHandle) -> u64 {
     let id = state.new_conversation(&format!("New conversation {count}"), false);
     state.save_conversations();
     let _ = app.emit("conversations", ai::conversation_list(&state));
+    id
+}
+
+/// Opens a "Build creator" chat: the companion asks a few questions, then
+/// the build architect designs every stage and offers to write it in game.
+#[tauri::command]
+fn create_build_chat(app: AppHandle) -> u64 {
+    let state = app.state::<AppState>();
+    let id = state.new_conversation("Build creator", false);
+    state.save_conversations();
+    let _ = app.emit("conversations", ai::conversation_list(&state));
+    ai::ask(&app, Some(id), ai::CREATE_BUILD.into(), "Create build", Origin::Chat);
     id
 }
 
@@ -447,6 +462,15 @@ fn main() {
             create_overlay(&handle)?;
             spawn_overlay_hit_test(handle.clone());
             gamedata::preload(handle.clone());
+            {
+                // The last imported or created build survives restarts.
+                let handle = handle.clone();
+                std::thread::spawn(move || {
+                    if let Some(view) = builds::restore(&handle.state::<AppState>()) {
+                        let _ = handle.emit("imported", &view);
+                    }
+                });
+            }
             game::spawn_log_watcher(handle);
             Ok(())
         })
@@ -471,6 +495,7 @@ fn main() {
             rate_build,
             rate_now,
             log_debug,
+            create_build_chat,
             fit_overlay,
             skills_snapshot,
             run_skills,
