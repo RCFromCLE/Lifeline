@@ -370,9 +370,10 @@ impl GameData {
 
     /// Whether `support` can support `skill`, by the game's own type rules.
     pub fn is_compatible(support: &Gem, skill: &Gem) -> bool {
+        // No allowed list = a generic support (Efficiency, Lifetap): anything
+        // not excluded.
         support.kind == "support"
-            && !support.support_allowed.is_empty()
-            && type_rule(&support.support_allowed, &skill.skill_types)
+            && (support.support_allowed.is_empty() || type_rule(&support.support_allowed, &skill.skill_types))
             && !(!support.support_excluded.is_empty() && type_rule(&support.support_excluded, &skill.skill_types))
     }
 
@@ -383,9 +384,16 @@ impl GameData {
         skill.skill_types.iter().any(|t| t == "Minion" || t == "Companion")
     }
 
+    /// Meta gems (Blasphemy, Cast on …) pass supports to the skills socketed
+    /// in them, so those can't be ruled out either.
+    pub fn is_meta_skill(skill: &Gem) -> bool {
+        skill.skill_types.iter().any(|t| t == "Meta")
+    }
+
     /// `is_compatible`, or not ruled out because `skill` is a minion skill.
     pub fn may_support(support: &Gem, skill: &Gem) -> bool {
-        Self::is_compatible(support, skill) || (support.kind == "support" && Self::is_minion_skill(skill))
+        Self::is_compatible(support, skill)
+            || (support.kind == "support" && (Self::is_minion_skill(skill) || Self::is_meta_skill(skill)))
     }
 
     /// Every support that works with `skill` (game rules; for minion skills,

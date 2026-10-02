@@ -36,7 +36,7 @@ fn main() {
         "supports" => {
             let gem = data.gem_named(&rest).or_else(|| data.find_gems(&rest, 1).into_iter().find(|g| g.kind != "support")).expect("skill");
             println!("{} types: {}", gem.name, gem.skill_types.join(","));
-            for s in data.supports_for(gem, 400) {
+            for s in data.supports_for(gem, 2000) {
                 println!("  {} — {}", s.name, s.support_effects.join(" / ").replace('\n', " "));
             }
         }
