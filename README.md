@@ -125,8 +125,12 @@ suite) are scheduled in PLAN.md §11 and §13.
 
 Click the **grade** on the overlay to rate your build (F → S+ for where you are in the campaign; hover for the why). The **Rating** tab shows the breakdown and market picks for the top upgrades within your budget (market searches run on Sonnet 5.5).
 
-Tabs: **Play** (parallel conversations that know about each other, live game feed, usage meters; ask the market in plain words — the market scout searches, ranks listings for your build and gives you a **Travel to hideout** button; press **Trade site login** once first), **Build** (**Create with AI**: answer up to 4 quick questions and the build architect designs Act 1 → Endgame for your class: passive paths computed within each stage's points, gems and supports checked against game data, gear goals. One click writes it to the in-game Build Planner. Or paste a PoB code or
-pobb.in link → act-by-act stages → write them into the in-game Build Planner), **Hotkeys & settings**
+Tabs: **Play** (parallel conversations that know about each other, live game feed, usage meters; ask the market in plain words — the market scout searches, ranks listings for your build and gives you a **Travel to hideout** button; press **Trade site login** once first), **Builds**:
+- **Showcase:** pick a class, then an ascendancy (with the game's own portraits), then what matters (damage, balanced or tanky; style; budget; complexity). You get ranked, researched hardcore builds with rating bars. **Create full build** designs Act 1 to Endgame for the pick: passive paths fit within each stage's points, and gems and supports are checked against game data.
+- **My builds:** saved ideas and generated builds. **Use it** makes one your active build, and one click writes it to the in-game Build Planner.
+- **Import:** paste a Path of Building code or link.
+
+**Hotkeys & settings**
 (hotkeys, league — default HC Forbidden Rites). Play PoE2 in windowed fullscreen for the overlay.
 
 ## Building from source (developers)
