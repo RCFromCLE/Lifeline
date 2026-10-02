@@ -2,8 +2,8 @@
 
 use std::time::Duration;
 
-use polr_gamefiles::client_log::{self, plain_text, EventKind, LogEvent, LogTailer};
-use polr_gamefiles::paths;
+use lifeline_gamefiles::client_log::{self, plain_text, EventKind, LogEvent, LogTailer};
+use lifeline_gamefiles::paths;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::state::{AppState, Character, FeedItem};
@@ -108,6 +108,37 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
     }
 }
 
+/// Sound cues for what just changed (live play only, never the backfill).
+fn cues(state: &AppState, before: &Character, after: &Character, e: &LogEvent) -> Vec<crate::sound::Cue> {
+    use crate::sound::Cue;
+    let mut out = Vec::new();
+    if after.deaths > before.deaths && before.name == after.name {
+        out.push(Cue::Death);
+    }
+    if after.level > before.level && before.name == after.name {
+        out.push(Cue::LevelUp);
+    }
+    if let EventKind::AreaGenerated { area_id, .. } = &e.kind {
+        if let (Some(a), Some(b)) = (after.act, before.act) {
+            if a > b {
+                out.push(Cue::NewAct);
+            }
+        }
+        if let (Some(a), Some(b)) = (after.res_penalty, before.res_penalty) {
+            if a < b {
+                out.push(Cue::Penalty);
+            }
+        }
+        let boss_area = after.area_id != before.area_id
+            && state.game.lock().unwrap().as_ref().is_some_and(|d| {
+                d.areas.iter().any(|x| &x.id == area_id && !x.is_town && !x.bosses.is_empty())
+            });
+        if boss_area {
+            out.push(Cue::BossArea);
+        }
+    }
+    out
+}
 pub fn spawn_log_watcher(app: AppHandle) {
     std::thread::spawn(move || {
         // Keep looking (every 15 s) in case the game is installed or moved later.
@@ -143,7 +174,14 @@ pub fn spawn_log_watcher(app: AppHandle) {
                     let Some(event) = client_log::parse_line(&line) else {
                         continue;
                     };
+                    let before = state.character.lock().unwrap().clone();
                     let note = apply(&mut state.character.lock().unwrap(), &event);
+                    if backfilled {
+                        let after = state.character.lock().unwrap().clone();
+                        for cue in cues(&state, &before, &after, &event) {
+                            crate::sound::play(&app, cue);
+                        }
+                    }
                     let new_act = state.character.lock().unwrap().act;
                     // Re-rate once per new act while playing (not during backfill).
                     if backfilled

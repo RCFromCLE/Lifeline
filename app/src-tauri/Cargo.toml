@@ -1,27 +1,28 @@
 [package]
-name = "polr-app"
-description = "PathOfLeastResistance desktop app (Tauri 2)."
+name = "lifeline-app"
+description = "Lifeline desktop app (Tauri 2)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish = false
 
 [[bin]]
-name = "PathOfLeastResistance"
+name = "Lifeline"
 path = "src/main.rs"
 
 [dependencies]
 arboard = "3.6.1"
-polr-ai = { path = "../../crates/polr-ai" }
-polr-data = { path = "../../crates/polr-data" }
-polr-gamefiles = { path = "../../crates/polr-gamefiles" }
-polr-model = { path = "../../crates/polr-model" }
-polr-pob = { path = "../../crates/polr-pob" }
-polr-trade = { path = "../../crates/polr-trade" }
+lifeline-ai = { path = "../../crates/lifeline-ai" }
+lifeline-data = { path = "../../crates/lifeline-data" }
+lifeline-gamefiles = { path = "../../crates/lifeline-gamefiles" }
+lifeline-model = { path = "../../crates/lifeline-model" }
+lifeline-pob = { path = "../../crates/lifeline-pob" }
+lifeline-trade = { path = "../../crates/lifeline-trade" }
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "2", features = [] }
 tauri-plugin-global-shortcut = "2"
+rodio = { version = "0.20", default-features = false }
 tiny_http = "0.12.0"
 ureq = "3.2.1"
 windows = { version = "0.61.3", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }

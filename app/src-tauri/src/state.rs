@@ -3,9 +3,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use polr_data::PassiveTree;
-use polr_model::SpecStage;
-use polr_pob::PobBuild;
+use lifeline_data::PassiveTree;
+use lifeline_model::SpecStage;
+use lifeline_pob::PobBuild;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -81,6 +81,15 @@ pub struct Settings {
     /// Re-rate automatically when entering a new act (off: the player triggers it).
     #[serde(default)]
     pub auto_rate_on_act: bool,
+    /// Sound cues during play (level up, new act, boss areas, death…).
+    #[serde(default = "default_true")]
+    pub sound: bool,
+    #[serde(default = "default_volume")]
+    pub volume: f32,
+}
+
+fn default_volume() -> f32 {
+    0.6
 }
 
 fn default_true() -> bool {
@@ -107,6 +116,8 @@ impl Default for Settings {
             overlay_visible: true,
             rating_budget: default_budget(),
             auto_rate_on_act: false,
+            sound: true,
+            volume: default_volume(),
             overlay_on_hotkey: true,
         }
     }
@@ -252,14 +263,14 @@ pub struct AppState {
     pub feed: Mutex<Vec<FeedItem>>,
     pub imported: Mutex<Option<Imported>>,
     pub tree: Mutex<Option<Arc<PassiveTree>>>,
-    pub game: Mutex<Option<Arc<polr_data::GameData>>>,
+    pub game: Mutex<Option<Arc<lifeline_data::GameData>>>,
     pub conversations: Mutex<Vec<Conversation>>,
     pub actions: Mutex<Vec<PendingAction>>,
-    pub market: polr_trade::Market,
+    pub market: lifeline_trade::Market,
     /// listing id → search id, so travel can re-fetch the listing.
     pub listings: Mutex<std::collections::HashMap<String, String>>,
     /// Full listing data from recent searches (for image cards).
-    pub listing_data: Mutex<std::collections::HashMap<String, polr_trade::Listing>>,
+    pub listing_data: Mutex<std::collections::HashMap<String, lifeline_trade::Listing>>,
     /// Item text the player recorded as equipped, by item class ("Boots").
     pub equipped: Mutex<std::collections::BTreeMap<String, String>>,
     pub overlay_unlocked: std::sync::atomic::AtomicBool,
@@ -277,7 +288,7 @@ pub struct AppState {
     pub settings: Mutex<Settings>,
     /// The wizard's latest design_build result (design, report), before it
     /// goes into the library.
-    pub last_design: Mutex<Option<(polr_model::BuildDesign, polr_model::DesignReport)>>,
+    pub last_design: Mutex<Option<(lifeline_model::BuildDesign, lifeline_model::DesignReport)>>,
     /// A wizard build is being generated.
     pub build_busy: std::sync::atomic::AtomicBool,
     /// Steps shown while a wizard build is generated.
@@ -295,7 +306,7 @@ impl AppState {
             game: Mutex::new(None),
             conversations: Mutex::new(load_conversations(&data_dir)),
             actions: Mutex::new(Vec::new()),
-            market: polr_trade::Market::new(),
+            market: lifeline_trade::Market::new(),
             listings: Mutex::new(Default::default()),
             listing_data: Mutex::new(Default::default()),
             equipped: Mutex::new(load_equipped(&data_dir)),

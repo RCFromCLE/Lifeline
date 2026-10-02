@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use polr_data::{GameData, REPOE_BASE, REPOE_FILES};
+use lifeline_data::{GameData, REPOE_BASE, REPOE_FILES};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -147,5 +147,5 @@ pub fn gem_display(state: &AppState, id: &str) -> String {
     let loaded = state.game.lock().unwrap().clone();
     loaded
         .and_then(|d| d.gem_name(id).map(str::to_owned))
-        .unwrap_or_else(|| polr_gamefiles::build_planner::gem_short_name(id).to_owned())
+        .unwrap_or_else(|| lifeline_gamefiles::build_planner::gem_short_name(id).to_owned())
 }

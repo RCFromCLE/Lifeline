@@ -3,7 +3,7 @@
 
 use std::sync::atomic::Ordering;
 
-use polr_ai::{structured, CliEvent, Job};
+use lifeline_ai::{structured, CliEvent, Job};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 

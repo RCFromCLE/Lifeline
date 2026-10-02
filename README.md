@@ -1,4 +1,4 @@
-# PathOfLeastResistance
+# Lifeline
 
 An AI-assisted, hardcore-first playthrough companion for **Path of Exile 2**,
 written in Rust. It takes a build link, splits it into Act 1 → Act 4 →
@@ -39,10 +39,10 @@ When it says you're logged in, type `/exit` and close PowerShell.
 ### 2. Download the installer
 
 1. In your browser, sign in to GitHub as **RCFromCLE** (the repo is private).
-2. Go to **https://github.com/RCFromCLE/PathOfLeastResistance/releases/latest**.
-3. Under **Assets**, click **`PathOfLeastResistance_<version>_x64-setup.exe`** to download it.
+2. Go to **https://github.com/RCFromCLE/Lifeline/releases/latest**.
+3. Under **Assets**, click **`Lifeline_<version>_x64-setup.exe`** to download it.
 
-(Or from PowerShell, if you use the GitHub CLI: `gh release download --repo RCFromCLE/PathOfLeastResistance --pattern "*setup.exe"`.)
+(Or from PowerShell, if you use the GitHub CLI: `gh release download --repo RCFromCLE/Lifeline --pattern "*setup.exe"`.)
 
 ### 3. Install and run it
 
@@ -50,7 +50,7 @@ When it says you're logged in, type `/exit` and close PowerShell.
 2. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway**.
    The installer isn't code-signed, so Windows warns about it.
 3. Click through the installer. It installs just for your user, so it doesn't need admin rights.
-4. Start **PathOfLeastResistance** from the Start menu.
+4. Start **Lifeline** from the Start menu.
 
 ### 4. First-run checklist
 
@@ -64,18 +64,29 @@ When it says you're logged in, type `/exit` and close PowerShell.
 - **Your gear:** in game, hover each item you're wearing and press **Alt+Shift+E**.
   This powers the ±% on market cards and the build rating.
 - **HUD:** a small bar of buttons in the top-left corner. It only shows while PoE2 is running and in front;
-  when the app is in front it shrinks to just the grade. Drag the **⠿** handle to move it (remembered).
+  when the app is in front it shrinks to just the grade. Drag the Lifeline logo on its left to move it (remembered).
   Buttons: grade (click to rate; hover for why), resistance penalty (▲ = the next act lowers it),
   🔍 check item, → what next, ⚡ rotation, 🛡 record gear, 💬 open app, ✕ hide.
+- **Sounds:** short cues play for a level up, a new act, entering a boss area, a resistance penalty drop,
+  death and answers being ready. Turn them off or change the volume in *Settings → Sounds*.
+
+### Upgrading from 0.1.x (when it was called "PathOfLeastResistance")
+
+The app is now **Lifeline**, so Windows sees it as a new program:
+1. Install Lifeline as above.
+2. Uninstall the old one: Windows Settings → Apps → Installed apps → **PathOfLeastResistance** → Uninstall.
+
+On its first start, Lifeline copies your settings, chats, ratings, saved builds and recorded gear from the old app.
+
 ### Updating
 
 Download the newest `…_x64-setup.exe` from the same Releases page and run it.
 Your settings, conversations, ratings and recorded gear are kept. They live in
-`%APPDATA%\com.rudyc.pathofleastresistance` and are separate on each PC.
+`%APPDATA%\com.rudyc.lifeline` and are separate on each PC.
 
 ### Uninstalling
 
-Windows Settings → Apps → Installed apps → **PathOfLeastResistance** → Uninstall.
+Windows Settings → Apps → Installed apps → **Lifeline** → Uninstall.
 
 ### Troubleshooting
 
@@ -84,25 +95,25 @@ Windows Settings → Apps → Installed apps → **PathOfLeastResistance** → U
   sure you're still logged in.
 - **A hotkey does nothing:** another program may own it. Change it in *Hotkeys & settings*.
 - **Anything else:** the app writes a diagnostics log to
-  `%APPDATA%\com.rudyc.pathofleastresistance\debug.log`.
+  `%APPDATA%\com.rudyc.lifeline\debug.log`.
 ## Layout
 
 ```
 PLAN.md                    the plan (start here)
 Cargo.toml                 Rust workspace
 crates/
-  polr-gamefiles/          files the PoE2 client reads/writes:
+  lifeline-gamefiles/          files the PoE2 client reads/writes:
                              BuildPlanner/*.build, logs/Client.txt events,
                              poe2_production_Config.ini
-  polr-pob/                Path of Building codes + share links, build XML,
+  lifeline-pob/                Path of Building codes + share links, build XML,
                              stage classification, PoB's level estimator
-  polr-ai/                 drives your own Claude Code CLI (subscription login):
+  lifeline-ai/                 drives your own Claude Code CLI (subscription login):
                              companion + 9 specialist agents (build architect,
                              auditor, gear appraiser, market scout, HC safety
                              officer, route coach, filter smith, fact checker,
                              patch analyst), background jobs, usage meters
-  polr-data/               GGG's official passive-tree export
-  polr-model/              PoB build → stages → in-game .build files
+  lifeline-data/               GGG's official passive-tree export
+  lifeline-model/              PoB build → stages → in-game .build files
 app/
   src-tauri/               the desktop app (Tauri 2): hotkeys, HUD overlay, log
                              watcher, build import/export, Opus 5.5 companion
@@ -142,11 +153,11 @@ Tabs: **Play** (parallel conversations that know about each other, live game fee
   talks to Claude through it (PLAN.md §6).
 
 ```powershell
-cargo build --release -p polr-app          # dev build: .\target\release\PathOfLeastResistance.exe
+cargo build --release -p lifeline-app          # dev build: .\target\release\Lifeline.exe
 cargo install tauri-cli --version "^2" --locked
 cd app\src-tauri; cargo tauri build       # installer: target\release\bundle\nsis\*-setup.exe
 cargo test --workspace                     # offline tests
-cargo run -p polr-ai --example smoke       # live check against your Claude Code login (uses a little usage)
+cargo run -p lifeline-ai --example smoke       # live check against your Claude Code login (uses a little usage)
 ```
 
 ### Publishing a new version

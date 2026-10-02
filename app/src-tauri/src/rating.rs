@@ -4,8 +4,8 @@
 
 use std::sync::atomic::Ordering;
 
-use polr_ai::agents::{MARKET_MODEL, MARKET_SCOUT};
-use polr_ai::{parse_rating, CliEvent, Job};
+use lifeline_ai::agents::{MARKET_MODEL, MARKET_SCOUT};
+use lifeline_ai::{parse_rating, CliEvent, Job};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -61,6 +61,7 @@ pub fn run(app: AppHandle) {
             }
         }
         state.rating_busy.store(false, Ordering::SeqCst);
+        crate::sound::play(&app, crate::sound::Cue::Ready);
         state.save_rating();
         let _ = app.emit("rating", snapshot(&state));
     });
@@ -80,12 +81,12 @@ fn rate(app: &AppHandle, state: &AppState) -> Result<(), String> {
     // Hard limits: what can't be checked can't be good.
     let slots = state.equipped.lock().unwrap().len();
     if slots == 0 {
-        polr_ai::cap_grade(&mut rating, "D+", "no gear recorded, so nothing about it can be verified.");
+        lifeline_ai::cap_grade(&mut rating, "D+", "no gear recorded, so nothing about it can be verified.");
     } else if slots < 5 {
-        polr_ai::cap_grade(&mut rating, "C", "most gear slots aren't recorded.");
+        lifeline_ai::cap_grade(&mut rating, "C", "most gear slots aren't recorded.");
     }
     if state.imported.lock().unwrap().is_none() {
-        polr_ai::cap_grade(&mut rating, "C-", "no build plan to measure progress against.");
+        lifeline_ai::cap_grade(&mut rating, "C-", "no build plan to measure progress against.");
     }
     let stage = match c.act {
         Some(a) => format!("Act {a}"),

@@ -3,15 +3,15 @@
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use polr_data::{PassiveTree, TREE_EXPORT_URL};
-use polr_gamefiles::{build_planner, paths};
-use polr_model::{plan_stages, realize, to_planner_build, BuildDesign, DesignReport, SpecStage};
-use polr_pob::{decode, parse_xml, resolve, BuildSource};
+use lifeline_data::{PassiveTree, TREE_EXPORT_URL};
+use lifeline_gamefiles::{build_planner, paths};
+use lifeline_model::{plan_stages, realize, to_planner_build, BuildDesign, DesignReport, SpecStage};
+use lifeline_pob::{decode, parse_xml, resolve, BuildSource};
 use serde::{Deserialize, Serialize};
 
 use crate::state::{AppState, Imported};
 
-const USER_AGENT: &str = "PathOfLeastResistance/0.1 (personal PoE2 companion)";
+const USER_AGENT: &str = "Lifeline/0.1 (personal PoE2 companion)";
 const TREE_MAX_AGE: Duration = Duration::from_secs(7 * 24 * 3600);
 
 pub fn http_get(url: &str) -> Result<String, String> {
@@ -114,7 +114,7 @@ pub fn import(state: &AppState, input: &str) -> Result<ImportView, String> {
         build,
         stages,
         link: link.clone(),
-        name: format!("{name} (PoLR)"),
+        name: format!("{name} (Lifeline)"),
     };
     let v = view(&imported, warning);
     *state.imported.lock().unwrap() = Some(imported);
@@ -149,7 +149,7 @@ pub fn realize_design(state: &AppState, design: &BuildDesign) -> Result<(Importe
         build: realized.build,
         stages,
         link: None,
-        name: format!("{} (PoLR)", design.name.trim()),
+        name: format!("{} (Lifeline)", design.name.trim()),
     };
     Ok((imported, realized.report))
 }
@@ -189,7 +189,7 @@ pub fn restore(state: &AppState) -> Option<ImportView> {
                 build,
                 stages,
                 link,
-                name: format!("{name} (PoLR)"),
+                name: format!("{name} (Lifeline)"),
             };
             let v = view(&imported, None);
             *state.imported.lock().unwrap() = Some(imported);

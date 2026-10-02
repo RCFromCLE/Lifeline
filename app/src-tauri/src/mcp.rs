@@ -5,16 +5,16 @@
 
 use std::sync::Arc;
 
-use polr_ai::tools;
+use lifeline_ai::tools;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::state::{AppState, PendingAction};
 
-/// Starts the server (`polr_ai::mcp_server`); returns (port, token).
+/// Starts the server (`lifeline_ai::mcp_server`); returns (port, token).
 pub fn start(app: AppHandle) -> Result<(u16, String), String> {
-    let server = polr_ai::mcp_server::serve(
-        "polr",
+    let server = lifeline_ai::mcp_server::serve(
+        "lifeline",
         tool_definitions(),
         Arc::new(move |conv, name, args| {
             let result = call(&app, conv, name, args);
@@ -178,7 +178,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             };
             let c = state.character.lock().unwrap().clone();
             let stage = crate::ai::current_stage(c.act, c.area_level);
-            let skills: Vec<Value> = polr_model::skills_for_stage(&i.build, stage)
+            let skills: Vec<Value> = lifeline_model::skills_for_stage(&i.build, stage)
                 .iter()
                 .map(|s| {
                     json!({"skill": crate::gamedata::gem_display(&state, &s.id),
@@ -188,7 +188,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             Ok(json!({
                 "name": i.name,
                 "class": i.build.class_name, "ascendancy": i.build.ascend_class_name,
-                "current_stage": polr_model::stage_label(stage),
+                "current_stage": lifeline_model::stage_label(stage),
                 "stages": i.stages.iter().filter(|s| s.chosen).map(|s| json!({"stage": s.stage, "spec": s.title, "level": s.estimated_level, "passives": s.main_points})).collect::<Vec<_>>(),
                 "current_stage_skills": skills
             }))
@@ -210,7 +210,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             let all = d.supports_for(gem, 1000);
             let supports: Vec<Value> = all.iter().take(limit).map(|s| json!({"name": s.name, "effects": s.support_effects, "text": s.description, "attribute": s.attribute, "lineage": s.is_lineage, "recommended_by_game": gem.recommended_supports.contains(&s.name)})).collect();
             Ok(
-                json!({"skill": gem.name, "skill_types": gem.skill_types, "compatible_total": all.len(), "note": if polr_data::GameData::is_minion_skill(gem) { "Minion/companion skill: supports apply to the minions' own skills, which the data doesn't list, so this isn't filtered by type. Prefer game-recommended and minion supports." } else { "Only supports the game allows on this skill (its type rules); game-recommended first. Ask with a larger limit for more." }, "supports": supports}),
+                json!({"skill": gem.name, "skill_types": gem.skill_types, "compatible_total": all.len(), "note": if lifeline_data::GameData::is_minion_skill(gem) { "Minion/companion skill: supports apply to the minions' own skills, which the data doesn't list, so this isn't filtered by type. Prefer game-recommended and minion supports." } else { "Only supports the game allows on this skill (its type rules); game-recommended first. Ask with a larger limit for more." }, "supports": supports}),
             )
         }
         n if n == tools::LOOKUP_BASE => {
@@ -242,7 +242,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
         n if n == tools::LOOKUP_PASSIVE => {
             let tree = crate::builds::load_tree(&state)?;
             let q = args["query"].as_str().ok_or("query is required")?;
-            let found: Vec<Value> = tree.find_passives(q, args["limit"].as_u64().unwrap_or(10) as usize).iter().map(|n| json!({"id": n.id, "name": n.name, "notable": n.is_notable, "keystone": n.is_keystone, "ascendancy": n.ascendancy_id, "stats": n.stats.iter().map(|s| polr_data::game::plain(s)).collect::<Vec<_>>()})).collect();
+            let found: Vec<Value> = tree.find_passives(q, args["limit"].as_u64().unwrap_or(10) as usize).iter().map(|n| json!({"id": n.id, "name": n.name, "notable": n.is_notable, "keystone": n.is_keystone, "ascendancy": n.ascendancy_id, "stats": n.stats.iter().map(|s| lifeline_data::game::plain(s)).collect::<Vec<_>>()})).collect();
             Ok(json!({"source": "GGG passive tree export", "passives": found}))
         }
         n if n == tools::AREA_INFO => {
@@ -373,7 +373,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             }
         }
         n if n == tools::DESIGN_BUILD => {
-            let design: polr_model::BuildDesign =
+            let design: lifeline_model::BuildDesign =
                 serde_json::from_value(args.clone()).map_err(|e| format!("design doesn't match the schema: {e}"))?;
             // Wizard runs fill the library; chat runs make the build active.
             let report = if conv == crate::wizard::BUILD_SCOPE {
@@ -441,7 +441,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
 /// MCP config for one conversation's Claude turn.
 pub fn config_for(state: &AppState, conv: u64) -> Option<String> {
     let (port, token) = state.mcp.lock().unwrap().clone()?;
-    Some(polr_ai::mcp_config_json(
+    Some(lifeline_ai::mcp_config_json(
         &format!("http://127.0.0.1:{port}/mcp/{conv}"),
         &token,
     ))

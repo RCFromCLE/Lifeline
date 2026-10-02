@@ -4,9 +4,9 @@
 
 use std::sync::Once;
 
-use polr_ai::{agents, ClaudeCli, CliEvent};
-use polr_model::skills_for_stage;
-use polr_pob::Stage;
+use lifeline_ai::{agents, ClaudeCli, CliEvent};
+use lifeline_model::skills_for_stage;
+use lifeline_pob::Stage;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -37,7 +37,7 @@ pub(crate) fn companion(state: &AppState, conv: u64) -> Result<ClaudeCli, String
         std::fs::write(&path, config).map_err(|e| e.to_string())?;
         cli.mcp_config = Some(path);
         cli.allowed_tools
-            .extend(polr_ai::tools::qualified(polr_ai::tools::IMPLEMENTED));
+            .extend(lifeline_ai::tools::qualified(lifeline_ai::tools::IMPLEMENTED));
     }
     cli.disallowed_tools = agents::BUILT_IN_AGENTS.iter().map(|a| format!("Agent({a})")).collect();
     Ok(cli)
@@ -55,7 +55,7 @@ fn context(state: &AppState) -> String {
     let c = state.character.lock().unwrap().clone();
     let league = state.settings.lock().unwrap().league.clone();
     let mut lines = vec![
-        "[Live context from PathOfLeastResistance. The polr tools are connected: live character state, the imported build, \
+        "[Live context from Lifeline. The lifeline tools are connected: live character state, the imported build, \
          game data for the current patch (gems, supports, item bases, mods, uniques, passives, areas) and the trade market. \
          Look facts up with them first; use the web only for what they don't cover (boss mechanics, patch notes) and say \
          what you could not verify.]"
@@ -104,7 +104,7 @@ fn context(state: &AppState) -> String {
         lines.push(format!(
             "Imported build: {} — {} plan skills: {}",
             imported.name,
-            polr_model::stage_label(stage),
+            lifeline_model::stage_label(stage),
             if skills.is_empty() {
                 "(none listed)".into()
             } else {
@@ -282,6 +282,9 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
         }
         state.save_conversations();
         emit(&app, conv_id, json!({"type": "done", "text": text, "error": error}));
+        if origin == Origin::Hotkey {
+            crate::sound::play(&app, crate::sound::Cue::Ready);
+        }
         let _ = app.emit("conversations", conversation_list(&state));
     });
 }
@@ -314,7 +317,7 @@ mod tests {
 
     #[test]
     fn each_conversation_sees_the_others_but_not_itself() {
-        let dir = std::env::temp_dir().join(format!("polr-aware-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("lifeline-aware-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let state = AppState::new(dir.clone());
         let boots = state.new_conversation("Boots for Act 3", false);

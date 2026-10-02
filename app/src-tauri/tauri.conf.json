@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "PathOfLeastResistance",
-  "version": "0.1.2",
-  "identifier": "com.rudyc.pathofleastresistance",
+  "productName": "Lifeline",
+  "version": "0.2.0",
+  "identifier": "com.rudyc.lifeline",
   "build": {
     "frontendDist": "../ui"
   },
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "PathOfLeastResistance",
+        "title": "Lifeline",
         "width": 1320,
         "height": 880,
         "minWidth": 560,
@@ -26,7 +26,7 @@
     "active": true,
     "targets": ["nsis"],
     "icon": ["icons/icon.ico", "icons/icon.png"],
-    "publisher": "PathOfLeastResistance",
+    "publisher": "Lifeline",
     "shortDescription": "AI-assisted Path of Exile 2 playthrough and build manager",
     "windows": {
       "nsis": { "installMode": "currentUser" },

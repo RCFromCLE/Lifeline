@@ -1,0 +1,12 @@
+[package]
+name = "lifeline-data"
+description = "Versioned PoE2 game data: GGG's passive-tree export (more sources per PLAN.md §4)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex.workspace = true

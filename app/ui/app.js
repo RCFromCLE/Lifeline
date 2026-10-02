@@ -24,7 +24,7 @@ function renderCharacter(c) {
   $("char-meta").textContent = d.where + (c.buffs && c.buffs.length ? ` · ${c.buffs.length} permanent buffs` : "");
   const pill = $("penalty-pill");
   pill.textContent = c.res_penalty === null || c.res_penalty === undefined ? "Res —" : `Res ${c.res_penalty}%`;
-  pill.className = `pill ${penaltyClass(c.res_penalty)}`;
+  pill.className = `stat ${penaltyClass(c.res_penalty)}`;
   $("deaths-pill").textContent = `☠ ${c.deaths}`;
 }
 
@@ -408,6 +408,7 @@ async function refreshPlannerFiles() {
 // ---- settings ----
 const HOTKEY_KEYS = ["item_check", "what_next", "ask", "toggle_overlay", "record_equipped", "move_overlay"];
 function renderKeysSummary(s) {
+  if (!$("keys-summary")) return;
   const k = s.hotkeys;
   $("keys-summary").innerHTML = [
     ["Item check", k.item_check], ["What next", k.what_next], ["Ask", k.ask], ["HUD overlay", k.toggle_overlay], ["Record equipped", k.record_equipped], ["Move HUD", k.move_overlay],
@@ -419,17 +420,22 @@ function fillSettings(s) {
   for (const key of HOTKEY_KEYS) f.elements[key].value = s.hotkeys[key];
   f.elements.league.value = s.league;
   f.elements.overlay_on_hotkey.checked = s.overlay_on_hotkey;
+  f.elements.sound.checked = s.sound !== false;
+  f.elements.volume.value = s.volume ?? 0.6;
   renderKeysSummary(s);
 }
 
 $("settings-form").addEventListener("submit", async ev => {
   ev.preventDefault();
   const f = ev.target;
+  // Keep every other setting (rating budget, HUD place…) as it is.
   const next = {
+    ...settings,
     league: f.elements.league.value.trim() || "HC Forbidden Rites",
     overlay_on_hotkey: f.elements.overlay_on_hotkey.checked,
     hotkeys: Object.fromEntries(HOTKEY_KEYS.map(k => [k, f.elements[k].value.trim()])),
-    overlay_pos: settings ? settings.overlay_pos : null,
+    sound: f.elements.sound.checked,
+    volume: Number(f.elements.volume.value),
   };
   const failed = await invoke("save_settings", { settings: next });
   settings = next;
@@ -437,6 +443,9 @@ $("settings-form").addEventListener("submit", async ev => {
   $("settings-status").className = failed.length ? "status err" : "status ok";
   $("settings-status").textContent = failed.length ? `Couldn't register: ${failed.join("; ")}` : "Saved — hotkeys are live.";
 });
+
+document.querySelectorAll(".sound-tests button").forEach(b => b.addEventListener("click", () =>
+  invoke("play_sound", { name: b.dataset.cue, volume: Number($("settings-form").elements.volume.value) })));
 
 // ---- events + startup ----
 listen("character", ({ payload }) => renderCharacter(payload));

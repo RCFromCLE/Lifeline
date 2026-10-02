@@ -14,7 +14,7 @@ const TRADE_LABEL: &str = "trade";
 fn trade_home(league: &str) -> String {
     format!(
         "https://www.pathofexile.com/trade2/search/poe2/{}",
-        polr_trade::encode_segment(league)
+        lifeline_trade::encode_segment(league)
     )
 }
 
@@ -46,11 +46,11 @@ fn travel_script(listing_id: &str, search_id: &str) -> String {
     format!(
         r#"(async () => {{
   const banner = (msg, ok) => {{
-    let b = document.getElementById('polr-banner');
-    if (!b) {{ b = document.createElement('div'); b.id = 'polr-banner'; document.body.appendChild(b); }}
+    let b = document.getElementById('lifeline-banner');
+    if (!b) {{ b = document.createElement('div'); b.id = 'lifeline-banner'; document.body.appendChild(b); }}
     b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;padding:12px;font:16px sans-serif;text-align:center;'
       + (ok ? 'background:#1f3d1a;color:#c8f0b0' : 'background:#4a1d17;color:#ffd0c8');
-    b.textContent = 'PathOfLeastResistance: ' + msg;
+    b.textContent = 'Lifeline: ' + msg;
   }};
   try {{
     const hdr = {{ 'X-Requested-With': 'XMLHttpRequest' }};
@@ -138,7 +138,7 @@ pub fn confirm(app: &AppHandle, action_id: u64) -> Result<String, String> {
             let qid = action.search_id.as_deref().ok_or("no search")?;
             let url = format!(
                 "https://www.pathofexile.com/trade2/search/poe2/{}/{qid}",
-                polr_trade::encode_segment(&league)
+                lifeline_trade::encode_segment(&league)
             );
             open_trade_window(app, Some(&url))?;
             Ok("Opened the search in the trade window.".into())

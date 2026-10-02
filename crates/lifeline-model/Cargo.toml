@@ -1,0 +1,14 @@
+[package]
+name = "lifeline-model"
+description = "Imported builds → playthrough stages → in-game Build Planner files."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+lifeline-data = { path = "../lifeline-data" }
+lifeline-gamefiles = { path = "../lifeline-gamefiles" }
+lifeline-pob = { path = "../lifeline-pob" }
+serde.workspace = true
+serde_json.workspace = true

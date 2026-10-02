@@ -1,4 +1,4 @@
-//! PathOfLeastResistance desktop app: main window, HUD overlay, global
+//! Lifeline desktop app: main window, HUD overlay, global
 //! hotkeys, live game log, build import → in-game planner, Opus 5.5 companion.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -16,6 +16,7 @@ mod market;
 mod mcp;
 mod rating;
 mod skills;
+mod sound;
 mod state;
 mod wizard;
 
@@ -94,7 +95,7 @@ fn new_conversation(app: AppHandle) -> u64 {
 }
 
 #[tauri::command]
-async fn showcase(app: AppHandle, prefs: polr_model::Preferences) -> serde_json::Value {
+async fn showcase(app: AppHandle, prefs: lifeline_model::Preferences) -> serde_json::Value {
     tauri::async_runtime::spawn_blocking(move || wizard::showcase(&app.state::<AppState>(), &prefs))
         .await
         .unwrap_or_default()
@@ -136,8 +137,16 @@ async fn use_saved(app: AppHandle, id: u64, write: bool) -> Result<serde_json::V
 }
 
 #[tauri::command]
-fn generate_build(app: AppHandle, id: String, prefs: polr_model::Preferences) -> Result<(), String> {
+fn generate_build(app: AppHandle, id: String, prefs: lifeline_model::Preferences) -> Result<(), String> {
     wizard::generate(app, id, prefs)
+}
+
+/// Settings → Sounds: hear a cue.
+#[tauri::command]
+fn play_sound(name: String, volume: f32) {
+    if let Some(cue) = sound::Cue::from_name(&name) {
+        sound::preview(cue, volume);
+    }
 }
 
 #[tauri::command]
@@ -244,14 +253,14 @@ fn hud(state: tauri::State<'_, AppState>) -> serde_json::Value {
         let stage = ai::current_stage(c.act, c.area_level);
         if let Some(s) = imported.stages.iter().find(|s| s.chosen && s.stage_key == stage) {
             let spec = &imported.build.specs[s.spec_index];
-            let planned: Vec<&polr_data::TreeNode> = spec
+            let planned: Vec<&lifeline_data::TreeNode> = spec
                 .nodes
                 .iter()
                 .filter(|&&n| tree.is_plannable(n))
                 .filter_map(|&n| tree.node(n))
                 .collect();
             let done = planned.iter().filter(|n| c.allocated.contains(&n.id)).count();
-            let mut missing: Vec<&&polr_data::TreeNode> =
+            let mut missing: Vec<&&lifeline_data::TreeNode> =
                 planned.iter().filter(|n| !c.allocated.contains(&n.id)).collect();
             missing.sort_by_key(|n| (!n.is_keystone, !n.is_notable, n.ascendancy_id.is_some()));
             plan = serde_json::json!({
@@ -456,7 +465,7 @@ fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
         })
         .or(primary.map(|m| (m.0 + 8.0, m.1 + 8.0)));
     let mut builder = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("overlay.html".into()))
-        .title("PoLR HUD")
+        .title("Lifeline HUD")
         .inner_size(START_SIZE.0, START_SIZE.1)
         .decorations(false)
         .transparent(true)
@@ -494,11 +503,39 @@ fn fit_overlay(app: AppHandle, width: f64, height: f64) {
     }
 }
 
+/// The app was called PathOfLeastResistance before 0.2; carry its data
+/// (settings, chats, ratings, saved builds, recorded gear) over once.
+fn migrate_old_data(data_dir: &std::path::Path) {
+    fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+        std::fs::create_dir_all(to)?;
+        for entry in std::fs::read_dir(from)? {
+            let entry = entry?;
+            let target = to.join(entry.file_name());
+            if entry.file_type()?.is_dir() {
+                copy_dir(&entry.path(), &target)?;
+            } else {
+                std::fs::copy(entry.path(), target)?;
+            }
+        }
+        Ok(())
+    }
+    if data_dir.exists() {
+        return;
+    }
+    let Some(old) = data_dir.parent().map(|p| p.join(concat!("com.rudyc.", "pathofleastresistance"))) else {
+        return;
+    };
+    if old.is_dir() {
+        let _ = copy_dir(&old, data_dir);
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(hotkeys::plugin())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
+            migrate_old_data(&data_dir);
             std::fs::create_dir_all(&data_dir)?;
             app.manage(AppState::new(data_dir));
 
@@ -557,6 +594,7 @@ fn main() {
             use_saved,
             generate_build,
             build_status,
+            play_sound,
             fit_overlay,
             skills_snapshot,
             run_skills,
@@ -570,5 +608,5 @@ fn main() {
             save_settings
         ])
         .run(tauri::generate_context!())
-        .expect("error while running PathOfLeastResistance");
+        .expect("error while running Lifeline");
 }

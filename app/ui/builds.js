@@ -21,19 +21,17 @@ function portrait(cls, asc, size) {
 }
 
 const COMPLEXITY = ["Very simple", "Simple", "Moderate", "Demanding", "Hard"];
+const BUDGET = ["Shoestring", "Cheap", "Moderate", "Pricey", "Wealthy"];
+/** Plain-text facts about a build: playstyle, damage, cost, difficulty. */
 function tags(a, extra = []) {
   const r = a.ratings;
-  const t = [
-    ...extra,
-    `<span class="tag">${"$".repeat(r.budget)} budget</span>`,
-    `<span class="tag">${COMPLEXITY[r.complexity - 1] || ""}</span>`,
-    ...a.style.map(s => `<span class="tag">${esc(s)}</span>`),
-    ...a.damage.slice(0, 3).map(s => `<span class="tag">${esc(s)}</span>`),
-  ];
-  if (a.league_start) t.push(`<span class="tag good">League start</span>`);
-  return `<div class="tags">${t.join("")}</div>`;
+  const facts = [
+    ...a.style, ...a.damage.slice(0, 3),
+    BUDGET[r.budget - 1], COMPLEXITY[r.complexity - 1],
+    a.league_start ? "League start" : "",
+  ].filter(Boolean).map(esc);
+  return `${extra.length ? `<div class="good-at">${extra.join("")}</div>` : ""}<div class="facts">${facts.join(" · ")}</div>`;
 }
-
 function bars(r) {
   const row = (label, v, cls = "") => `<span>${label}</span><div class="b"><i class="${cls}" style="width:${v * 20}%"></i></div>`;
   return `<div class="bars">${row("Damage", r.damage)}${row("Tanky", r.tankiness)}${row("Clear", r.clear_speed)}` +
@@ -41,18 +39,39 @@ function bars(r) {
 }
 
 function buildCard(a, { score, reasons = [], state } = {}) {
-  const extra = [];
-  if (state) extra.push(`<span class="tag state">${esc(state)}</span>`);
-  for (const why of reasons) extra.push(`<span class="tag ${/Risky|expensive/.test(why) ? "bad" : "good"}">${esc(why)}</span>`);
+  const extra = reasons.map(why => `<span class="${/Risky|expensive/.test(why) ? "bad" : "good"}">${esc(why)}</span>`);
   return `<div class="top">${portrait(a.class, a.ascendancy, 64)}<div>
+      ${state ? `<div class="state">${esc(state)}</div>` : ""}
       <div class="nm">${esc(a.name)}</div><div class="sub2">${esc(a.class)} · ${esc(a.ascendancy)} · ${esc(a.main_skill)}</div></div>
-      ${score !== undefined ? `<span class="match">${score}% fit</span>` : ""}</div>
+      ${score !== undefined ? `<span class="match" title="How well it fits your picks">${score}<small>% fit</small></span>` : ""}</div>
     <div class="sum">${esc(a.summary)}</div>${bars(a.ratings)}${tags(a, extra)}`;
 }
 
 // ---- showcase ----
+/** The log names an ascended character by its ascendancy; map it to its class. */
+function classOf(name) {
+  if (!SHOW || !name) return { cls: name, asc: "" };
+  if (SHOW.classes.some(k => k.name === name)) return { cls: name, asc: "" };
+  const k = SHOW.classes.find(k => k.ascendancies.some(a => a.name === name));
+  return k ? { cls: k.name, asc: name } : { cls: name, asc: "" };
+}
+
+/** The player's class (or ascendancy) art as a soft backdrop behind the whole app. */
+function setBackdrop(name) {
+  const { cls, asc } = classOf(name);
+  const a = ART[cls];
+  const f = a && (a.frames[asc] || a.frames[""]);
+  if (!f) return;
+  const size = 720, sx = size / f.w, sy = size / f.h;
+  const root = document.documentElement.style;
+  root.setProperty("--art-url", `url('${a.url}')`);
+  root.setProperty("--art-size", `${a.w * sx}px ${a.h * sy}px`);
+  root.setProperty("--art-pos", `-${f.x * sx}px -${f.y * sy}px`);
+}
+
 async function loadShowcase() {
   SHOW = await invoke("showcase", { prefs: prefs() });
+  if (SHOW.character.class) setBackdrop(SHOW.character.class);
   renderClasses();
   renderAscs();
   renderBuilds();
@@ -61,7 +80,7 @@ async function loadShowcase() {
 function renderClasses() {
   const c = SHOW.character;
   $("w-char").textContent = c.name ? `${c.name}: ${c.class} level ${c.level}` : "";
-  const mine = (c.class || "").toLowerCase();
+  const mine = (classOf(c.class).cls || "").toLowerCase();
   $("w-classes").innerHTML = SHOW.classes.map(k => `<button class="art-card ${W.class === k.name ? "on" : ""} ${k.name.toLowerCase() === mine ? "mine" : ""}" data-c="${esc(k.name)}">
       ${portrait(k.name, "", 92)}<span class="nm">${esc(k.name)}</span><span class="ct">${k.builds} builds</span></button>`).join("");
   $("w-classes").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
@@ -200,6 +219,14 @@ listen("build-done", ({ payload }) => {
   }
 });
 listen("library", ({ payload }) => { LIB = payload; renderMine(); });
+// Keep "your character" and the backdrop in step with the game log.
+listen("character", ({ payload: c }) => {
+  if (!SHOW) return;
+  const changed = SHOW.character.class !== c.class || SHOW.character.name !== c.name;
+  SHOW.character = { class: c.class, level: c.level, name: c.name };
+  if (changed) { renderClasses(); if (c.class) setBackdrop(c.class); }
+  else $("w-char").textContent = c.name ? `${c.name}: ${c.class} level ${c.level}` : "";
+});
 
 function openSaved(e) {
   const a = e.archetype;

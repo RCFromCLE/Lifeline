@@ -4,8 +4,8 @@
 
 use std::sync::atomic::Ordering;
 
-use polr_ai::{parse_report, CliEvent, Job};
-use polr_model::{Archetype, BuildDesign, DesignReport, Preferences};
+use lifeline_ai::{parse_report, CliEvent, Job};
+use lifeline_model::{Archetype, BuildDesign, DesignReport, Preferences};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
@@ -20,13 +20,13 @@ const ART_BASE: &str = "https://raw.githubusercontent.com/grindinggear/poe2-skil
 // ---- showcase ----
 
 pub fn catalog() -> Vec<Archetype> {
-    polr_model::catalog::bundled()
+    lifeline_model::catalog::bundled()
 }
 
 /// Ranked showcase for the wizard's picks, plus the classes to choose from.
 pub fn showcase(state: &AppState, prefs: &Preferences) -> Value {
     let all = catalog();
-    let ranked = polr_model::rank(&all, prefs);
+    let ranked = lifeline_model::rank(&all, prefs);
     let c = state.character.lock().unwrap().clone();
     json!({
         "total": all.len(),
@@ -314,6 +314,7 @@ pub fn generate(app: AppHandle, archetype_id: String, prefs: Preferences) -> Res
             (Err(e), _) => json!({"ok": false, "error": e}),
         };
         state.build_busy.store(false, Ordering::SeqCst);
+        crate::sound::play(&app, crate::sound::Cue::Ready);
         let _ = app.emit("build-done", outcome);
         let _ = app.emit("library", library(&state));
     });

@@ -1,4 +1,4 @@
-# PathOfLeastResistance — Plan
+# Lifeline — Plan
 
 *An AI-assisted, hardcore-first, controller-first playthrough companion for Path of Exile 2, written in Rust.*
 
@@ -95,7 +95,7 @@ Sources: GGG developer docs (pathofexile.com/developer/docs), Terms of Use §7, 
   - Observed details: names are cut to 40 characters, `weapon_set` values are 1 and 2, both `Metadata/Items/Gems/` and `Metadata/Items/Gem/` id prefixes appear, and some passive ids repeat (meaning unknown).
 - **Verified locally:** the client logs `[BuildPlanner] Successfully loaded build 'file:C:/…/X.build'` for each file, which gives us a free validation signal. `poe2_production_Config.ini [UI] active_builds=[{"character":…,"path":"file:…"}]` records which build each character follows.
 - **Also available:** builds can be uploaded and subscribed to on pathofexile2.com (`/my-account/builds`), with auto-update on PC and console. There is no public API, so v1 writes local files only.
-- **Implemented:** `crates/polr-gamefiles/src/build_planner.rs`. It reads both the string and object forms, round-trips lossless JSON, writes atomically, and provides a markup helper.
+- **Implemented:** `crates/lifeline-gamefiles/src/build_planner.rs`. It reads both the string and object forms, round-trips lossless JSON, writes atomically, and provides a markup helper.
 
 ### 3.2 Client log (`Client.txt`) — knowing where you are
 
@@ -118,7 +118,7 @@ Line prefix: `YYYY/MM/DD HH:MM:SS <ms> <hex> [LEVEL Client <pid>] <body>`. Every
 - **Area id → name → level map:** built from this PC's own log for Acts 1–4 (e.g. `G1_1` The Riverbank 1 … `G4_town` Kingsmarch 53), plus hideouts (`Hideout*`, level 65) and trials (`G2_13`/`Sanctum_*` Trial of the Sekhemas, `G3_10` Trial of Chaos, `G4_4_3` Trial of the Ancestors).
 - **Interlude area ids:** not in this log; **UNVERIFIED** (derive from RePoE `world_areas`).
 - **Also observed:** "You have entered …" (PoE1) does not occur. `output_all_dialogue_to_chat=true` puts NPC dialogue in the log, which is a possible future boss-encounter signal.
-- **Implemented:** `crates/polr-gamefiles/src/client_log.rs` — parser, a polling tailer that survives truncation, and `campaign_act()`.
+- **Implemented:** `crates/lifeline-gamefiles/src/client_log.rs` — parser, a polling tailer that survives truncation, and `campaign_act()`.
 
 ### 3.3 Game config (`poe2_production_Config.ini`)
 
@@ -130,7 +130,7 @@ Line prefix: `YYYY/MM/DD HH:MM:SS <ms> <hex> [LEVEL Client <pid>] <body>`. Every
   - `[ACTION_KEYS]`: Windows virtual-key codes, e.g. `open_market_panel=191` is `/`
   - `[DISPLAY] borderless_windowed_fullscreen=true` (needed for overlays; verified locally)
 - **Write policy:** §8.3.
-- **Implemented:** `crates/polr-gamefiles/src/config_ini.rs`, a byte-preserving editor (BOM, line endings, untouched lines).
+- **Implemented:** `crates/lifeline-gamefiles/src/config_ini.rs`, a byte-preserving editor (BOM, line endings, untouched lines).
 
 ### 3.4 Item filters
 
@@ -245,7 +245,7 @@ Other gem rules:
 | Older tree versions for imported builds | PoB2 `src/TreeData/0_x/tree.json` (MIT code; GGG data) | Needed for `0_1`–`0_4` builds. |
 | Prices | Official currency-exchange history `GET https://web.poecdn.com/api/currency-exchange/poe2/{unix_hour}` (public, hourly); poe2scout API; poe.ninja **economy** endpoints | poe.ninja asks desktop apps to proxy through a backend. Personal use: low-frequency, cached, honest User-Agent. The poe.ninja builds API is off-limits. |
 
-**Pipeline (`polr-data`):** download → validate → normalise → a **SQLite DB per patch version** (rusqlite `bundled`, FTS5 for fuzzy search) → the AI tools query it.
+**Pipeline (`lifeline-data`):** download → validate → normalise → a **SQLite DB per patch version** (rusqlite `bundled`, FTS5 for fuzzy search) → the AI tools query it.
 - It ships no data in the repo; it fetches on first run and on patch change.
 - The patch version comes from the log line `[HTTP2] User agent: PoE poe2_production/tags/4.5.x` (EE2 fixture shows `4.4.0j` = 0.4.0j). Compare it with RePoE `version.txt`.
 
@@ -257,14 +257,14 @@ Other gem rules:
 
 | Input | How | Status |
 |---|---|---|
-| PoB code (pasted) | base64url → zlib → `<PathOfBuilding2>` XML | **Implemented** (`polr-pob`), tested on two real codes (0.2 padded and 0.5 unpadded) |
+| PoB code (pasted) | base64url → zlib → `<PathOfBuilding2>` XML | **Implemented** (`lifeline-pob`), tested on two real codes (0.2 padded and 0.5 unpadded) |
 | pobb.in, Maxroll PoB, poe2db PoB, pastebin, rentry, `pob2://`, YouTube redirects | URL mapping copied from PoB2's `BuildSiteTools.lua` | **Implemented** (`code::resolve`) |
 | Maxroll planner `maxroll.gg/poe2/planner/<id>` | `planners.maxroll.gg/profiles/poe2/<id>` JSON. It has explicit "Act N" skill steps with `minLevel` and an ordered passive `history`. | Planned; undocumented endpoint, so experimental |
 | `.build` files (Mobalytics, Maxroll, PoB2 export) | Read the BuildPlanner folder or a dropped file | **Implemented** (reader) |
 | poe.ninja / Mobalytics links | Not fetched: poe.ninja says its builds/PoB endpoints are "not available for third-party use"; Mobalytics is Cloudflare-blocked | The app explains the alternative (their `.build`/PoB export) |
 | Character import from your GGG account | OAuth `GET /character/poe2/{name}` | Blocked: GGG registration closed |
 
-### 5.2 Canonical model (`polr-model`, planned)
+### 5.2 Canonical model (`lifeline-model`, planned)
 
 `Build { meta, class, ascendancy, stages: Vec<StagePlan> }`. Each `StagePlan` has:
 - the stage (`Act(n) | Interludes | Endgame` for now, data-driven for 1.0)
@@ -277,13 +277,13 @@ Other gem rules:
 
 ### 5.3 Splitting into stages
 
-Implemented in `polr-pob::stages`; tests use the real point counts.
+Implemented in `lifeline-pob::stages`; tests use the real point counts.
 
 1. **Title classification.** Patterns: `Act N`, `Interlude`, `Early/Starting Maps`, `Level N`, `Leveling N`, `Endgame/Maps/Main Tree`.
    - **Era-aware:** in `0_1`/`0_2` trees "Act 4–6" mean Cruel. In `0_3`–`0_5` guides, "Act 5" means the Interludes (Maxroll's convention).
    - Real titles seen: "Act 1"…"Act 6", "Early Maps", "Endgame w/ Diamonds" (0.2 Stormweaver), and "Leveling 1 – Bows"…"Leveling 7 – Spears", "Starting Maps/Random Gear", "Level 75 Endgame Setup", "Main Tree 93" (0.5 Deadeye).
 2. **Level estimate.** A port of PoB2's `EstimatePlayerProgress` (verified against Build.lua). It returns level 14/28/40/48/61/64 for 17/33/47/59/76/87 main-tree points.
-   - **Needs tree data** to count main-tree points (excluding class/ascendancy starts and ascendancy nodes). That arrives with `polr-data`.
+   - **Needs tree data** to count main-tree points (excluding class/ascendancy starts and ascendancy nodes). That arrives with `lifeline-data`.
 3. **Resolve.** Explicit act or interlude labels win. Otherwise use "Level N"; otherwise the estimated level, mapped through the area-level bands (§3.5). Same-size alternatives ("Endgame w/ Diamonds") become **variants**, not stages.
 4. **Pair skill and item sets.**
    - Apply PoB's loadout rules (identical titles, `{id}` suffixes, single set applies to all).
@@ -317,7 +317,7 @@ Tauri app (Rust)
 - `--bare` is **not** used: it disables OAuth/subscription auth.
 - `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` are removed from the child process's environment, so an API key on your system can't silently take precedence over your plan.
 
-**Verified live on 2026-10-01** (Claude Code 2.1.286, your Max login; `cargo run -p polr-ai --example smoke`):
+**Verified live on 2026-10-01** (Claude Code 2.1.286, your Max login; `cargo run -p lifeline-ai --example smoke`):
 - **Subscription auth works under `--restricted`.** That mode drops code-running tools, ignores user/project/local settings files, and confines file tools to the app's directory.
 - **`--strict-mcp-config` must be passed even with no config.** Without it the session also loaded your claude.ai connectors (Gmail, Drive, Calendar, Claude Docs). With it, the session sees only the app's MCP server.
 - **The agents file loads.** All 9 specialists appear in `init.agents`.
@@ -334,7 +334,7 @@ Tauri app (Rust)
 
 **Prompt delivery:** the prompt is passed right after `-p`; list-valued flags like `--allowedTools` would otherwise swallow it.
 
-**Implemented** (`crates/polr-ai`, 18 tests plus the live smoke example):
+**Implemented** (`crates/lifeline-ai`, 18 tests plus the live smoke example):
 - command builder and stream-json parser with turn runner
 - MCP config writer and the canonical tool-name registry (`tools.rs`)
 - specialist roster (`agents.rs`) and background jobs (`jobs.rs`)
@@ -342,7 +342,7 @@ Tauri app (Rust)
 
 **Later optimisation:** keep a long-lived process with `--input-format stream-json`. The flag exists, but its input line shape is undocumented, so per-turn processes plus `--resume` come first.
 
-### 6.2 Tools Claude gets (MCP, `mcp__polr__*`)
+### 6.2 Tools Claude gets (MCP, `mcp__lifeline__*`)
 
 **Read-only:**
 - `character_state`: name, class, level, zone, area level, act, deaths, quest points, buffs received, session time.
@@ -361,7 +361,7 @@ Tauri app (Rust)
 
 **Actions** (one tool, `propose_action`): Claude only *proposes*. The app shows a confirm card, and nothing happens until you press confirm. Kinds: write planner builds, write item filter, open trade search, **travel to hideout**, save plan change, apply config change (game closed).
 
-The canonical names live in `polr-ai/src/tools.rs`, shared by the agents and the future MCP server; a test fails if an agent is granted a tool the server doesn't define.
+The canonical names live in `lifeline-ai/src/tools.rs`, shared by the agents and the future MCP server; a test fails if an agent is granted a tool the server doesn't define.
 
 ### 6.3 Grounding contract
 
@@ -388,7 +388,7 @@ The canonical names live in `polr-ai/src/tools.rs`, shared by the agents and the
 
 ### 6.6 Models and limits
 
-- **Model: Claude Opus 5.5 everywhere** — the companion, all nine specialists and every background job (owner's decision, 2026-10-01). It is pinned as `claude-opus-5-5` (`polr-ai::agents::MODEL`) rather than the `opus` alias, so a future release can't change behaviour silently. Verified live on your Max plan.
+- **Model: Claude Opus 5.5 everywhere** — the companion, all nine specialists and every background job (owner's decision, 2026-10-01). It is pinned as `claude-opus-5-5` (`lifeline-ai::agents::MODEL`) rather than the `opus` alias, so a future release can't change behaviour silently. Verified live on your Max plan.
 - **Subscription limits, verified live.** Every turn emits a `rate_limit_event` with your plan's windows, e.g. `five_hour` 9% and `seven_day` 3%, each with a reset time. Usage is shared with claude.ai.
   - The HUD shows both meters.
   - Background jobs pause above a configurable threshold (default 80% of the five-hour window), so chat always has headroom.
@@ -400,7 +400,7 @@ Same tool registry, driven directly over raw HTTP to the Messages API (no offici
 
 ### 6.8 Specialist agents and background jobs
 
-The companion is the only agent you talk to. Behind it is a team of specialists defined in `polr-ai/src/agents.rs` and `prompts/agents/*.md`, handed to Claude Code as `--agents agents.json`. The format and fields (`description`, `prompt`, `tools`, `model`, `effort`, `maxTurns`, `omitClaudeMd`) come from Claude Code's subagent reference.
+The companion is the only agent you talk to. Behind it is a team of specialists defined in `lifeline-ai/src/agents.rs` and `prompts/agents/*.md`, handed to Claude Code as `--agents agents.json`. The format and fields (`description`, `prompt`, `tools`, `model`, `effort`, `maxTurns`, `omitClaudeMd`) come from Claude Code's subagent reference.
 
 All specialists share a preamble with the grounding rules, the hardcore lens, and "never change anything yourself". Each gets **only the tools its job needs**.
 
@@ -469,10 +469,10 @@ This is the flow you asked for: ask the AI for an item, it searches, you get tel
 
 ## 8. Item filters and in-game customisation
 
-### 8.1 Filter generator (`polr-filter`)
+### 8.1 Filter generator (`lifeline-filter`)
 
 - **Base:** your chosen NeverSink strictness, from your installed copy or the GitHub release (MIT).
-- **Injection point:** a generated block is inserted at `[[0100]] OVERRIDE AREA 1`. The output is `PathOfLeastResistance – <build>.filter` in the filters folder. NeverSink's files are never edited, and the MIT notice and credits are preserved.
+- **Injection point:** a generated block is inserted at `[[0100]] OVERRIDE AREA 1`. The output is `Lifeline – <build>.filter` in the filters folder. NeverSink's files are never edited, and the MIT notice and credits are preserved.
 - **One file covers every act** by using `AreaLevel` windows (Act 1 ≤15, Act 2 16–31, Act 3 33–45, Act 4 46–53, Interludes 54–64, endgame 65+). There is no mid-session switching.
 - **Switching filters:** when a new filter is written, the app offers a one-press `/itemfilter <name>` (one chat command per press). It never sends it automatically after the file write, which would be "reacting to file changes".
 
@@ -508,7 +508,7 @@ This is the flow you asked for: ask the AI for an item, it searches, you get tel
 - **Applying them (grey area, accepted §2.1).** Press "Apply" on the coach and the app writes `poe2_production_Config.ini`, under these conditions:
   - **only while PoE2 isn't running** (checked by process; the game rewrites the file itself)
   - **a timestamped backup first**
-  - a byte-preserving editor (BOM, line endings and untouched lines kept; `polr-gamefiles::config_ini`, tested)
+  - a byte-preserving editor (BOM, line endings and untouched lines kept; `lifeline-gamefiles::config_ini`, tested)
   - a diff shown before writing
   - Controller users can still apply each setting in game (Options) with step-by-step guidance instead.
 - The same mechanism sets the selected filter (`item_filter`) and the active Build Planner stage (`active_builds`) between sessions.
@@ -616,18 +616,18 @@ The useful ones: `/hideout`, `/itemfilter <name>`, `/deaths`, `/played`, `/remai
 
 ```
 crates/
-  polr-gamefiles   ✅ .build files, Client.txt events + tailer, config ini editor        (16 tests)
-  polr-pob         ✅ PoB codes, share links, XML model, stage hints, PoB level estimator (14 tests)
-  polr-ai          ✅ Claude Code bridge, stream-json (incl. usage windows), tool registry,
+  lifeline-gamefiles   ✅ .build files, Client.txt events + tailer, config ini editor        (16 tests)
+  lifeline-pob         ✅ PoB codes, share links, XML model, stage hints, PoB level estimator (14 tests)
+  lifeline-ai          ✅ Claude Code bridge, stream-json (incl. usage windows), tool registry,
                       9 specialist agents, background jobs, prompts                     (18 tests + live smoke)
-  polr-data        ⬜ game-data ingest → per-patch SQLite (tree export, RePoE, wiki cache)
-  polr-model       ⬜ canonical Build/StagePlan, converters (PoB, .build, Maxroll), validator
-  polr-mcp         ⬜ rmcp tool server implementing polr-ai::tools over data/model/gamefiles + live state
-  polr-filter      ⬜ NeverSink-based filter generator
-  polr-trade       ⬜ price sources, trade session window bridge (search/fetch/travel), URL fallback
-  polr-input       ⬜ SDL3 pad thread, action map, combos, one-shot Ctrl+Alt+C
-  polr-voice       ⬜ push-to-talk STT, TTS
-  polr-hc          ⬜ penalties, buff checklist, boss cards, death journal, readiness
+  lifeline-data        ⬜ game-data ingest → per-patch SQLite (tree export, RePoE, wiki cache)
+  lifeline-model       ⬜ canonical Build/StagePlan, converters (PoB, .build, Maxroll), validator
+  lifeline-mcp         ⬜ rmcp tool server implementing lifeline-ai::tools over data/model/gamefiles + live state
+  lifeline-filter      ⬜ NeverSink-based filter generator
+  lifeline-trade       ⬜ price sources, trade session window bridge (search/fetch/travel), URL fallback
+  lifeline-input       ⬜ SDL3 pad thread, action map, combos, one-shot Ctrl+Alt+C
+  lifeline-voice       ⬜ push-to-talk STT, TTS
+  lifeline-hc          ⬜ penalties, buff checklist, boss cards, death journal, readiness
 app/               ⬜ Tauri + Leptos (main window, HUD overlay, couch mode)
 ```
 
@@ -666,10 +666,10 @@ Each milestone ends with something you can use in a real playthrough.
 
 | Milestone | Delivers | Done when |
 |---|---|---|
-| **M0 Foundations** ✅ *(2026-10-01)* | Plan; `polr-gamefiles`, `polr-pob`, `polr-ai` (incl. agents and jobs) with tests from real files; toolchain installed; git repo | **Done:** 48 tests pass, clippy clean, live smoke test against your Claude Max login passes |
+| **M0 Foundations** ✅ *(2026-10-01)* | Plan; `lifeline-gamefiles`, `lifeline-pob`, `lifeline-ai` (incl. agents and jobs) with tests from real files; toolchain installed; git repo | **Done:** 48 tests pass, clippy clean, live smoke test against your Claude Max login passes |
 | **M1 Game link** 🟡 *(app running 2026-10-01: main window, HUD overlay, global hotkeys for item check / what next / ask / overlay, live log card, PoB import → staged in-game planner files via GGG tree data, Opus 5.5 chat with usage meters; UI is plain HTML/JS for now — Leptos later)* | Tauri shell; log tailer → live character card (level, act, zone, area level, deaths, quest points, buffs); reads your BuildPlanner files; first-run setup (league picker, default HC Forbidden Rites; "what we read" screen) | Playing Act 1 updates the card live |
-| **M2 Build → stages → in-game** | `polr-data` (tree export + RePoE); PoB, link and `.build` import; stage split; writes per-stage `.build` files; passive drift alerts | A pobb.in link becomes Act 1…Endgame files the game logs as loaded |
-| **M3 Companion + agents** | `polr-mcp` implementing the tool registry; chat UI with streaming and usage meters; the 9 specialists live; background jobs (build audit, death debrief, session recap, patch watch) as finding cards; item check (keyboard/mouse first) | "Does this fit?" answered with cited data via gear-appraiser; importing a build produces an audit |
+| **M2 Build → stages → in-game** | `lifeline-data` (tree export + RePoE); PoB, link and `.build` import; stage split; writes per-stage `.build` files; passive drift alerts | A pobb.in link becomes Act 1…Endgame files the game logs as loaded |
+| **M3 Companion + agents** | `lifeline-mcp` implementing the tool registry; chat UI with streaming and usage meters; the 9 specialists live; background jobs (build audit, death debrief, session recap, patch watch) as finding cards; item check (keyboard/mouse first) | "Does this fit?" answered with cited data via gear-appraiser; importing a build produces an audit |
 | **M4 Controller & voice** | SDL3 pad thread, HUD overlay, interactive mode, controller item check (plus OCR fallback), push-to-talk STT (GPU), TTS | Full loop without touching the keyboard |
 | **M5 Market** 🟡 *(2026-10-01: via chat — trade2 search/fetch with rate limiting, stat lookup, poe.ninja prices, in-app MCP tool server verified live with Claude Code, market-scout verified live on HC Forbidden Rites, Travel cards + logged-in trade window; sell = price advice)* | Trade session window; market-scout search and ranking; one-press **Travel to Hideout**; prices; in-game Market guidance | "Find me boots…" → ranked listings → one press → you're in the seller's hideout |
 | **M6 Filters & settings coach** | NeverSink-based per-build filter; settings checklist | Filter loads (`item_filter_loaded_successfully`) and highlights your bases per act |
@@ -689,8 +689,8 @@ Order rationale: M1–M2 give value with no AI at all. M3 builds on solid data. 
 - **Git:** repo initialised with your personal identity (`rudycorradetti4@gmail.com`, repo-local).
 
 **Still needed:**
-1. **GitHub login for the private repo.** Run `gh auth login` once (browser), then I'll create `PathOfLeastResistance` as a private repo and push.
-2. **Folder rename:** close VS Code, then `Rename-Item "$env:USERPROFILE\Downloads\PathofChangeMeOnceNameIsDecided" PathOfLeastResistance`.
+1. ~~GitHub login for the private repo.~~ Done: private repo `RCFromCLE/Lifeline` (renamed from PathOfLeastResistance in 0.2).
+2. **Folder rename:** close VS Code, then `Rename-Item "$env:USERPROFILE\Downloads\PathofChangeMeOnceNameIsDecided" Lifeline` (if not done yet).
 3. **Trade or SSF?** I'm assuming trade, since market features need it. Say if it's SSF.
 4. **Later:** if GGG reopens OAuth registration, apply for character import and filter upload.
 
