@@ -51,6 +51,10 @@ cargo build --release -p polr-app
 | `Alt+Shift+N` | **What next** — route coach's next 1–3 steps for where you are |
 | `Alt+Shift+A` | **Ask** — brings the app up with the chat focused |
 | `Alt+Shift+O` | **HUD overlay** — show/hide the click-through overlay over the game |
+| `Alt+Shift+E` | **Record equipped** — hover an item you're wearing; used for ±% on market cards and the build rating |
+| `Alt+Shift+M` | **Move HUD** — drag the overlay anywhere, press again to lock (position is remembered) |
+
+Click the **grade** on the overlay to rate your build (F → S+ for where you are in the campaign; hover for the why). The **Rating** tab shows the breakdown and market picks for the top upgrades within your budget (market searches run on Sonnet 5.5).
 
 Tabs: **Play** (parallel conversations that know about each other, live game feed, usage meters; ask the market in plain words — the market scout searches, ranks listings for your build and gives you a **Travel to hideout** button; press **Trade site login** once first), **Build** (paste a PoB code or
 pobb.in link → act-by-act stages → write them into the in-game Build Planner), **Hotkeys & settings**

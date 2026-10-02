@@ -13,14 +13,18 @@ enum Action {
     WhatNext,
     Ask,
     ToggleOverlay,
+    RecordEquipped,
+    MoveOverlay,
 }
 
-fn bindings(h: &Hotkeys) -> [(Action, &str); 4] {
+fn bindings(h: &Hotkeys) -> [(Action, &str); 6] {
     [
         (Action::ItemCheck, h.item_check.as_str()),
         (Action::WhatNext, h.what_next.as_str()),
         (Action::Ask, h.ask.as_str()),
         (Action::ToggleOverlay, h.toggle_overlay.as_str()),
+        (Action::RecordEquipped, h.record_equipped.as_str()),
+        (Action::MoveOverlay, h.move_overlay.as_str()),
     ]
 }
 
@@ -70,6 +74,27 @@ pub fn toggle_overlay(app: &AppHandle) {
     }
 }
 
+/// Unlocks the HUD for dragging, or locks it (click-through) and saves where it is.
+pub fn toggle_move_mode(app: &AppHandle) {
+    use std::sync::atomic::Ordering;
+    let Some(w) = app.get_webview_window("overlay") else {
+        return;
+    };
+    let state = app.state::<AppState>();
+    let unlock = !state.overlay_unlocked.load(Ordering::SeqCst);
+    state.overlay_unlocked.store(unlock, Ordering::SeqCst);
+    let _ = w.show();
+    if !unlock {
+        if let (Ok(pos), Ok(scale)) = (w.outer_position(), w.scale_factor()) {
+            let logical = pos.to_logical::<f64>(scale);
+            let mut settings = state.settings.lock().unwrap();
+            settings.overlay_pos = Some((logical.x, logical.y));
+            let _ = settings.save(&state.data_dir);
+        }
+    }
+    let _ = app.emit("overlay-mode", unlock);
+}
+
 fn run(app: &AppHandle, action: Action) {
     match action {
         Action::ItemCheck => {
@@ -97,5 +122,32 @@ fn run(app: &AppHandle, action: Action) {
             let _ = app.emit("focus-chat", ());
         }
         Action::ToggleOverlay => toggle_overlay(app),
+        Action::RecordEquipped => {
+            let app = app.clone();
+            std::thread::spawn(move || {
+                let message = match crate::input::copy_hovered_item() {
+                    Ok(item) => {
+                        let class = item
+                            .lines()
+                            .next()
+                            .and_then(|l| l.strip_prefix("Item Class:"))
+                            .map(|c| c.trim().to_owned())
+                            .unwrap_or_else(|| "Unknown".into());
+                        let name: Vec<&str> = item.lines().skip(2).take(2).collect();
+                        let state = app.state::<AppState>();
+                        state.equipped.lock().unwrap().insert(class.clone(), item.clone());
+                        state.save_equipped();
+                        let _ = app.emit("equipped", state.equipped.lock().unwrap().clone());
+                        format!("Recorded as equipped ({class}): {}", name.join(" "))
+                    }
+                    Err(e) => e,
+                };
+                let _ = app.emit("notice", &message);
+                if let Some(w) = app.get_webview_window("overlay") {
+                    let _ = w.show();
+                }
+            });
+        }
+        Action::MoveOverlay => toggle_move_mode(app),
     }
 }

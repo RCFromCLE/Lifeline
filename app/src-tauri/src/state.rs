@@ -22,6 +22,9 @@ pub struct Character {
     pub deaths: u32,
     pub quest_points: u32,
     pub buffs: Vec<String>,
+    /// Passive ids allocated this character (from the log).
+    #[serde(skip)]
+    pub allocated: std::collections::HashSet<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -44,6 +47,20 @@ pub struct Hotkeys {
     pub what_next: String,
     pub ask: String,
     pub toggle_overlay: String,
+    /// Record the hovered item as what you have equipped in its slot.
+    #[serde(default = "default_record_equipped")]
+    pub record_equipped: String,
+    /// Unlock the HUD to drag it; press again to lock it in place.
+    #[serde(default = "default_move_overlay")]
+    pub move_overlay: String,
+}
+
+fn default_record_equipped() -> String {
+    "Alt+Shift+E".into()
+}
+
+fn default_move_overlay() -> String {
+    "Alt+Shift+M".into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -52,6 +69,19 @@ pub struct Settings {
     pub hotkeys: Hotkeys,
     /// Show the HUD overlay automatically when a hotkey answer arrives.
     pub overlay_on_hotkey: bool,
+    /// Saved HUD position (logical px).
+    #[serde(default)]
+    pub overlay_pos: Option<(f64, f64)>,
+    /// Max price per recommended item, e.g. "10 exalted".
+    #[serde(default = "default_budget")]
+    pub rating_budget: String,
+    /// Re-rate automatically when entering a new act (off: the player triggers it).
+    #[serde(default)]
+    pub auto_rate_on_act: bool,
+}
+
+fn default_budget() -> String {
+    "10 exalted".into()
 }
 
 impl Default for Settings {
@@ -63,7 +93,12 @@ impl Default for Settings {
                 what_next: "Alt+Shift+N".into(),
                 ask: "Alt+Shift+A".into(),
                 toggle_overlay: "Alt+Shift+O".into(),
+                record_equipped: default_record_equipped(),
+                move_overlay: default_move_overlay(),
             },
+            overlay_pos: None,
+            rating_budget: default_budget(),
+            auto_rate_on_act: false,
             overlay_on_hotkey: true,
         }
     }
@@ -110,6 +145,21 @@ pub struct Conversation {
 }
 
 const CONVERSATIONS_FILE: &str = "conversations.json";
+const EQUIPPED_FILE: &str = "equipped.json";
+const RATING_FILE: &str = "rating.json";
+
+fn load_json<T: serde::de::DeserializeOwned>(dir: &Path, file: &str) -> Option<T> {
+    std::fs::read_to_string(dir.join(file))
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+}
+
+fn load_equipped(dir: &Path) -> std::collections::BTreeMap<String, String> {
+    std::fs::read_to_string(dir.join(EQUIPPED_FILE))
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
 
 fn load_conversations(dir: &Path) -> Vec<Conversation> {
     std::fs::read_to_string(dir.join(CONVERSATIONS_FILE))
@@ -123,6 +173,21 @@ impl AppState {
         let convs = self.conversations.lock().unwrap().clone();
         if let Ok(text) = serde_json::to_string_pretty(&convs) {
             let _ = std::fs::write(self.data_dir.join(CONVERSATIONS_FILE), text);
+        }
+    }
+
+    pub fn save_rating(&self) {
+        let v = serde_json::json!({
+            "rating": self.rating.lock().unwrap().clone(),
+            "cards": self.rating_cards.lock().unwrap().clone(),
+        });
+        let _ = std::fs::write(self.data_dir.join(RATING_FILE), v.to_string());
+    }
+
+    pub fn save_equipped(&self) {
+        let e = self.equipped.lock().unwrap().clone();
+        if let Ok(text) = serde_json::to_string_pretty(&e) {
+            let _ = std::fs::write(self.data_dir.join(EQUIPPED_FILE), text);
         }
     }
 
@@ -178,6 +243,17 @@ pub struct AppState {
     pub market: polr_trade::Market,
     /// listing id → search id, so travel can re-fetch the listing.
     pub listings: Mutex<std::collections::HashMap<String, String>>,
+    /// Full listing data from recent searches (for image cards).
+    pub listing_data: Mutex<std::collections::HashMap<String, polr_trade::Listing>>,
+    /// Item text the player recorded as equipped, by item class ("Boots").
+    pub equipped: Mutex<std::collections::BTreeMap<String, String>>,
+    pub overlay_unlocked: std::sync::atomic::AtomicBool,
+    /// Latest build rating (JSON) and market cards per recommendation index.
+    pub rating: Mutex<Option<serde_json::Value>>,
+    pub rating_cards: Mutex<std::collections::BTreeMap<usize, serde_json::Value>>,
+    pub rating_busy: std::sync::atomic::AtomicBool,
+    /// Clickable areas of the HUD (CSS px: left, top, right, bottom); the rest is click-through.
+    pub overlay_regions: Mutex<Vec<[f64; 4]>>,
     /// (port, bearer token) of the local MCP server.
     pub mcp: Mutex<Option<(u16, String)>>,
     pub settings: Mutex<Settings>,
@@ -196,6 +272,19 @@ impl AppState {
             actions: Mutex::new(Vec::new()),
             market: polr_trade::Market::new(),
             listings: Mutex::new(Default::default()),
+            listing_data: Mutex::new(Default::default()),
+            equipped: Mutex::new(load_equipped(&data_dir)),
+            overlay_unlocked: std::sync::atomic::AtomicBool::new(false),
+            rating: Mutex::new(
+                load_json(&data_dir, RATING_FILE).and_then(|v: serde_json::Value| v.get("rating").cloned()),
+            ),
+            rating_cards: Mutex::new(
+                load_json(&data_dir, RATING_FILE)
+                    .and_then(|v: serde_json::Value| serde_json::from_value(v["cards"].clone()).ok())
+                    .unwrap_or_default(),
+            ),
+            rating_busy: std::sync::atomic::AtomicBool::new(false),
+            overlay_regions: Mutex::new(Vec::new()),
             mcp: Mutex::new(None),
             settings: Mutex::new(settings),
             data_dir,

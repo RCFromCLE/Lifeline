@@ -17,7 +17,7 @@ use std::process::{Command, Stdio};
 use serde_json::json;
 
 pub use agents::{roster, write_agents_file, AgentSpec};
-pub use jobs::{parse_report, Finding, Job, JobReport, Severity};
+pub use jobs::{parse_rating, parse_report, Finding, Job, JobReport, Rating, Severity};
 pub use stream::{parse_event, CliEvent, RunResult, ToolUse};
 
 /// Name our MCP server is registered under; tools appear to Claude as

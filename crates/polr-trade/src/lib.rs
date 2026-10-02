@@ -67,6 +67,8 @@ pub struct Listing {
     /// e.g. "Level 45, 78 Dex".
     pub requires: Option<String>,
     pub mods: Vec<String>,
+    /// Item art URL (web.poecdn.com).
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -464,6 +466,7 @@ fn parse_listing(v: &Value) -> Option<Listing> {
         corrupted: item["corrupted"].as_bool().unwrap_or(false),
         requires: requirements(item),
         mods,
+        icon: item["icon"].as_str().map(str::to_owned),
     })
 }
 

@@ -20,6 +20,7 @@ pub const ROUTE_COACH: &str = "route-coach";
 pub const LOOT_FILTER_SMITH: &str = "loot-filter-smith";
 pub const FACT_CHECKER: &str = "fact-checker";
 pub const PATCH_ANALYST: &str = "patch-analyst";
+pub const BUILD_RATER: &str = "build-rater";
 
 pub const AGENTS_FILE: &str = "agents.json";
 
@@ -27,6 +28,10 @@ pub const AGENTS_FILE: &str = "agents.json";
 /// (owner's decision, 2026-10-01). Pinned by full id rather than the `opus`
 /// alias so a future Opus release doesn't change behaviour silently.
 pub const MODEL: &str = "claude-opus-5-5";
+
+/// Market searching runs on Claude Sonnet 5.5 to save usage (owner's decision,
+/// 2026-10-01).
+pub const MARKET_MODEL: &str = "claude-sonnet-5-5";
 
 const SHARED: &str = include_str!("../prompts/agents/shared.md");
 const WEB: &[&str] = &["WebSearch", "WebFetch"];
@@ -141,6 +146,7 @@ pub fn roster() -> Vec<AgentSpec> {
             role: include_str!("../prompts/agents/gear-appraiser.md"),
             tools: tool_list(
                 &[&[
+                    EQUIPPED_ITEMS,
                     LAST_COPIED_ITEM,
                     CHARACTER_STATE,
                     BUILD_PLAN,
@@ -172,11 +178,13 @@ pub fn roster() -> Vec<AgentSpec> {
                     LOOKUP_BASE,
                     LOOKUP_MOD,
                     LOOKUP_UNIQUE,
+                    RATE_LISTINGS,
+                    EQUIPPED_ITEMS,
                     PROPOSE_ACTION,
                 ]],
                 &[],
             ),
-            model: MODEL,
+            model: MARKET_MODEL,
             effort: None,
             max_turns: Some(20),
         },
@@ -254,6 +262,24 @@ pub fn roster() -> Vec<AgentSpec> {
             effort: None,
             max_turns: Some(25),
         },
+        AgentSpec {
+            name: BUILD_RATER,
+            description:
+                "Grades the character F to S+ for its current campaign stage (survivability, gear, damage, plan \
+                          progress) with an explanation and the purchases that would raise the grade most. Use for \
+                          'rate my build' and the rating screen.",
+            role: include_str!("../prompts/agents/build-rater.md"),
+            tools: tool_list(
+                &[
+                    GAME_DATA,
+                    &[CHARACTER_STATE, BUILD_PLAN, EQUIPPED_ITEMS, CAMPAIGN_REWARDS],
+                ],
+                &[STRUCTURED_OUTPUT],
+            ),
+            model: MODEL,
+            effort: Some("high"),
+            max_turns: Some(30),
+        },
     ]
 }
 
@@ -284,12 +310,13 @@ mod tests {
     fn every_agent_has_the_documented_fields() {
         let v = parsed();
         let agents = v.as_object().unwrap();
-        assert_eq!(agents.len(), 9);
+        assert_eq!(agents.len(), 10);
         for (name, spec) in agents {
             for field in ["description", "prompt", "tools", "model", "omitClaudeMd"] {
                 assert!(spec.get(field).is_some(), "{name} lacks {field}");
             }
-            assert_eq!(spec["model"], MODEL, "{name}");
+            let expected = if name == MARKET_SCOUT { MARKET_MODEL } else { MODEL };
+            assert_eq!(spec["model"], expected, "{name}");
             assert!(
                 spec["prompt"].as_str().unwrap().starts_with("You are a specialist"),
                 "{name}"

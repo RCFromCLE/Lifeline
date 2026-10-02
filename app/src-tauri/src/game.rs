@@ -73,8 +73,14 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
             c.deaths += 1;
             Some(("death".into(), format!("{character} was slain in {}", c.zone)))
         }
-        EventKind::PassiveAllocated { name, .. } => Some(("passive".into(), format!("Allocated {name}"))),
-        EventKind::PassiveUnallocated { name, .. } => Some(("passive".into(), format!("Refunded {name}"))),
+        EventKind::PassiveAllocated { id, name } => {
+            c.allocated.insert(id.clone());
+            Some(("passive".into(), format!("Allocated {name}")))
+        }
+        EventKind::PassiveUnallocated { id, name } => {
+            c.allocated.remove(id);
+            Some(("passive".into(), format!("Refunded {name}")))
+        }
         EventKind::PassivePointsReceived { count, weapon_set } => {
             if !weapon_set {
                 c.quest_points += count;
@@ -113,6 +119,7 @@ pub fn spawn_log_watcher(app: AppHandle) {
         };
         let mut tailer = LogTailer::from_start(&path);
         let mut backfilled = false;
+        let mut last_rated_act: Option<u8> = None;
         loop {
             if let Ok(lines) = tailer.poll() {
                 let state = app.state::<AppState>();
@@ -122,6 +129,16 @@ pub fn spawn_log_watcher(app: AppHandle) {
                         continue;
                     };
                     let note = apply(&mut state.character.lock().unwrap(), &event);
+                    let new_act = state.character.lock().unwrap().act;
+                    // Re-rate once per new act while playing (not during backfill).
+                    if backfilled
+                        && new_act.is_some()
+                        && new_act != last_rated_act
+                        && state.settings.lock().unwrap().auto_rate_on_act
+                    {
+                        last_rated_act = new_act;
+                        crate::rating::run(app.clone());
+                    }
                     changed = true;
                     if let Some((kind, text)) = note {
                         let item = FeedItem {
@@ -143,6 +160,9 @@ pub fn spawn_log_watcher(app: AppHandle) {
                 if changed || !backfilled {
                     let character = state.character.lock().unwrap().clone();
                     let _ = app.emit("character", &character);
+                }
+                if !backfilled {
+                    last_rated_act = state.character.lock().unwrap().act;
                 }
                 backfilled = true;
             }

@@ -20,7 +20,7 @@ pub enum Origin {
     Hotkey,
 }
 
-fn companion(state: &AppState, conv: u64) -> Result<ClaudeCli, String> {
+pub(crate) fn companion(state: &AppState, conv: u64) -> Result<ClaudeCli, String> {
     static WRITE_AGENTS: Once = Once::new();
     let work = state.data_dir.join("claude");
     std::fs::create_dir_all(&work).map_err(|e| e.to_string())?;

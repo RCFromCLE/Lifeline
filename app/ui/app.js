@@ -109,6 +109,7 @@ async function selectConv(id) {
       : "New conversation. Other open conversations are shared with me as context, so you can refer to them."));
   }
   for (const m of c.messages) {
+    if (m.role === "market") { try { $("chat").appendChild(renderMarket(JSON.parse(m.text))); } catch (_) { } continue; }
     const div = addMessage(m.role === "user" ? "user" : "ai", m.label, renderMarkdown(m.text));
     if (m.error) div.classList.add("error");
   }
@@ -180,6 +181,124 @@ listen("action", ({ payload: a }) => {
   else { unread.add(a.conv); renderConvList(); }
 });
 $("btn-trade-login").addEventListener("click", () => invoke("open_trade_window").catch(toast));
+// ---- market cards: item image, price, ±% for your build, Travel ----
+function badgeClass(p) {
+  if (p >= 10) return "up2";
+  if (p > 0) return "up1";
+  if (p > -10) return "flat";
+  if (p > -30) return "down1";
+  return "down2";
+}
+
+function renderMarket(m) {
+  const wrap = document.createElement("div");
+  wrap.className = "market";
+  wrap.innerHTML = `<div class="market-head">Market · ± vs ${escapeHtml(m.compared_to)}</div><div class="market-grid"></div>`;
+  const grid = wrap.querySelector(".market-grid");
+  for (const c of m.cards) {
+    const pct = Math.round(c.delta_pct);
+    const card = document.createElement("div");
+    card.className = "mcard";
+    card.innerHTML = `
+      <div class="mtop">
+        ${c.icon ? `<img src="${escapeHtml(c.icon)}" alt="">` : "<div class='noimg'></div>"}
+        <div class="mtitle"><div class="mname">${escapeHtml(c.name || c.base)}</div><div class="mbase">${escapeHtml(c.name ? c.base : "")}${c.item_level ? ` · ilvl ${c.item_level}` : ""}</div>
+          <div class="mprice">${escapeHtml(c.price || "no price")}</div></div>
+        <div class="badge ${badgeClass(pct)}">${pct > 0 ? "+" : ""}${pct}%</div>
+      </div>
+      <div class="mverdict">${escapeHtml(c.verdict || "")}</div>
+      <ul class="mmods">${(c.mods || []).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>
+      ${c.requires ? `<div class="mreq">Requires ${escapeHtml(c.requires)}</div>` : ""}
+      <div class="mfoot"><span class="mseller">${escapeHtml(c.seller)}</span>
+        ${c.instant_buyout ? `<button class="primary go">Travel</button>` : `<span class="hint">in person only</span>`}</div>`;
+    const go = card.querySelector(".go");
+    if (go) go.addEventListener("click", async () => {
+      go.disabled = true;
+      try { toast(await invoke("travel", { listingId: c.listing_id })); } catch (e) { toast(e); go.disabled = false; }
+    });
+    grid.appendChild(card);
+  }
+  return wrap;
+}
+
+function placeInChat(el) {
+  const live = liveMessage();
+  if (live) $("chat").insertBefore(el, live); else $("chat").appendChild(el);
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+
+listen("market", ({ payload }) => {
+  if (payload.conv >= 900000) return;
+  if (payload.conv === active) placeInChat(renderMarket(payload.market));
+  else { unread.add(payload.conv); renderConvList(); }
+});
+
+// ---- my gear (recorded with the record-equipped hotkey) ----
+function renderGear(g) {
+  const entries = Object.entries(g || {});
+  $("gear").innerHTML = entries.length ? entries.map(([slot, text]) => {
+    const lines = text.split("\n").filter(l => l && !l.startsWith("Item Class") && !l.startsWith("Rarity") && !l.startsWith("--"));
+    return `<li><span class="slot">${escapeHtml(slot)}</span><span class="gname">${escapeHtml(lines.slice(0, 2).join(" · "))}</span><button class="ghost x" data-slot="${escapeHtml(slot)}" title="Forget">×</button></li>`;
+  }).join("") : `<li class="hint">Hover an item you're wearing and press ${escapeHtml(settings ? settings.hotkeys.record_equipped : "the record hotkey")}.</li>`;
+  $("gear").querySelectorAll(".x").forEach(b => b.addEventListener("click", async () => {
+    await invoke("forget_equipped", { slot: b.dataset.slot });
+    renderGear(await invoke("equipped"));
+  }));
+}
+listen("equipped", ({ payload }) => renderGear(payload));
+// ---- build rating page ----
+const RATING_MARKET_BASE = 900100;
+let ratingState = null;
+
+function gradeClass(g) {
+  if (!g) return "g-none";
+  return `g-${g[0].toUpperCase()}`;
+}
+
+function renderRating(snap) {
+  ratingState = snap;
+  const r = snap.rating;
+  $("r-budget").value = snap.budget || "";
+  $("r-auto").checked = !!snap.auto;
+  $("r-run").disabled = !!snap.busy;
+  $("r-grade").textContent = r ? r.grade : "?";
+  $("r-grade").className = `grade big ${gradeClass(r && r.grade)}`;
+  $("r-tip").textContent = r ? r.explanation : "Rate your build to see why.";
+  $("r-summary").textContent = r ? r.summary : "Not rated yet.";
+  $("r-meta").textContent = r ? `${r.stage} · level ${r.level} · score ${Math.round(r.score)}/100 · rated ${new Date(r.rated_at * 1000).toLocaleString()}` : "";
+  $("r-expl").textContent = r ? r.explanation : "";
+  $("r-cats").innerHTML = r ? r.categories.map(c => `
+    <div class="r-cat tip"><span class="grade small ${gradeClass(c.grade)}">${escapeHtml(c.grade)}</span>
+      <div><div class="n">${escapeHtml(c.name)}</div><div class="t">${escapeHtml(c.note)}</div></div></div>`).join("") : "";
+  const recs = r ? r.recommendations : [];
+  $("r-recs").innerHTML = recs.length ? "" : "<p class='hint'>Recommendations appear after a rating.</p>";
+  recs.forEach((rec, i) => {
+    const div = document.createElement("div");
+    div.className = "r-rec";
+    div.innerHTML = `<h3>${escapeHtml(rec.slot)} — ${escapeHtml(rec.title)}</h3><div class="why">${escapeHtml(rec.why)}</div>
+      <div class="look">Look for: ${escapeHtml(rec.look_for)}</div><div class="r-cards" id="r-cards-${i}"></div>`;
+    $("r-recs").appendChild(div);
+    const cards = (snap.cards || {})[i];
+    const holder = div.querySelector(".r-cards");
+    if (cards) holder.appendChild(renderMarket(cards));
+    else if (i < 3) holder.innerHTML = `<p class="hint">${snap.busy ? "Searching the market…" : "No market picks yet."}</p>`;
+  });
+}
+
+$("r-run").addEventListener("click", () => {
+  invoke("rate_build", { budget: $("r-budget").value.trim() || "10 exalted", auto: $("r-auto").checked });
+});
+listen("rating", ({ payload }) => renderRating(payload));
+listen("rating-status", ({ payload }) => {
+  $("r-status").textContent = payload.text || "";
+  $("r-run").disabled = !!payload.busy;
+});
+listen("market", ({ payload }) => {
+  if (payload.conv < RATING_MARKET_BASE) return;
+  const i = payload.conv - RATING_MARKET_BASE;
+  const holder = document.getElementById(`r-cards-${i}`);
+  if (holder) { holder.innerHTML = ""; holder.appendChild(renderMarket(payload.market)); }
+});
 function sendAsk() {
   const text = $("ask-input").value.trim();
   if (!text || active === null) return;
@@ -205,6 +324,7 @@ $("btn-delete-conv").addEventListener("click", async () => {
   } catch (e) { toast(e); }
 });
 $("btn-overlay").addEventListener("click", () => invoke("toggle_overlay"));
+$("btn-move-hud").addEventListener("click", () => invoke("move_overlay"));
 $("btn-paste-item").addEventListener("click", async () => {
   let text = "";
   try { text = await navigator.clipboard.readText(); } catch (_) { }
@@ -267,16 +387,17 @@ async function refreshPlannerFiles() {
 }
 
 // ---- settings ----
+const HOTKEY_KEYS = ["item_check", "what_next", "ask", "toggle_overlay", "record_equipped", "move_overlay"];
 function renderKeysSummary(s) {
   const k = s.hotkeys;
   $("keys-summary").innerHTML = [
-    ["Item check", k.item_check], ["What next", k.what_next], ["Ask", k.ask], ["HUD overlay", k.toggle_overlay],
+    ["Item check", k.item_check], ["What next", k.what_next], ["Ask", k.ask], ["HUD overlay", k.toggle_overlay], ["Record equipped", k.record_equipped], ["Move HUD", k.move_overlay],
   ].map(([n, v]) => `<li><span>${n}</span><kbd>${escapeHtml(v)}</kbd></li>`).join("");
 }
 
 function fillSettings(s) {
   const f = $("settings-form");
-  for (const key of ["item_check", "what_next", "ask", "toggle_overlay"]) f.elements[key].value = s.hotkeys[key];
+  for (const key of HOTKEY_KEYS) f.elements[key].value = s.hotkeys[key];
   f.elements.league.value = s.league;
   f.elements.overlay_on_hotkey.checked = s.overlay_on_hotkey;
   renderKeysSummary(s);
@@ -288,7 +409,8 @@ $("settings-form").addEventListener("submit", async ev => {
   const next = {
     league: f.elements.league.value.trim() || "HC Forbidden Rites",
     overlay_on_hotkey: f.elements.overlay_on_hotkey.checked,
-    hotkeys: Object.fromEntries(["item_check", "what_next", "ask", "toggle_overlay"].map(k => [k, f.elements[k].value.trim()])),
+    hotkeys: Object.fromEntries(HOTKEY_KEYS.map(k => [k, f.elements[k].value.trim()])),
+    overlay_pos: settings ? settings.overlay_pos : null,
   };
   const failed = await invoke("save_settings", { settings: next });
   settings = next;
@@ -316,6 +438,8 @@ listen("focus-chat", () => {
   fillSettings(snap.settings);
   if (snap.imported) renderImport(snap.imported);
   refreshPlannerFiles();
+  renderGear(await invoke("equipped"));
+  renderRating(await invoke("rating_snapshot"));
   convs = snap.conversations;
   for (const a of await invoke("pending_actions")) actions.set(a.id, a);
   const first = convs.filter(c => !c.in_game).sort((a, b) => b.id - a.id)[0];

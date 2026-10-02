@@ -3,10 +3,10 @@
 //! and the answer must match a report schema (`--json-schema`). The app
 //! triggers them from game events; none of them sends anything to the game.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::agents::{BUILD_AUDITOR, HC_SAFETY_OFFICER, PATCH_ANALYST, ROUTE_COACH};
+use crate::agents::{BUILD_AUDITOR, BUILD_RATER, HC_SAFETY_OFFICER, PATCH_ANALYST, ROUTE_COACH};
 use crate::{ClaudeCli, RunResult};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,6 +19,8 @@ pub enum Job {
     DeathDebrief,
     /// The game closed or the player went AFK after a session.
     SessionRecap,
+    /// Grade the build F–S+ for the current stage (rating screen, overlay).
+    Rating,
 }
 
 impl Job {
@@ -28,6 +30,7 @@ impl Job {
             Job::BuildAudit => BUILD_AUDITOR,
             Job::DeathDebrief => HC_SAFETY_OFFICER,
             Job::SessionRecap => ROUTE_COACH,
+            Job::Rating => BUILD_RATER,
         }
     }
 
@@ -49,6 +52,7 @@ impl Job {
                 "The play session ended (see context). Summarise progress against the plan and list \
                  the first steps for next session."
             }
+            Job::Rating => "Rate the character's build for where it is right now in the campaign or endgame.",
         }
     }
 
@@ -87,6 +91,69 @@ pub fn report_schema() -> Value {
     })
 }
 
+pub const GRADES: &[&str] = &[
+    "F", "F+", "D-", "D", "D+", "C-", "C", "C+", "B-", "B", "B+", "A-", "A", "A+", "S", "S+",
+];
+
+/// Schema for [`Job::Rating`].
+pub fn rating_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "grade": {"type": "string", "enum": GRADES},
+            "score": {"type": "number"},
+            "summary": {"type": "string"},
+            "explanation": {"type": "string"},
+            "categories": {"type": "array", "items": {"type": "object", "properties": {
+                "name": {"type": "string"}, "grade": {"type": "string", "enum": GRADES}, "note": {"type": "string"}
+            }, "required": ["name", "grade", "note"]}},
+            "recommendations": {"type": "array", "items": {"type": "object", "properties": {
+                "slot": {"type": "string"}, "title": {"type": "string"}, "why": {"type": "string"}, "look_for": {"type": "string"}
+            }, "required": ["slot", "title", "why", "look_for"]}}
+        },
+        "required": ["grade", "score", "summary", "explanation", "categories", "recommendations"]
+    })
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Rating {
+    pub grade: String,
+    pub score: f64,
+    pub summary: String,
+    pub explanation: String,
+    pub categories: Vec<RatingCategory>,
+    pub recommendations: Vec<Recommendation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RatingCategory {
+    pub name: String,
+    pub grade: String,
+    pub note: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Recommendation {
+    pub slot: String,
+    pub title: String,
+    pub why: String,
+    pub look_for: String,
+}
+
+/// Reads a [`Rating`] from a rating job's result.
+pub fn parse_rating(result: &RunResult) -> Option<Rating> {
+    if let Some(r) = result
+        .structured_output
+        .clone()
+        .and_then(|v| serde_json::from_value(v).ok())
+    {
+        return Some(r);
+    }
+    let text = result.result.as_deref()?;
+    let (start, end) = (text.find('{')?, text.rfind('}')?);
+    serde_json::from_str(text.get(start..=end)?).ok()
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct JobReport {
     pub summary: String,
@@ -120,7 +187,13 @@ impl ClaudeCli {
         let mut cli = self.clone();
         cli.main_agent = Some(job.agent().to_owned());
         cli.persist_session = false;
-        cli.json_schema = Some(report_schema().to_string());
+        cli.json_schema = Some(
+            match job {
+                Job::Rating => rating_schema(),
+                _ => report_schema(),
+            }
+            .to_string(),
+        );
         cli
     }
 }
@@ -191,7 +264,13 @@ mod tests {
     #[test]
     fn every_job_agent_can_return_structured_output() {
         let roster = crate::agents::roster();
-        for job in [Job::PatchWatch, Job::BuildAudit, Job::DeathDebrief, Job::SessionRecap] {
+        for job in [
+            Job::PatchWatch,
+            Job::BuildAudit,
+            Job::DeathDebrief,
+            Job::SessionRecap,
+            Job::Rating,
+        ] {
             let agent = roster.iter().find(|a| a.name == job.agent()).unwrap();
             assert!(
                 agent.tools.iter().any(|t| t == crate::agents::STRUCTURED_OUTPUT),

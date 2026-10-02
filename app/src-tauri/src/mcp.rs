@@ -72,6 +72,23 @@ fn tool_definitions() -> Value {
             "description": "Search gems, item bases, uniques, areas and passives at once by name.",
             "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
         },        {
+            "name": tools::EQUIPPED_ITEMS,
+            "description": "Items the player recorded as currently equipped (hotkey on the hovered item), keyed by item class, with full item text. Empty slots mean nothing was recorded — fall back to the build plan.",
+            "inputSchema": {"type": "object", "properties": {}}
+        },
+        {
+            "name": tools::RATE_LISTINGS,
+            "description": "Show trade listings to the player as cards with the item image, price, mods, a colour-coded badge with your delta_pct (how much better + or worse − the item is for the current build than the reference) and a Travel button. Use after trade_search.",
+            "inputSchema": {"type": "object", "properties": {
+                "search_id": {"type": "string"},
+                "compared_to": {"type": "string", "description": "what the percentages compare against, e.g. 'your equipped Hunting Shoes'"},
+                "ratings": {"type": "array", "items": {"type": "object", "properties": {
+                    "listing_id": {"type": "string"},
+                    "delta_pct": {"type": "number"},
+                    "verdict": {"type": "string"}
+                }, "required": ["listing_id", "delta_pct", "verdict"]}}
+            }, "required": ["compared_to", "ratings"]}
+        },        {
             "name": tools::TRADE_FIND_STAT,
             "description": "Find trade-site stat ids by text, e.g. 'cold res', 'maximum life', 'movement speed'. Pseudo ids (pseudo.pseudo_total_*) sum every source on the item.",
             "inputSchema": {"type": "object", "properties": {
@@ -212,6 +229,54 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 "passives": passives
             }))
         }
+        n if n == tools::EQUIPPED_ITEMS => {
+            let equipped = state.equipped.lock().unwrap().clone();
+            if equipped.is_empty() {
+                Ok(json!("Nothing recorded yet. The player records equipped items by hovering them in game and pressing the record-equipped hotkey."))
+            } else {
+                Ok(json!(equipped))
+            }
+        }
+        n if n == tools::RATE_LISTINGS => {
+            let compared_to = args["compared_to"].as_str().unwrap_or("your current item").to_owned();
+            let data = state.listing_data.lock().unwrap().clone();
+            let mut cards = Vec::new();
+            for r in args["ratings"].as_array().into_iter().flatten() {
+                let Some(id) = r["listing_id"].as_str() else { continue };
+                let Some(l) = data.get(id) else { continue };
+                cards.push(json!({
+                    "listing_id": l.id, "icon": l.icon, "name": l.name, "base": l.base, "price": l.price,
+                    "seller": l.seller, "instant_buyout": l.instant_buyout, "requires": l.requires,
+                    "item_level": l.item_level, "corrupted": l.corrupted, "mods": l.mods,
+                    "delta_pct": r["delta_pct"].as_f64().unwrap_or(0.0), "verdict": r["verdict"]
+                }));
+            }
+            if cards.is_empty() {
+                return Err("none of those listing_ids are from a recent trade_search".into());
+            }
+            let payload = json!({"compared_to": compared_to, "cards": cards});
+            {
+                let mut convs = state.conversations.lock().unwrap();
+                if let Some(c) = convs.iter_mut().find(|c| c.id == conv) {
+                    c.messages.push(crate::state::Message {
+                        role: "market".into(),
+                        label: "Market".into(),
+                        text: payload.to_string(),
+                        error: false,
+                    });
+                }
+            }
+            if conv >= crate::rating::MARKET_SCOPE_BASE {
+                let index = (conv - crate::rating::MARKET_SCOPE_BASE) as usize;
+                state.rating_cards.lock().unwrap().insert(index, payload.clone());
+                state.save_rating();
+            }
+            let _ = app.emit("market", json!({"conv": conv, "market": payload}));
+            Ok(json!(format!(
+                "Shown {} listing cards with images, ±% badges and Travel buttons.",
+                cards.len()
+            )))
+        }
         n if n == tools::TRADE_FIND_STAT => {
             let query = args["query"].as_str().ok_or("query is required")?;
             let limit = args["limit"].as_u64().unwrap_or(8) as usize;
@@ -241,6 +306,10 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 let mut map = state.listings.lock().unwrap();
                 for l in &outcome.listings {
                     map.insert(l.id.clone(), outcome.query_id.clone());
+                }
+                let mut data = state.listing_data.lock().unwrap();
+                for l in &outcome.listings {
+                    data.insert(l.id.clone(), l.clone());
                 }
             }
             Ok(json!({

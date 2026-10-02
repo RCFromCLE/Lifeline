@@ -28,6 +28,10 @@ pub const VALIDATE_BUILD: &str = "validate_build";
 pub const PRICE: &str = "price";
 pub const TRADE_SEARCH: &str = "trade_search";
 pub const TRADE_FIND_STAT: &str = "trade_find_stat";
+/// Show rated listings as image cards with ±% badges and Travel buttons.
+pub const RATE_LISTINGS: &str = "rate_listings";
+/// Items the player recorded as equipped, per slot.
+pub const EQUIPPED_ITEMS: &str = "equipped_items";
 pub const FILTER_PREVIEW: &str = "filter_preview";
 
 /// The only way any agent can change something outside the conversation:
@@ -69,6 +73,8 @@ pub const ALL: &[&str] = &[
     PRICE,
     TRADE_SEARCH,
     TRADE_FIND_STAT,
+    RATE_LISTINGS,
+    EQUIPPED_ITEMS,
     FILTER_PREVIEW,
     PROPOSE_ACTION,
 ];
@@ -88,6 +94,8 @@ pub const IMPLEMENTED: &[&str] = &[
     SEARCH_GAME_DATA,
     TRADE_FIND_STAT,
     TRADE_SEARCH,
+    RATE_LISTINGS,
+    EQUIPPED_ITEMS,
     PRICE,
     PROPOSE_ACTION,
 ];

@@ -11,6 +11,7 @@ mod hotkeys;
 mod input;
 mod market;
 mod mcp;
+mod rating;
 mod state;
 
 use serde::Serialize;
@@ -133,6 +134,140 @@ async fn open_trade_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn travel(app: AppHandle, listing_id: String) -> Result<String, String> {
+    market::travel(&app, &listing_id)
+}
+
+#[tauri::command]
+fn equipped(state: tauri::State<'_, AppState>) -> std::collections::BTreeMap<String, String> {
+    state.equipped.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn forget_equipped(state: tauri::State<'_, AppState>, slot: String) {
+    state.equipped.lock().unwrap().remove(&slot);
+    state.save_equipped();
+}
+
+#[tauri::command]
+fn move_overlay(app: AppHandle) {
+    hotkeys::toggle_move_mode(&app);
+}
+
+/// Everything the HUD shows besides the streamed answer.
+#[tauri::command]
+fn hud(state: tauri::State<'_, AppState>) -> serde_json::Value {
+    let c = state.character.lock().unwrap().clone();
+    let next_penalty = match (c.act, c.area_level) {
+        (Some(1), _) => Some("Act 2: −10%"),
+        (Some(2), _) => Some("Act 3: −20%"),
+        (Some(3), _) => Some("Act 4: −30%"),
+        (Some(4), _) => Some("Interludes (area 54+): −40%"),
+        (None, 54..=59) => Some("area 60+: −50%"),
+        (None, 60..=64) => Some("endgame (area 65+): −60%"),
+        _ => None,
+    };
+    let mut plan = serde_json::Value::Null;
+    if let (Some(imported), Some(tree)) = (
+        state.imported.lock().unwrap().as_ref(),
+        state.tree.lock().unwrap().clone(),
+    ) {
+        let stage = ai::current_stage(c.act, c.area_level);
+        if let Some(s) = imported.stages.iter().find(|s| s.chosen && s.stage_key == stage) {
+            let spec = &imported.build.specs[s.spec_index];
+            let planned: Vec<&polr_data::TreeNode> = spec
+                .nodes
+                .iter()
+                .filter(|&&n| tree.is_plannable(n))
+                .filter_map(|&n| tree.node(n))
+                .collect();
+            let done = planned.iter().filter(|n| c.allocated.contains(&n.id)).count();
+            let mut missing: Vec<&&polr_data::TreeNode> =
+                planned.iter().filter(|n| !c.allocated.contains(&n.id)).collect();
+            missing.sort_by_key(|n| (!n.is_keystone, !n.is_notable, n.ascendancy_id.is_some()));
+            plan = serde_json::json!({
+                "stage": s.stage,
+                "planned": planned.len(),
+                "allocated": done,
+                "next": missing.iter().take(4).map(|n| serde_json::json!({"name": n.name, "notable": n.is_notable || n.is_keystone})).collect::<Vec<_>>()
+            });
+        }
+    }
+    let settings = state.settings.lock().unwrap().clone();
+    serde_json::json!({
+        "character": c,
+        "next_penalty": next_penalty,
+        "plan": plan,
+        "equipped_slots": state.equipped.lock().unwrap().len(),
+        "rating": state.rating.lock().unwrap().clone(),
+        "hotkeys": settings.hotkeys,
+        "unlocked": state.overlay_unlocked.load(std::sync::atomic::Ordering::SeqCst)
+    })
+}
+
+#[tauri::command]
+fn rating_snapshot(state: tauri::State<'_, AppState>) -> serde_json::Value {
+    rating::snapshot(&state)
+}
+
+#[tauri::command]
+fn rate_build(app: AppHandle, budget: String, auto: bool) {
+    {
+        let state = app.state::<AppState>();
+        let mut s = state.settings.lock().unwrap();
+        s.rating_budget = budget;
+        s.auto_rate_on_act = auto;
+        let _ = s.save(&state.data_dir);
+    }
+    rating::run(app);
+}
+
+#[tauri::command]
+fn rate_now(app: AppHandle) {
+    rating::run(app);
+}
+
+#[tauri::command]
+fn overlay_regions(state: tauri::State<'_, AppState>, rects: Vec<[f64; 4]>) {
+    *state.overlay_regions.lock().unwrap() = rects;
+}
+
+/// Makes only the HUD's buttons clickable: polls the cursor and turns
+/// click-through off while it is over a registered region.
+fn spawn_overlay_hit_test(app: AppHandle) {
+    std::thread::spawn(move || {
+        let mut ignoring = true;
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(40));
+            let Some(w) = app.get_webview_window("overlay") else {
+                continue;
+            };
+            let state = app.state::<AppState>();
+            let unlocked = state.overlay_unlocked.load(std::sync::atomic::Ordering::SeqCst);
+            let over = || -> Option<bool> {
+                if !w.is_visible().ok()? {
+                    return Some(false);
+                }
+                let cursor = app.cursor_position().ok()?;
+                let origin = w.inner_position().ok()?;
+                let scale = w.scale_factor().ok()?;
+                let (x, y) = (
+                    (cursor.x - origin.x as f64) / scale,
+                    (cursor.y - origin.y as f64) / scale,
+                );
+                let regions = state.overlay_regions.lock().unwrap();
+                Some(regions.iter().any(|r| x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3]))
+            };
+            let ignore = !(unlocked || over().unwrap_or(false));
+            if ignore != ignoring {
+                ignoring = ignore;
+                let _ = w.set_ignore_cursor_events(ignore);
+            }
+        }
+    });
+}
+
+#[tauri::command]
 fn toggle_overlay(app: AppHandle) {
     hotkeys::toggle_overlay(&app);
 }
@@ -149,7 +284,7 @@ fn save_settings(app: AppHandle, settings: Settings) -> Result<Vec<String>, Stri
 fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
     let mut builder = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("overlay.html".into()))
         .title("PoLR HUD")
-        .inner_size(440.0, 300.0)
+        .inner_size(380.0, 360.0)
         .decorations(false)
         .transparent(true)
         .always_on_top(true)
@@ -157,8 +292,12 @@ fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
         .resizable(false)
         .shadow(false)
         .focused(false)
+        .focusable(false)
         .visible(false);
-    if let Ok(Some(monitor)) = app.primary_monitor() {
+    let saved = app.state::<AppState>().settings.lock().unwrap().overlay_pos;
+    if let Some((x, y)) = saved {
+        builder = builder.position(x, y);
+    } else if let Ok(Some(monitor)) = app.primary_monitor() {
         let scale = monitor.scale_factor();
         let width = monitor.size().width as f64 / scale;
         builder = builder.position(width - 470.0, 90.0);
@@ -187,6 +326,7 @@ fn main() {
                 Err(e) => eprintln!("tool server not started: {e}"),
             }
             create_overlay(&handle)?;
+            spawn_overlay_hit_test(handle.clone());
             gamedata::preload(handle.clone());
             game::spawn_log_watcher(handle);
             Ok(())
@@ -203,6 +343,15 @@ fn main() {
             delete_conversation,
             conversation,
             toggle_overlay,
+            travel,
+            equipped,
+            forget_equipped,
+            move_overlay,
+            hud,
+            rating_snapshot,
+            rate_build,
+            rate_now,
+            overlay_regions,
             confirm_action,
             dismiss_action,
             pending_actions,

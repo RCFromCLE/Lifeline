@@ -4,58 +4,208 @@
   <meta charset="utf-8">
   <title>PoLR HUD</title>
   <style>
-    html, body { margin: 0; background: transparent; overflow: hidden; }
-    body { font: 14px/1.45 "Segoe UI", system-ui, sans-serif; color: #eadfcb; }
+    html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
+    body { font: 13px/1.4 "Segoe UI", system-ui, sans-serif; color: #ece2d0; }
     .hud {
-      margin: 6px; padding: 10px 12px; border-radius: 10px;
-      background: rgba(18, 14, 11, 0.86); border: 1px solid rgba(214, 167, 86, 0.55);
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5); max-height: 280px; overflow: hidden;
+      margin: 8px; padding: 10px 12px 9px; border-radius: 12px;
+      background: rgba(14, 11, 9, 0.84); border: 1px solid rgba(214, 167, 86, 0.28);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55); backdrop-filter: blur(6px);
+      display: flex; flex-direction: column; gap: 7px; max-height: 330px;
     }
-    .row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-    .name { color: #f0c878; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pen { font-weight: 700; white-space: nowrap; }
-    .pen.warn { color: #f0c878; } .pen.bad { color: #ff8a7a; }
-    .where { color: #b7a68d; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .status { margin-top: 8px; color: #8fb8e6; font-size: 12px; min-height: 0; }
-    .answer { margin-top: 6px; font-size: 13.5px; max-height: 190px; overflow: hidden; }
-    .answer ul { margin: 2px 0; padding-left: 18px; }
-    .answer pre { display: none; }
+    .hud.unlocked { border: 1px dashed #f0c878; cursor: move; box-shadow: 0 0 0 3px rgba(240, 200, 120, 0.18); }
+    .handle { display: none; text-align: center; font-size: 11px; color: #f0c878; letter-spacing: .4px; }
+    .hud.unlocked .handle { display: block; }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .grow { flex: 1; min-width: 0; }
+    .name { font-weight: 600; color: #f3d08a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sub { color: #a8977f; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pill { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #241d16; border: 1px solid #3a2e24; white-space: nowrap; }
+    .pill.warn { color: #f0c878; border-color: #6e5226; }
+    .pill.bad { color: #ff9585; border-color: #7a3a32; }
+    .pill.death { color: #e9a094; }
+    .next { font-size: 12px; color: #f0c878; background: rgba(110, 82, 38, 0.18); border-radius: 6px; padding: 3px 7px; }
+    .sec { font-size: 10.5px; text-transform: uppercase; letter-spacing: .7px; color: #8d7d66; margin-bottom: 3px; }
+    .bar { height: 5px; background: #241d16; border-radius: 3px; overflow: hidden; }
+    .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8a6430, #f0c878); }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .chip { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; background: #211a14; border: 1px solid #3a2e24; }
+    .chip.notable { border-color: #8a6430; color: #f3d08a; }
+    .answer-box { border-top: 1px solid #2a221b; padding-top: 6px; }
+    .status { font-size: 11.5px; color: #8fb8e6; }
+    .answer { font-size: 13px; max-height: 120px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 80%, transparent); }
+    .answer ul { margin: 2px 0; padding-left: 16px; }
+    .answer pre, .answer code { display: none; }
     .err { color: #ff9c8f; }
+    .foot { display: flex; align-items: center; gap: 10px; font-size: 10.5px; color: #8d7d66; border-top: 1px solid #2a221b; padding-top: 5px; }
+    .meter { display: flex; align-items: center; gap: 4px; }
+    .meter .bar { width: 38px; }
+    .meter .bar i.mid { background: #d6a756; } .meter .bar i.high { background: #d2574a; }
+    .keys { margin-left: auto; white-space: nowrap; }
+    .keys b { color: #c8a76a; font-weight: 600; }
+    .hidden { display: none !important; }
+    .gbtn { cursor: pointer; border: none; font-family: Georgia, serif; font-weight: 800; font-size: 15px; min-width: 38px; height: 28px; padding: 0 7px; border-radius: 8px; }
+    .gbtn:hover { outline: 2px solid #f0c878; }
+    .gbtn.busy { animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity: .45; } }
+    .g-S { background: linear-gradient(135deg, #6b4a12, #e9c46a); color: #1b1206; }
+    .g-A { background: #1f4d1a; color: #a6f59a; } .g-B { background: #2c4a1e; color: #cdeaa0; }
+    .g-C { background: #4a4317; color: #f2df7d; } .g-D { background: #5a3414; color: #f8b26a; }
+    .g-F { background: #5e1c16; color: #ff8f80; } .g-none { background: #241d16; color: #a8977f; }
+    .explain { font-size: 12.5px; background: rgba(36, 28, 21, 0.95); border: 1px solid #6e5226; border-radius: 8px; padding: 7px 9px; }
+    .explain .s { color: #f3d08a; font-weight: 600; margin-bottom: 3px; }
+    .rsum { font-size: 12px; color: #cdbfa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style>
 </head>
 <body>
-  <div class="hud">
-    <div class="row"><div class="name" id="name">PathOfLeastResistance</div><div class="pen" id="pen"></div></div>
-    <div class="where" id="where"></div>
-    <div class="status" id="status"></div>
-    <div class="answer" id="answer"></div>
+  <div class="hud" id="hud">
+    <div class="handle">⠿ drag to move · press <span id="move-key">Alt+Shift+M</span> to lock</div>
+    <div class="row">
+      <div class="grow">
+        <div class="name" id="name">PathOfLeastResistance</div>
+        <div class="sub" id="where">Waiting for the game log…</div>
+      </div>
+      <button class="gbtn g-none hit" id="grade" title="">?</button>
+      <span class="pill" id="pen">Res —</span>
+      <span class="pill death hidden" id="deaths"></span>
+    </div>
+    <div class="rsum" id="rsum">Click ? to rate your build</div>
+    <div class="explain hidden" id="explain"><div class="s" id="explain-s"></div><div id="explain-t"></div></div>
+    <div class="next hidden" id="next"></div>
+    <div id="plan" class="hidden">
+      <div class="sec" id="plan-title"></div>
+      <div class="bar"><i id="plan-bar" style="width:0"></i></div>
+      <div class="chips" id="plan-next"></div>
+    </div>
+    <div class="answer-box hidden" id="answer-box">
+      <div class="sec" id="answer-label"></div>
+      <div class="status" id="status"></div>
+      <div class="answer" id="answer"></div>
+    </div>
+    <div class="foot">
+      <span class="meter"><span>5h</span><span class="bar"><i id="u5"></i></span></span>
+      <span class="meter"><span>7d</span><span class="bar"><i id="u7"></i></span></span>
+      <span class="keys" id="keys"></span>
+    </div>
   </div>
   <script src="common.js"></script>
   <script>
-    let raw = "";
-    let hudConv = null; // only hotkey-thread answers appear on the HUD
     const el = id => document.getElementById(id);
-    function renderCharacter(c) {
+    let raw = "", hudConv = null, refreshTimer = null;
+
+    function shortKey(k) { return (k || "").replace(/Alt\+Shift\+/i, "⇧⌥"); }
+
+    function render(h) {
+      const c = h.character;
       const d = describeCharacter(c);
       el("name").textContent = d.name;
-      el("where").textContent = d.where + (c.deaths ? ` · ☠ ${c.deaths}` : "");
-      el("pen").textContent = c.res_penalty === null || c.res_penalty === undefined ? "" : `Res ${c.res_penalty}%`;
-      el("pen").className = `pen ${penaltyClass(c.res_penalty)}`;
+      el("where").textContent = d.where || "Waiting for the game log…";
+      el("pen").textContent = c.res_penalty === null || c.res_penalty === undefined ? "Res —" : `Res ${c.res_penalty}%`;
+      el("pen").className = `pill ${penaltyClass(c.res_penalty)}`;
+      el("deaths").textContent = `☠ ${c.deaths}`;
+      el("deaths").classList.toggle("hidden", !c.deaths);
+      el("next").textContent = h.next_penalty ? `Next: ${h.next_penalty} resistance — cap before you go` : "";
+      el("next").classList.toggle("hidden", !h.next_penalty);
+      if (h.plan) {
+        el("plan").classList.remove("hidden");
+        el("plan-title").textContent = `${h.plan.stage} plan · ${h.plan.allocated}/${h.plan.planned} passives`;
+        el("plan-bar").style.width = `${h.plan.planned ? Math.round(100 * h.plan.allocated / h.plan.planned) : 0}%`;
+        el("plan-next").innerHTML = h.plan.next.map(n => `<span class="chip ${n.notable ? "notable" : ""}">${escapeHtml(n.name)}</span>`).join("");
+      } else el("plan").classList.add("hidden");
+      const k = h.hotkeys;
+      el("keys").innerHTML = `<b>${shortKey(k.item_check)}</b> check · <b>${shortKey(k.what_next)}</b> next · <b>${shortKey(k.record_equipped)}</b> gear`;
+      el("move-key").textContent = k.move_overlay;
+      setUnlocked(h.unlocked);
+      reportRegions();
     }
-    listen("character", ({ payload }) => renderCharacter(payload));
+
+    function refresh() {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => invoke("hud").then(render), 250);
+    }
+
+    function setUnlocked(on) { el("hud").classList.toggle("unlocked", !!on); }
+
+    // In move mode the whole panel drags the window.
+    el("hud").addEventListener("mousedown", ev => {
+      if (ev.button === 0 && el("hud").classList.contains("unlocked")) {
+        window.__TAURI__.window.getCurrentWindow().startDragging();
+      }
+    });
+
+    listen("overlay-mode", ({ payload }) => setUnlocked(payload));
+    listen("character", refresh);
+    listen("feed", refresh);
+    listen("equipped", refresh);
+    listen("usage", ({ payload }) => {
+      for (const w of payload.windows || []) {
+        const bar = el(w.name === "five_hour" ? "u5" : w.name === "seven_day" ? "u7" : "");
+        if (!bar) continue;
+        bar.style.width = `${Math.min(100, w.pct)}%`;
+        bar.className = w.pct >= 80 ? "high" : w.pct >= 50 ? "mid" : "";
+      }
+    });
     listen("ai", ({ payload: e }) => {
-      if (e.type === "start") { if (!e.hotkey) return; hudConv = e.conv; raw = ""; el("status").textContent = `${e.label}…`; el("answer").innerHTML = ""; }
-      else if (e.conv !== hudConv) return;
+      if (e.type === "start") {
+        if (!e.hotkey) return;
+        hudConv = e.conv; raw = "";
+        el("answer-box").classList.remove("hidden");
+        el("answer-label").textContent = e.label;
+        el("status").textContent = "thinking…";
+        el("answer").innerHTML = "";
+        el("answer").className = "answer";
+      } else if (e.conv !== hudConv) return;
       else if (e.type === "tool") el("status").textContent = `↳ ${e.text}`;
-      else if (e.type === "delta") { raw += e.text; el("answer").innerHTML = renderMarkdown(raw); }
+      else if (e.type === "delta") { raw += e.text; el("status").textContent = ""; el("answer").innerHTML = renderMarkdown(raw); }
       else if (e.type === "done") {
         el("status").textContent = "";
         el("answer").innerHTML = renderMarkdown(e.text || raw);
         el("answer").className = e.error ? "answer err" : "answer";
       }
     });
-    listen("notice", ({ payload }) => { el("status").textContent = ""; el("answer").innerHTML = `<span class="err">${escapeHtml(payload)}</span>`; });
-    invoke("snapshot").then(s => renderCharacter(s.character));
+    listen("notice", ({ payload }) => {
+      el("answer-box").classList.remove("hidden");
+      el("answer-label").textContent = "Notice";
+      el("status").textContent = "";
+      el("answer").innerHTML = escapeHtml(payload);
+      el("answer").className = "answer";
+    });
+    // ---- clickable regions (the rest of the HUD stays click-through) ----
+    function reportRegions() {
+      const rects = [...document.querySelectorAll(".hit")].filter(e => e.offsetParent).map(e => {
+        const r = e.getBoundingClientRect();
+        return [r.left - 2, r.top - 2, r.right + 2, r.bottom + 2];
+      });
+      invoke("overlay_regions", { rects });
+    }
+    window.addEventListener("resize", reportRegions);
+
+    // ---- build rating: hover explains, click re-rates ----
+    let rating = null;
+    function renderGrade(r) {
+      rating = r;
+      const g = el("grade");
+      g.textContent = r ? r.grade : "?";
+      g.className = `gbtn hit ${r ? "g-" + r.grade[0] : "g-none"}`;
+      el("rsum").textContent = r ? `${r.stage}: ${r.summary}` : "Click ? to rate your build";
+      el("explain-s").textContent = r ? `${r.grade} — ${r.stage}, level ${r.level} (click to re-rate)` : "Click to rate your build";
+      el("explain-t").textContent = r ? r.explanation : "Opus 5.5 grades your build F to S+ for where you are in the campaign.";
+      reportRegions();
+    }
+    el("grade").addEventListener("mouseenter", () => { el("explain").classList.remove("hidden"); reportRegions(); });
+    el("grade").addEventListener("mouseleave", () => { el("explain").classList.add("hidden"); reportRegions(); });
+    el("grade").addEventListener("click", () => {
+      el("grade").classList.add("busy");
+      el("rsum").textContent = "Rating your build…";
+      invoke("rate_now");
+    });
+    listen("rating", ({ payload }) => { renderGrade(payload.rating); el("grade").classList.toggle("busy", !!payload.busy); });
+    listen("rating-status", ({ payload }) => {
+      el("grade").classList.toggle("busy", !!payload.busy);
+      if (payload.text) el("rsum").textContent = payload.text;
+      else if (rating) el("rsum").textContent = `${rating.stage}: ${rating.summary}`;
+    });
+    invoke("hud").then(h => { render(h); renderGrade(h.rating); });
+    setInterval(refresh, 15000);
   </script>
 </body>
 </html>

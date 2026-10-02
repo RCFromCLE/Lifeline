@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Main window and HUD overlay",
   "windows": ["main", "overlay"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "core:window:allow-start-dragging"]
 }

@@ -69,6 +69,37 @@ fn travel_script(listing_id: &str, search_id: &str) -> String {
     )
 }
 
+/// Travel to the seller of a listing from a recent search (one press).
+pub fn travel(app: &AppHandle, listing_id: &str) -> Result<String, String> {
+    let state = app.state::<AppState>();
+    let search_id = state
+        .listings
+        .lock()
+        .unwrap()
+        .get(listing_id)
+        .cloned()
+        .ok_or("That listing is no longer in a recent search.")?;
+    run_travel(app, listing_id, &search_id)?;
+    Ok("Travel requested — watch the game (and the banner in the trade window).".into())
+}
+
+fn run_travel(app: &AppHandle, listing_id: &str, search_id: &str) -> Result<(), String> {
+    let existed = app.get_webview_window(TRADE_LABEL).is_some();
+    let window = open_trade_window(app, None)?;
+    let script = travel_script(listing_id, search_id);
+    let app2 = app.clone();
+    std::thread::spawn(move || {
+        // A freshly opened window needs to load the site first.
+        if !existed {
+            std::thread::sleep(Duration::from_secs(6));
+        }
+        if window.eval(&script).is_err() {
+            let _ = app2.emit("notice", "Couldn't reach the trade window.");
+        }
+    });
+    Ok(())
+}
+
 /// Runs a confirmed action.
 pub fn confirm(app: &AppHandle, action_id: u64) -> Result<String, String> {
     let state = app.state::<AppState>();

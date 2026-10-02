@@ -22,6 +22,7 @@
 
   <nav class="tabs" id="tabs">
     <button class="tab active" data-tab="play">Play</button>
+    <button class="tab" data-tab="rating">Rating</button>
     <button class="tab" data-tab="build">Build</button>
     <button class="tab" data-tab="settings">Hotkeys &amp; settings</button>
   </nav>
@@ -58,9 +59,43 @@
           <ul class="feed" id="feed"></ul>
         </div>
         <div class="card">
+          <h2>My gear <small>used for ±% on market cards</small></h2>
+          <ul class="gear" id="gear"></ul>
+        </div>
+        <div class="card">
           <h2>Hotkeys</h2>
           <ul class="keys" id="keys-summary"></ul>
-          <button id="btn-overlay" class="ghost">Show / hide HUD overlay</button>
+          <div class="quick"><button id="btn-overlay" class="ghost">Show / hide HUD</button><button id="btn-move-hud" class="ghost">Move HUD</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-rating">
+      <div class="col">
+        <div class="card rating-card">
+          <div class="rating-top">
+            <div class="tip">
+              <div class="grade big" id="r-grade">?</div>
+              <div class="tiptext" id="r-tip">Rate your build to see why.</div>
+            </div>
+            <div class="grow">
+              <h2 id="r-title">Build rating <small>for where you are in the campaign</small></h2>
+              <div class="r-summary" id="r-summary">Not rated yet.</div>
+              <div class="hint" id="r-meta"></div>
+            </div>
+            <div class="r-controls">
+              <label>Budget per item <input id="r-budget" placeholder="10 exalted"></label>
+              <label class="check"><input type="checkbox" id="r-auto"> Re-rate on each new act</label>
+              <button id="r-run" class="primary">Rate my build</button>
+            </div>
+          </div>
+          <div class="status" id="r-status"></div>
+          <p class="r-expl" id="r-expl"></p>
+          <div class="r-cats" id="r-cats"></div>
+        </div>
+        <div class="card">
+          <h2>Recommended upgrades <small>market picks within your budget · Sonnet 5.5</small></h2>
+          <div id="r-recs" class="r-recs"><p class="hint">Recommendations appear after a rating.</p></div>
         </div>
       </div>
     </section>
@@ -98,6 +133,8 @@
             <label>What next (route coach)<input name="what_next"></label>
             <label>Ask (brings this window up, focuses the chat)<input name="ask"></label>
             <label>Show / hide HUD overlay<input name="toggle_overlay"></label>
+            <label>Record equipped item (hover an item you're wearing)<input name="record_equipped"></label>
+            <label>Move HUD (press, drag the overlay, press again to lock)<input name="move_overlay"></label>
             <label>League<input name="league"></label>
             <label class="check"><input type="checkbox" name="overlay_on_hotkey"> Show the HUD automatically for hotkey answers</label>
             <button type="submit" class="primary">Save</button>
