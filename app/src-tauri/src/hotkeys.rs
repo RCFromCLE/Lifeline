@@ -74,16 +74,27 @@ pub fn toggle_overlay(app: &AppHandle) {
 
 /// Persists the HUD's on/off state and/or position (logical px) when they change.
 pub fn remember_overlay(app: &AppHandle, visible: Option<bool>, pos: Option<(f64, f64)>) {
+    update_overlay_settings(app, |s| {
+        if let Some(v) = visible {
+            s.overlay_visible = v;
+        }
+        if let Some(p) = pos {
+            s.overlay_pos = Some((p.0.round(), p.1.round()));
+        }
+    });
+}
+
+/// Persists the HUD's size (logical px) after the player resizes it.
+pub fn remember_overlay_size(app: &AppHandle, size: (f64, f64)) {
+    update_overlay_settings(app, |s| s.overlay_size = Some((size.0.round(), size.1.round())));
+}
+
+fn update_overlay_settings(app: &AppHandle, change: impl FnOnce(&mut crate::state::Settings)) {
     let state = app.state::<AppState>();
     let mut settings = state.settings.lock().unwrap();
-    let before = (settings.overlay_visible, settings.overlay_pos);
-    if let Some(v) = visible {
-        settings.overlay_visible = v;
-    }
-    if let Some(p) = pos {
-        settings.overlay_pos = Some((p.0.round(), p.1.round()));
-    }
-    if (settings.overlay_visible, settings.overlay_pos) != before {
+    let before = settings.clone();
+    change(&mut settings);
+    if *settings != before {
         let _ = settings.save(&state.data_dir);
     }
 }

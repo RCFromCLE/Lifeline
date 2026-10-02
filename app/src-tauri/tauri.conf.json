@@ -14,8 +14,8 @@
         "title": "PathOfLeastResistance",
         "width": 1320,
         "height": 880,
-        "minWidth": 980,
-        "minHeight": 640
+        "minWidth": 560,
+        "minHeight": 480
       }
     ],
     "security": {
@@ -23,7 +23,14 @@
     }
   },
   "bundle": {
-    "active": false,
-    "icon": ["icons/icon.ico", "icons/icon.png"]
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "publisher": "PathOfLeastResistance",
+    "shortDescription": "AI-assisted Path of Exile 2 playthrough and build manager",
+    "windows": {
+      "nsis": { "installMode": "currentUser" },
+      "webviewInstallMode": { "type": "downloadBootstrapper" }
+    }
   }
 }

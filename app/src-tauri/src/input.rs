@@ -24,6 +24,23 @@ mod win {
         }
     }
 
+    /// Some(true) if the game window is minimized, Some(false) if it's up, None if it isn't running.
+    pub fn game_minimized() -> Option<bool> {
+        use windows::core::{w, PCWSTR};
+        use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, IsIconic};
+        unsafe {
+            let hwnd = FindWindowW(w!("POEWindowClass"), PCWSTR::null())
+                .or_else(|_| FindWindowW(PCWSTR::null(), w!("Path of Exile 2")))
+                .ok()
+                .filter(|h| !h.is_invalid())?;
+            Some(IsIconic(hwnd).as_bool())
+        }
+    }
+
+    pub fn left_button_down() -> bool {
+        unsafe { GetAsyncKeyState(windows::Win32::UI::Input::KeyboardAndMouse::VK_LBUTTON.0 as i32) < 0 }
+    }
+
     pub fn modifiers_down() -> bool {
         [VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN]
             .iter()
@@ -63,6 +80,22 @@ mod win {
 
 /// Copies the item under the cursor/controller selection from PoE2 and
 /// returns its text, restoring whatever was on the clipboard before.
+/// Whether PoE2's window is minimized (None: game not running).
+pub fn game_minimized() -> Option<bool> {
+    #[cfg(windows)]
+    return win::game_minimized();
+    #[cfg(not(windows))]
+    None
+}
+
+/// True while the left mouse button is held (keeps the HUD clickable mid-drag).
+pub fn left_button_down() -> bool {
+    #[cfg(windows)]
+    return win::left_button_down();
+    #[cfg(not(windows))]
+    false
+}
+
 #[cfg(windows)]
 pub fn copy_hovered_item() -> Result<String, String> {
     if !win::foreground_is_poe() {

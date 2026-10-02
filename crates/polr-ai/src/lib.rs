@@ -251,9 +251,13 @@ pub fn mcp_config_json(url: &str, bearer_token: &str) -> String {
 /// The native installer puts `claude.exe` in `%USERPROFILE%\.local\bin`,
 /// which isn't always on PATH; prefer it when present.
 fn default_program() -> PathBuf {
-    std::env::var_os("USERPROFILE")
-        .map(|home| PathBuf::from(home).join(".local").join("bin").join("claude.exe"))
-        .filter(|p| p.is_file())
+    // Native installer first, then an npm global install, then whatever is on PATH.
+    let native = std::env::var_os("USERPROFILE").map(|h| PathBuf::from(h).join(".local").join("bin").join("claude.exe"));
+    let npm = std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("npm").join("claude.cmd"));
+    [native, npm]
+        .into_iter()
+        .flatten()
+        .find(|p| p.is_file())
         .unwrap_or_else(|| PathBuf::from("claude"))
 }
 

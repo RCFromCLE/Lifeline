@@ -4,55 +4,59 @@
   <meta charset="utf-8">
   <title>PoLR HUD</title>
   <style>
-    html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
-    body { font: 13px/1.4 "Segoe UI", system-ui, sans-serif; color: #ece2d0; }
+    /* The panel fills the window: drag any edge or corner to resize; text scales with the width. */
+    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; }
+    body { font: clamp(11px, 3.5vw, 18px)/1.4 "Segoe UI", system-ui, sans-serif; color: #ece2d0; }
     .hud {
-      margin: 8px; padding: 10px 12px 9px; border-radius: 12px;
+      position: absolute; inset: 3px; padding: .75em .9em .65em; border-radius: 12px;
       background: rgba(14, 11, 9, 0.84); border: 1px solid rgba(214, 167, 86, 0.28);
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55); backdrop-filter: blur(6px);
-      display: flex; flex-direction: column; gap: 7px; max-height: 680px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); backdrop-filter: blur(6px);
+      display: flex; flex-direction: column; gap: .5em; overflow: hidden;
     }
     .hud.unlocked { border: 1px dashed #f0c878; cursor: move; box-shadow: 0 0 0 3px rgba(240, 200, 120, 0.18); }
-    .handle { display: none; text-align: center; font-size: 11px; color: #f0c878; letter-spacing: .4px; }
+    .handle { display: none; text-align: center; font-size: .85em; color: #f0c878; letter-spacing: .4px; }
     .hud.unlocked .handle { display: block; }
-    .row { display: flex; align-items: center; gap: 8px; }
+    .row { display: flex; align-items: center; gap: .6em; }
     .grow { flex: 1; min-width: 0; }
     .name { font-weight: 600; color: #f3d08a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sub { color: #a8977f; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pill { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #241d16; border: 1px solid #3a2e24; white-space: nowrap; }
+    .sub { color: #a8977f; font-size: .92em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pill { font-weight: 700; font-size: .92em; padding: .15em .6em; border-radius: 999px; background: #241d16; border: 1px solid #3a2e24; white-space: nowrap; }
     .pill.warn { color: #f0c878; border-color: #6e5226; }
     .pill.bad { color: #ff9585; border-color: #7a3a32; }
     .pill.death { color: #e9a094; }
-    .next { font-size: 12px; color: #f0c878; background: rgba(110, 82, 38, 0.18); border-radius: 6px; padding: 3px 7px; }
-    .sec { font-size: 10.5px; text-transform: uppercase; letter-spacing: .7px; color: #8d7d66; margin-bottom: 3px; }
+    .next { font-size: .92em; color: #f0c878; background: rgba(110, 82, 38, 0.18); border-radius: 6px; padding: .2em .55em; }
+    .sec { font-size: .8em; text-transform: uppercase; letter-spacing: .7px; color: #8d7d66; margin-bottom: .25em; }
     .bar { height: 5px; background: #241d16; border-radius: 3px; overflow: hidden; }
     .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8a6430, #f0c878); }
-    .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-    .chip { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; background: #211a14; border: 1px solid #3a2e24; }
+    .chips { display: flex; flex-wrap: wrap; gap: .3em; margin-top: .4em; }
+    .chip { font-size: .88em; padding: .05em .55em; border-radius: 999px; background: #211a14; border: 1px solid #3a2e24; }
     .chip.notable { border-color: #8a6430; color: #f3d08a; }
-    .answer-box { border-top: 1px solid #2a221b; padding-top: 6px; }
-    .status { font-size: 11.5px; color: #8fb8e6; }
-    .answer { font-size: 13px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
-    .answer::-webkit-scrollbar { width: 6px; } .answer::-webkit-scrollbar-thumb { background: #6e5226; border-radius: 3px; }
-    .answer ul { margin: 2px 0; padding-left: 16px; }
+    /* Rotation and answer share whatever height is left; each scrolls on its own. */
+    #rotation { flex: 1 1 auto; min-height: 3.2em; display: flex; flex-direction: column; }
+    .answer-box { flex: 2 1 auto; min-height: 4em; display: flex; flex-direction: column; border-top: 1px solid #2a221b; padding-top: .45em; }
+    .status { font-size: .88em; color: #8fb8e6; }
+    .answer { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+    .answer::-webkit-scrollbar, .rot-steps::-webkit-scrollbar { width: 6px; }
+    .answer::-webkit-scrollbar-thumb, .rot-steps::-webkit-scrollbar-thumb { background: #6e5226; border-radius: 3px; }
+    .answer ul { margin: 2px 0; padding-left: 1.2em; }
     .answer pre, .answer code { display: none; }
     .err { color: #ff9c8f; }
-    .foot { display: flex; align-items: center; gap: 10px; font-size: 10.5px; color: #8d7d66; border-top: 1px solid #2a221b; padding-top: 5px; }
+    .foot { margin-top: auto; display: flex; align-items: center; gap: .8em; font-size: .8em; color: #8d7d66; border-top: 1px solid #2a221b; padding-top: .4em; flex-wrap: wrap; }
     .meter { display: flex; align-items: center; gap: 4px; }
-    .meter .bar { width: 38px; }
+    .meter .bar { width: 3em; }
     .meter .bar i.mid { background: #d6a756; } .meter .bar i.high { background: #d2574a; }
-    .keys { margin-left: auto; white-space: nowrap; }
+    .keys { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .keys b { color: #c8a76a; font-weight: 600; }
     .hidden { display: none !important; }
-    .actions { display: flex; flex-wrap: wrap; gap: 5px; }
-    .act { cursor: pointer; font: inherit; font-size: 11.5px; color: #e8dcc8; background: #221a14; border: 1px solid #3a2e24; border-radius: 7px; padding: 3px 8px; }
+    .actions { display: flex; flex-wrap: wrap; gap: .35em; }
+    .act { cursor: pointer; font: inherit; font-size: .88em; color: #e8dcc8; background: #221a14; border: 1px solid #3a2e24; border-radius: 7px; padding: .2em .6em; }
     .act:hover { border-color: #f0c878; color: #f3d08a; }
     .act.primary { background: linear-gradient(#5a3f1c, #3d2a12); border-color: #8a6430; color: #f3d08a; }
-    .answer-head { display: flex; align-items: center; gap: 6px; }
+    .answer-head { display: flex; align-items: center; gap: .45em; }
     .answer-head .sec { flex: 1; margin: 0; }
-    .mini { cursor: pointer; font: inherit; font-size: 11px; color: #c8a76a; background: transparent; border: 1px solid #3a2e24; border-radius: 6px; padding: 1px 7px; }
+    .mini { cursor: pointer; font: inherit; font-size: .85em; color: #c8a76a; background: transparent; border: 1px solid #3a2e24; border-radius: 6px; padding: .05em .55em; }
     .mini:hover { border-color: #f0c878; }
-    .gbtn { cursor: pointer; border: none; font-family: Georgia, serif; font-weight: 800; font-size: 15px; min-width: 38px; height: 28px; padding: 0 7px; border-radius: 8px; }
+    .gbtn { cursor: pointer; border: none; font-family: Georgia, serif; font-weight: 800; font-size: 1.15em; min-width: 2.5em; height: 1.85em; padding: 0 .45em; border-radius: 8px; }
     .gbtn:hover { outline: 2px solid #f0c878; }
     .gbtn.busy { animation: pulse 1s infinite; }
     @keyframes pulse { 50% { opacity: .45; } }
@@ -60,21 +64,49 @@
     .g-A { background: #1f4d1a; color: #a6f59a; } .g-B { background: #2c4a1e; color: #cdeaa0; }
     .g-C { background: #4a4317; color: #f2df7d; } .g-D { background: #5a3414; color: #f8b26a; }
     .g-F { background: #5e1c16; color: #ff8f80; } .g-none { background: #241d16; color: #a8977f; }
-    .explain { font-size: 12.5px; background: rgba(36, 28, 21, 0.95); border: 1px solid #6e5226; border-radius: 8px; padding: 7px 9px; }
+    /* The grade explanation floats over the panel instead of pushing it around. */
+    .explain {
+      position: absolute; left: .7em; right: .7em; top: 3.6em; z-index: 5; max-height: 65%; overflow-y: auto;
+      font-size: .96em; background: rgba(36, 28, 21, 0.97); border: 1px solid #6e5226; border-radius: 8px; padding: .55em .7em;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .6);
+    }
     .explain .s { color: #f3d08a; font-weight: 600; margin-bottom: 3px; }
-    .rsum { font-size: 12px; color: #cdbfa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rot-tabs { display: flex; gap: 4px; margin-bottom: 4px; }
-    .rot-tab { cursor: pointer; font: inherit; font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; color: #8d7d66; background: transparent; border: 1px solid #2a221b; border-radius: 6px; padding: 1px 7px; }
+    .rsum { font-size: .92em; color: #cdbfa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rot-tabs { display: flex; gap: .3em; margin-bottom: .3em; flex-wrap: wrap; }
+    .rot-tab { cursor: pointer; font: inherit; font-size: .8em; text-transform: uppercase; letter-spacing: .6px; color: #8d7d66; background: transparent; border: 1px solid #2a221b; border-radius: 6px; padding: .05em .55em; }
     .rot-tab.on { color: #f3d08a; border-color: #8a6430; background: rgba(110, 82, 38, 0.2); }
-    .rot-steps { margin: 0; padding-left: 18px; font-size: 12.5px; max-height: 110px; overflow-y: auto; }
+    .rot-steps { flex: 1; min-height: 0; margin: 0; padding-left: 1.4em; font-size: .96em; overflow-y: auto; }
     .rot-steps li { margin-bottom: 2px; }
+    /* The header (handle, name, location) always drags the HUD. */
+    .drag { cursor: move; }
+    .knob { color: #8d7d66; font-size: 1.2em; line-height: 1; padding: .1em .15em; border-radius: 5px; }
+    .knob:hover { color: #f0c878; background: rgba(110, 82, 38, 0.25); }
+    /* Resize grips on every edge and corner. */
+    .grip { position: absolute; z-index: 10; }
+    .grip[data-dir=North], .grip[data-dir=South] { left: 14px; right: 14px; height: 6px; cursor: ns-resize; }
+    .grip[data-dir=East], .grip[data-dir=West] { top: 14px; bottom: 14px; width: 6px; cursor: ew-resize; }
+    .grip[data-dir=North] { top: 0; } .grip[data-dir=South] { bottom: 0; }
+    .grip[data-dir=East] { right: 0; } .grip[data-dir=West] { left: 0; }
+    .grip.corner { width: 14px; height: 14px; }
+    .grip[data-dir=NorthWest] { top: 0; left: 0; cursor: nwse-resize; }
+    .grip[data-dir=NorthEast] { top: 0; right: 0; cursor: nesw-resize; }
+    .grip[data-dir=SouthWest] { bottom: 0; left: 0; cursor: nesw-resize; }
+    .grip[data-dir=SouthEast] { bottom: 0; right: 0; cursor: nwse-resize; }
+    .grip[data-dir=SouthEast]::after {
+      content: ""; position: absolute; right: 3px; bottom: 3px; width: 7px; height: 7px; opacity: .55;
+      border-right: 2px solid #c8a76a; border-bottom: 2px solid #c8a76a; border-bottom-right-radius: 3px;
+    }
+    .grip[data-dir=SouthEast]:hover::after { opacity: 1; }
   </style>
 </head>
 <body>
   <div class="hud" id="hud">
+    <div class="grip hit" data-dir="North"></div><div class="grip hit" data-dir="South"></div><div class="grip hit" data-dir="East"></div><div class="grip hit" data-dir="West"></div>
+    <div class="grip corner hit" data-dir="NorthWest"></div><div class="grip corner hit" data-dir="NorthEast"></div><div class="grip corner hit" data-dir="SouthWest"></div><div class="grip corner hit" data-dir="SouthEast" title="Drag to resize"></div>
     <div class="handle">⠿ drag to move · press <span id="move-key">Alt+Shift+M</span> to lock</div>
     <div class="row">
-      <div class="grow">
+      <div class="drag hit knob" title="Drag to move">⠿</div>
+      <div class="grow drag hit" title="Drag to move">
         <div class="name" id="name">PathOfLeastResistance</div>
         <div class="sub" id="where">Waiting for the game log…</div>
       </div>
@@ -158,6 +190,20 @@
         window.__TAURI__.window.getCurrentWindow().startDragging();
       }
     });
+
+    // Edges and corners resize the window; the layout follows (text scales with width).
+    document.querySelectorAll(".grip").forEach(g => g.addEventListener("mousedown", ev => {
+      if (ev.button !== 0) return;
+      ev.stopPropagation();
+      window.__TAURI__.window.getCurrentWindow().startResizeDragging(g.dataset.dir)
+        .catch(e => invoke("log_debug", { msg: `overlay resize failed: ${e}` }));
+    }));
+    document.querySelectorAll(".drag").forEach(d => d.addEventListener("mousedown", ev => {
+      if (ev.button !== 0) return;
+      ev.stopPropagation();
+      window.__TAURI__.window.getCurrentWindow().startDragging()
+        .catch(e => invoke("log_debug", { msg: `overlay drag failed: ${e}` }));
+    }));
 
     listen("overlay-mode", ({ payload }) => setUnlocked(payload));
     listen("character", refresh);

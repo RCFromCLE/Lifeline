@@ -110,12 +110,21 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
 
 pub fn spawn_log_watcher(app: AppHandle) {
     std::thread::spawn(move || {
-        let Some(path) = paths::find_client_log() else {
-            let _ = app.emit(
-                "notice",
-                "Client.txt not found in the default Steam or standalone install folders.",
-            );
-            return;
+        // Keep looking (every 15 s) in case the game is installed or moved later.
+        let mut warned = false;
+        let path = loop {
+            if let Some(p) = paths::find_client_log() {
+                break p;
+            }
+            if !warned {
+                warned = true;
+                let _ = app.emit(
+                    "notice",
+                    "Path of Exile 2's log (logs/Client.txt) wasn't found in any Steam library or the standalone \
+                     install folders. Start the game once; the app keeps checking.",
+                );
+            }
+            std::thread::sleep(Duration::from_secs(15));
         };
         let mut tailer = LogTailer::from_start(&path);
         let mut backfilled = false;

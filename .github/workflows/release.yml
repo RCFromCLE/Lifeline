@@ -1,0 +1,37 @@
+# Builds the Windows installer when a version tag (v*) is pushed and attaches it
+# to that tag's GitHub release, creating the release if needed.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Build installer
+        working-directory: app/src-tauri
+        run: cargo tauri build
+
+      - name: Attach installer to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          gh release view "$tag" > /dev/null 2>&1 || gh release create "$tag" --title "$tag" \
+            --notes "Windows installer. Install steps: see README → Install on your gaming PC."
+          gh release upload "$tag" target/release/bundle/nsis/*-setup.exe --clobber

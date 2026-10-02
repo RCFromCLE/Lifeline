@@ -286,11 +286,25 @@ fn overlay_regions(state: tauri::State<'_, AppState>, rects: Vec<[f64; 4]>) {
 fn spawn_overlay_hit_test(app: AppHandle) {
     std::thread::spawn(move || {
         let mut ignoring = true;
+        let mut tick = 0u32;
+        // The HUD was up when the game got minimized, so bring it back on restore.
+        let mut hidden_with_game = false;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(40));
             let Some(w) = app.get_webview_window("overlay") else {
                 continue;
             };
+            tick = tick.wrapping_add(1);
+            if tick % 6 == 0 {
+                let minimized = input::game_minimized() == Some(true);
+                if minimized && w.is_visible().unwrap_or(false) {
+                    hidden_with_game = true;
+                    let _ = w.hide();
+                } else if !minimized && hidden_with_game {
+                    hidden_with_game = false;
+                    let _ = w.show();
+                }
+            }
             let state = app.state::<AppState>();
             let unlocked = state.overlay_unlocked.load(std::sync::atomic::Ordering::SeqCst);
             let over = || -> Option<bool> {
@@ -308,25 +322,14 @@ fn spawn_overlay_hit_test(app: AppHandle) {
                 Some(regions.iter().any(|r| x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3]))
             };
             let ignore = !(unlocked || over().unwrap_or(false));
+            // Don't drop clicks mid-drag (moving, resizing, scrolling) when the
+            // cursor slips off the region it started on.
+            if ignore && !ignoring && input::left_button_down() {
+                continue;
+            }
             if ignore != ignoring {
                 ignoring = ignore;
-                let result = w.set_ignore_cursor_events(ignore);
-                let cursor = app
-                    .cursor_position()
-                    .map(|p| format!("{:.0},{:.0}", p.x, p.y))
-                    .unwrap_or_default();
-                let origin = w
-                    .inner_position()
-                    .map(|p| format!("{},{}", p.x, p.y))
-                    .unwrap_or_default();
-                debug_log(
-                    &state,
-                    &format!(
-                        "hit-test clickable={} cursor={cursor} window={origin} scale={:?} result={result:?}",
-                        !ignore,
-                        w.scale_factor().ok()
-                    ),
-                );
+                let _ = w.set_ignore_cursor_events(ignore);
             }
         }
     });
@@ -344,6 +347,7 @@ fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, 
         // The HUD's place and on/off state are owned by the HUD, not the form.
         let current = state.settings.lock().unwrap();
         settings.overlay_pos = current.overlay_pos;
+        settings.overlay_size = current.overlay_size;
         settings.overlay_visible = current.overlay_visible;
     }
     settings.save(&state.data_dir)?;
@@ -353,53 +357,84 @@ fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, 
 }
 
 fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
+    const DEFAULT_SIZE: (f64, f64) = (380.0, 500.0);
+    const MIN_SIZE: (f64, f64) = (240.0, 150.0);
+    let state = app.state::<AppState>();
+    let (saved_pos, saved_size, visible) = {
+        let s = state.settings.lock().unwrap();
+        (s.overlay_pos, s.overlay_size, s.overlay_visible)
+    };
+    // Monitor bounds in logical px: (x, y, width, height).
+    let bounds = |m: &tauri::Monitor| {
+        let s = m.scale_factor();
+        let p = m.position();
+        let z = m.size();
+        (p.x as f64 / s, p.y as f64 / s, z.width as f64 / s, z.height as f64 / s)
+    };
+    let monitors: Vec<_> = app.available_monitors().unwrap_or_default().iter().map(bounds).collect();
+    let primary = app.primary_monitor().ok().flatten().map(|m| bounds(&m));
+    // The saved spot's monitor, else the primary one; the HUD is kept fully on it.
+    let (pos, screen) = match saved_pos.and_then(|(x, y)| {
+        monitors
+            .iter()
+            .find(|m| x + 40.0 >= m.0 && x < m.0 + m.2 - 40.0 && y + 10.0 >= m.1 && y < m.1 + m.3 - 40.0)
+            .map(|m| ((x, y), *m))
+    }) {
+        Some(found) => (Some(found.0), Some(found.1)),
+        // Default: tucked into the top-left corner, away from the top-right minimap.
+        None => (primary.map(|m| (m.0 + 8.0, m.1 + 8.0)), primary),
+    };
+    let mut size = saved_size.unwrap_or(DEFAULT_SIZE);
+    if let Some(m) = screen {
+        // A size that filled the screen (e.g. an accidental maximize) resets to the default.
+        if size.0 > m.2 - 16.0 || size.1 > m.3 - 16.0 {
+            size = DEFAULT_SIZE;
+        }
+    }
     let mut builder = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("overlay.html".into()))
         .title("PoLR HUD")
-        .inner_size(420.0, 700.0)
+        .inner_size(size.0, size.1)
+        .min_inner_size(MIN_SIZE.0, MIN_SIZE.1)
         .decorations(false)
         .transparent(true)
         .always_on_top(true)
         .skip_taskbar(true)
-        .resizable(false)
+        .resizable(true)
+        .maximizable(false)
+        .minimizable(false)
         .shadow(false)
         .focused(false)
         .focusable(false)
         .visible(false);
-    let state = app.state::<AppState>();
-    let (saved, visible) = {
-        let s = state.settings.lock().unwrap();
-        (s.overlay_pos, s.overlay_visible)
-    };
-    // A saved spot only counts if it's still on a connected monitor.
-    let monitors = app.available_monitors().unwrap_or_default();
-    let on_screen = |(x, y): (f64, f64)| {
-        monitors.iter().any(|m| {
-            let s = m.scale_factor();
-            let (mx, my) = (m.position().x as f64 / s, m.position().y as f64 / s);
-            let (mw, mh) = (m.size().width as f64 / s, m.size().height as f64 / s);
-            x + 40.0 >= mx && x < mx + mw - 40.0 && y >= my - 10.0 && y < my + mh - 40.0
-        })
-    };
-    if let Some(pos) = saved.filter(|&p| on_screen(p)) {
-        builder = builder.position(pos.0, pos.1);
-    } else if let Ok(Some(monitor)) = app.primary_monitor() {
-        // Left edge, below PoE2's top-left buff bar and well clear of the
-        // top-right minimap.
-        let s = monitor.scale_factor();
-        let (mx, my) = (monitor.position().x as f64 / s, monitor.position().y as f64 / s);
-        let height = monitor.size().height as f64 / s;
-        builder = builder.position(mx + 16.0, my + (height * 0.16).round());
+    if let (Some((x, y)), Some(m)) = (pos, screen) {
+        let x = x.clamp(m.0, m.0 + m.2 - size.0);
+        let y = y.clamp(m.1, m.1 + m.3 - size.1);
+        builder = builder.position(x, y);
     }
     let window = builder.build()?;
     window.set_ignore_cursor_events(true)?;
     let handle = app.clone();
     window.on_window_event(move |event| {
-        if let tauri::WindowEvent::Moved(pos) = event {
-            if let Some(w) = handle.get_webview_window("overlay") {
-                let scale = w.scale_factor().unwrap_or(1.0);
+        let Some(w) = handle.get_webview_window("overlay") else {
+            return;
+        };
+        let scale = w.scale_factor().unwrap_or(1.0);
+        match event {
+            tauri::WindowEvent::Moved(pos) => {
                 let l = pos.to_logical::<f64>(scale);
                 hotkeys::remember_overlay(&handle, None, Some((l.x, l.y)));
             }
+            tauri::WindowEvent::Resized(size) => {
+                if w.is_maximized().unwrap_or(false) {
+                    let _ = w.unmaximize();
+                    return;
+                }
+                if size.width > 0 && size.height > 0 {
+                    let l = size.to_logical::<f64>(scale);
+                    hotkeys::remember_overlay_size(&handle, (l.width, l.height));
+                }
+            }
+            _ => {}
         }
     });
     if visible {
