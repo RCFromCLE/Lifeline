@@ -24,16 +24,29 @@ mod win {
         }
     }
 
-    /// Some(true) if the game window is minimized, Some(false) if it's up, None if it isn't running.
-    pub fn game_minimized() -> Option<bool> {
+    pub fn game_running() -> bool {
         use windows::core::{w, PCWSTR};
-        use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, IsIconic};
+        use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
         unsafe {
-            let hwnd = FindWindowW(w!("POEWindowClass"), PCWSTR::null())
+            FindWindowW(w!("POEWindowClass"), PCWSTR::null())
                 .or_else(|_| FindWindowW(PCWSTR::null(), w!("Path of Exile 2")))
-                .ok()
-                .filter(|h| !h.is_invalid())?;
-            Some(IsIconic(hwnd).as_bool())
+                .is_ok_and(|h| !h.is_invalid())
+        }
+    }
+
+    pub fn foreground() -> super::Foreground {
+        use windows::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId;
+        unsafe {
+            let hwnd = GetForegroundWindow();
+            let mut pid = 0u32;
+            GetWindowThreadProcessId(hwnd, Some(&mut pid));
+            if pid == std::process::id() {
+                super::Foreground::Ours
+            } else if foreground_is_poe() {
+                super::Foreground::Game
+            } else {
+                super::Foreground::Other
+            }
         }
     }
 
@@ -80,12 +93,27 @@ mod win {
 
 /// Copies the item under the cursor/controller selection from PoE2 and
 /// returns its text, restoring whatever was on the clipboard before.
-/// Whether PoE2's window is minimized (None: game not running).
-pub fn game_minimized() -> Option<bool> {
+/// Which kind of window has focus; the HUD only shows over the game or this app.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Foreground {
+    Game,
+    Ours,
+    Other,
+}
+
+/// Whether PoE2 has a window open (the HUD never shows without the game).
+pub fn game_running() -> bool {
     #[cfg(windows)]
-    return win::game_minimized();
+    return win::game_running();
     #[cfg(not(windows))]
-    None
+    true
+}
+
+pub fn foreground() -> Foreground {
+    #[cfg(windows)]
+    return win::foreground();
+    #[cfg(not(windows))]
+    Foreground::Game
 }
 
 /// True while the left mouse button is held (keeps the HUD clickable mid-drag).

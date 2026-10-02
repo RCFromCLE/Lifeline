@@ -46,7 +46,7 @@ pub fn run(app: AppHandle) {
     }
     let _ = app.emit(
         "rating-status",
-        json!({"busy": true, "text": "Rating your build (Opus 5.5)…"}),
+        json!({"busy": true, "text": "Rating…"}),
     );
     std::thread::spawn(move || {
         let state = app.state::<AppState>();
@@ -108,7 +108,7 @@ fn shop(app: &AppHandle, state: &AppState) {
         let slot = rec["slot"].as_str().unwrap_or("item");
         let _ = app.emit(
             "rating-status",
-            json!({"busy": true, "text": format!("Searching the market for {slot} (Sonnet 5.5)…"), "index": i}),
+            json!({"busy": true, "text": format!("Searching {slot}…"), "index": i}),
         );
         let prompt = format!(
             "Shop for this upgrade for the player.\nSlot: {slot}\nGoal: {}\nWhy: {}\nLook for: {}\nBudget: at most {budget} per item.\n\

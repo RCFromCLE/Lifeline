@@ -105,8 +105,8 @@ async function selectConv(id) {
   if (!c) return;
   if (!c.messages.length) {
     addMessage("ai", "Companion", renderMarkdown(c.in_game
-      ? "Hotkey answers land here: item checks and what-next."
-      : "New conversation. Other open conversations are shared with me as context, so you can refer to them."));
+      ? "Hotkey answers land here."
+      : "New chat. I can see your other chats."));
   }
   for (const m of c.messages) {
     if (m.role === "market") { try { $("chat").appendChild(renderMarket(JSON.parse(m.text))); } catch (_) { } continue; }
@@ -239,7 +239,7 @@ function renderGear(g) {
   $("gear").innerHTML = entries.length ? entries.map(([slot, text]) => {
     const lines = text.split("\n").filter(l => l && !l.startsWith("Item Class") && !l.startsWith("Rarity") && !l.startsWith("--"));
     return `<li><span class="slot">${escapeHtml(slot)}</span><span class="gname">${escapeHtml(lines.slice(0, 2).join(" · "))}</span><button class="ghost x" data-slot="${escapeHtml(slot)}" title="Forget">×</button></li>`;
-  }).join("") : `<li class="hint">Hover an item you're wearing and press ${escapeHtml(settings ? settings.hotkeys.record_equipped : "the record hotkey")}.</li>`;
+  }).join("") : `<li class="hint">Hover worn gear, press ${escapeHtml(settings ? settings.hotkeys.record_equipped : "the record hotkey")}.</li>`;
   $("gear").querySelectorAll(".x").forEach(b => b.addEventListener("click", async () => {
     await invoke("forget_equipped", { slot: b.dataset.slot });
     renderGear(await invoke("equipped"));
@@ -271,7 +271,7 @@ function renderRating(snap) {
     <div class="r-cat tip"><span class="grade small ${gradeClass(c.grade)}">${escapeHtml(c.grade)}</span>
       <div><div class="n">${escapeHtml(c.name)}</div><div class="t">${escapeHtml(c.note)}</div></div></div>`).join("") : "";
   const recs = r ? r.recommendations : [];
-  $("r-recs").innerHTML = recs.length ? "" : "<p class='hint'>Recommendations appear after a rating.</p>";
+  $("r-recs").innerHTML = recs.length ? "" : "<p class='hint'>None yet.</p>";
   recs.forEach((rec, i) => {
     const div = document.createElement("div");
     div.className = "r-rec";
@@ -314,7 +314,7 @@ function renderSkills(snap) {
     </div>`).join("") : "";
   $("s-rotations").innerHTML = p ? p.rotations.map(r => `
     <div class="rot"><h3>${escapeHtml(r.situation)}</h3><ol>${r.steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ol></div>`).join("")
-    : "<p class='hint'>Rotations appear after a setup. The bossing rotation also shows on the overlay.</p>";
+    : "<p class='hint'>None yet.</p>";
 }
 $("s-run").addEventListener("click", () => invoke("run_skills"));
 listen("skills", ({ payload }) => renderSkills(payload));
@@ -344,12 +344,12 @@ $("btn-delete-conv").addEventListener("click", async () => {
   } catch (e) { toast(e); }
 });
 $("btn-overlay").addEventListener("click", () => invoke("toggle_overlay"));
-$("btn-move-hud").addEventListener("click", () => invoke("move_overlay"));
+
 $("btn-paste-item").addEventListener("click", async () => {
   let text = "";
   try { text = await navigator.clipboard.readText(); } catch (_) { }
   if (!text.startsWith("Item Class:")) {
-    toast("Copy an item in game first (Ctrl+Alt+C), or use the item-check hotkey while hovering it.");
+    toast("Copy an item in game first (Ctrl+Alt+C).");
     return;
   }
   invoke("check_item_text", { conv: active, text });
@@ -362,11 +362,10 @@ function renderImport(v) {
   $("import-result").innerHTML = `
     <h2 style="margin-top:14px">${escapeHtml(v.ascendancy || v.class_name || "Build")} · level ${v.level ?? "?"}</h2>
     ${v.warning ? `<div class="status err">${escapeHtml(v.warning)}</div>` : ""}
-    <table><thead><tr><th>PoB tree spec</th><th>Stage</th><th>Passives</th><th>Ascendancy</th><th>≈ Level</th></tr></thead><tbody>${rows}</tbody></table>
-    <p class="hint" style="margin-top:8px">★ = the spec written for that stage. Skill sets: ${v.skill_sets.map(escapeHtml).join(", ") || "none"} · Item sets: ${v.item_sets.map(escapeHtml).join(", ") || "none"}</p>
+    <table><thead><tr><th>Spec</th><th>Stage</th><th>Passives</th><th>Asc.</th><th>≈ Lvl</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="hint" style="margin-top:8px">★ = written for that stage</p>
     <div class="import-actions">
-      <button id="btn-write" class="primary">Write stages to the in-game Build Planner</button>
-      <span class="hint" style="margin:0">One .build file per ★ stage, named "Act 1 - ${escapeHtml(v.name)}" …</span>
+      <button id="btn-write" class="primary">Write to Build Planner</button>
     </div>`;
   $("btn-write").addEventListener("click", writeStages);
 }
@@ -376,7 +375,7 @@ $("import-form").addEventListener("submit", async ev => {
   const input = $("import-input").value.trim();
   if (!input) return;
   $("import-status").className = "status";
-  $("import-status").textContent = "Importing… (first import also downloads GGG's passive tree data)";
+  $("import-status").textContent = "Importing…";
   try {
     const v = await invoke("import_build", { input });
     $("import-status").textContent = "";
@@ -393,7 +392,7 @@ async function writeStages() {
   try {
     const files = await invoke("write_stages");
     $("import-status").className = "status ok";
-    $("import-status").textContent = `Wrote ${files.length} files: ${files.join(", ")}. In game: open the Build Planner and pick the stage for your character.`;
+    $("import-status").textContent = `Wrote ${files.length} stages. Pick one in the game's Build Planner.`;
     refreshPlannerFiles();
   } catch (e) {
     $("import-status").className = "status err";
@@ -403,7 +402,7 @@ async function writeStages() {
 
 async function refreshPlannerFiles() {
   const files = await invoke("planner_files");
-  $("planner-files").innerHTML = files.map(f => `<li>${escapeHtml(f)}</li>`).join("") || "<li class='hint'>No .build files yet.</li>";
+  $("planner-files").innerHTML = files.map(f => `<li>${escapeHtml(f)}</li>`).join("") || "<li class='hint'>None yet.</li>";
 }
 
 // ---- settings ----
@@ -444,7 +443,7 @@ listen("character", ({ payload }) => renderCharacter(payload));
 listen("feed", ({ payload }) => { $("feed").prepend(feedItem(payload)); if (payload.kind === "death") toast(payload.text); });
 listen("usage", ({ payload }) => renderUsage(payload));
 listen("notice", ({ payload }) => toast(payload));
-listen("item", () => toast("Item copied from the game — asking the gear appraiser…"));
+listen("item", () => toast("Checking item…"));
 listen("open-conversation", ({ payload: id }) => {
   document.querySelector('.tab[data-tab="play"]').click();
   selectConv(id);
@@ -470,5 +469,5 @@ listen("focus-chat", () => {
   const first = convs.filter(c => !c.in_game).sort((a, b) => b.id - a.id)[0];
   if (first) await selectConv(first.id);
   else await selectConv(await invoke("new_conversation"));
-  toast(`Hover an item in game and press ${snap.settings.hotkeys.item_check} to check it; ${snap.settings.hotkeys.what_next} for next steps.`);
+  
 })();

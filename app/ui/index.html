@@ -25,29 +25,29 @@
     <button class="tab" data-tab="rating">Rating</button>
     <button class="tab" data-tab="skills">Skills</button>
     <button class="tab" data-tab="build">Build</button>
-    <button class="tab" data-tab="settings">Hotkeys &amp; settings</button>
+    <button class="tab" data-tab="settings">Settings</button>
   </nav>
 
   <main>
     <section class="view active" id="view-play">
       <div class="col">
         <div class="card">
-          <h2>Companion <small>Claude Opus 5.5 · your subscription · conversations run in parallel and know about each other</small></h2>
+          <h2>Chat</h2>
           <div class="chat-layout">
           <aside class="convs">
-            <button id="btn-new-conv" class="primary">+ New conversation</button>
+            <button id="btn-new-conv" class="primary">+ New</button>
             <ul id="conv-list"></ul>
           </aside>
           <div class="chat-main">
           <div class="chat" id="chat"></div>
           <div class="quick">
-            <button id="btn-next" class="primary">What next?</button>
-            <button id="btn-paste-item">Check item from clipboard</button>
-            <button id="btn-trade-login" title="Open pathofexile.com trade in the app — log in once so Travel works">Trade site login</button>
-            <button id="btn-delete-conv" class="ghost">Delete conversation</button>
+            <button id="btn-next" class="primary">What next</button>
+            <button id="btn-paste-item" title="Judge the item text on your clipboard">Check item</button>
+            <button id="btn-trade-login" title="Log in to pathofexile.com once so Travel works">Trade login</button>
+            <button id="btn-delete-conv" class="ghost">Delete</button>
           </div>
           <form id="ask-form" class="ask">
-            <textarea id="ask-input" rows="2" placeholder="Ask anything — gear, supports, bosses, what to buy…  (Enter to send, Shift+Enter for a new line)"></textarea>
+            <textarea id="ask-input" rows="2" placeholder="Ask anything…"></textarea>
             <button type="submit" class="primary">Ask</button>
           </form>
           </div>
@@ -56,17 +56,17 @@
       </div>
       <div class="col narrow">
         <div class="card">
-          <h2>Live from the game</h2>
+          <h2>Live</h2>
           <ul class="feed" id="feed"></ul>
         </div>
         <div class="card">
-          <h2>My gear <small>used for ±% on market cards</small></h2>
+          <h2>Gear</h2>
           <ul class="gear" id="gear"></ul>
         </div>
         <div class="card">
           <h2>Hotkeys</h2>
           <ul class="keys" id="keys-summary"></ul>
-          <div class="quick"><button id="btn-overlay" class="ghost">Show / hide HUD</button><button id="btn-move-hud" class="ghost">Move HUD</button></div>
+          <div class="quick"><button id="btn-overlay" class="ghost">HUD on/off</button></div>
         </div>
       </div>
     </section>
@@ -77,17 +77,17 @@
           <div class="rating-top">
             <div class="tip">
               <div class="grade big" id="r-grade">?</div>
-              <div class="tiptext" id="r-tip">Rate your build to see why.</div>
+              <div class="tiptext" id="r-tip">Not rated yet.</div>
             </div>
             <div class="grow">
-              <h2 id="r-title">Build rating <small>for where you are in the campaign</small></h2>
+              <h2 id="r-title">Rating</h2>
               <div class="r-summary" id="r-summary">Not rated yet.</div>
               <div class="hint" id="r-meta"></div>
             </div>
             <div class="r-controls">
-              <label>Budget per item <input id="r-budget" placeholder="10 exalted"></label>
-              <label class="check"><input type="checkbox" id="r-auto"> Re-rate on each new act</label>
-              <button id="r-run" class="primary">Rate my build</button>
+              <label>Budget <input id="r-budget" placeholder="10 exalted"></label>
+              <label class="check"><input type="checkbox" id="r-auto"> Auto each act</label>
+              <button id="r-run" class="primary">Rate</button>
             </div>
           </div>
           <div class="status" id="r-status"></div>
@@ -95,8 +95,8 @@
           <div class="r-cats" id="r-cats"></div>
         </div>
         <div class="card">
-          <h2>Recommended upgrades <small>market picks within your budget · Sonnet 5.5</small></h2>
-          <div id="r-recs" class="r-recs"><p class="hint">Recommendations appear after a rating.</p></div>
+          <h2>Upgrades</h2>
+          <div id="r-recs" class="r-recs"><p class="hint">None yet.</p></div>
         </div>
       </div>
     </section>
@@ -106,11 +106,11 @@
         <div class="card">
           <div class="skills-head">
             <div class="grow">
-              <h2>Skills, supports &amp; rotations <small>for where you are now · only supports the game allows on each skill</small></h2>
+              <h2>Skills</h2>
               <div class="r-summary" id="s-summary">No setup yet.</div>
               <div class="hint" id="s-meta"></div>
             </div>
-            <button id="s-run" class="primary">Suggest skills &amp; rotation</button>
+            <button id="s-run" class="primary">Suggest</button>
           </div>
           <div class="status" id="s-status"></div>
           <div class="s-grid" id="s-skills"></div>
@@ -119,7 +119,7 @@
       <div class="col narrow">
         <div class="card">
           <h2>Rotations</h2>
-          <div id="s-rotations"><p class="hint">Rotations appear after a setup. The bossing rotation also shows on the overlay.</p></div>
+          <div id="s-rotations"><p class="hint">None yet.</p></div>
         </div>
       </div>
     </section>
@@ -127,10 +127,9 @@
     <section class="view" id="view-build">
       <div class="col">
         <div class="card">
-          <h2>Import a build</h2>
-          <p class="hint">Paste a Path of Building code or a pobb.in / Maxroll PoB / poe2db / pastebin link.</p>
+          <h2>Import build</h2>
           <form id="import-form" class="ask">
-            <textarea id="import-input" rows="3" placeholder="https://pobb.in/…  or  eNrtfW…"></textarea>
+            <textarea id="import-input" rows="3" placeholder="PoB code or link (pobb.in, Maxroll, poe2db, pastebin)"></textarea>
             <button type="submit" class="primary">Import</button>
           </form>
           <div id="import-status" class="status"></div>
@@ -139,8 +138,7 @@
       </div>
       <div class="col narrow">
         <div class="card">
-          <h2>In-game Build Planner</h2>
-          <p class="hint">Files the game will show under Build Planner. Select a stage there for your character.</p>
+          <h2>Planner files</h2>
           <ul class="files" id="planner-files"></ul>
         </div>
       </div>
@@ -149,18 +147,17 @@
     <section class="view" id="view-settings">
       <div class="col">
         <div class="card">
-          <h2>Global hotkeys</h2>
-          <p class="hint">Work while the game is focused. Format: <code>Alt+Shift+D</code>, <code>Ctrl+F9</code>… Pick combos the game doesn't use.
-            The item check sends exactly one Ctrl+Alt+C to the game; nothing else is ever sent.</p>
+          <h2>Hotkeys</h2>
+          <p class="hint">Pick combos the game doesn't use, like <code>Alt+Shift+D</code>.</p>
           <form id="settings-form" class="settings">
-            <label>Item check (copies the hovered item, AI judges it)<input name="item_check"></label>
-            <label>What next (route coach)<input name="what_next"></label>
-            <label>Ask (brings this window up, focuses the chat)<input name="ask"></label>
-            <label>Show / hide HUD overlay<input name="toggle_overlay"></label>
-            <label>Record equipped item (hover an item you're wearing)<input name="record_equipped"></label>
-            <label>Move HUD (press, drag the overlay, press again to lock)<input name="move_overlay"></label>
+            <label title="Sends one Ctrl+Alt+C to the game; nothing else is ever sent">Item check<input name="item_check"></label>
+            <label>What next<input name="what_next"></label>
+            <label>Open app<input name="ask"></label>
+            <label>HUD on/off<input name="toggle_overlay"></label>
+            <label>Record gear<input name="record_equipped"></label>
+            <label>Move HUD<input name="move_overlay"></label>
             <label>League<input name="league"></label>
-            <label class="check"><input type="checkbox" name="overlay_on_hotkey"> Show the HUD automatically for hotkey answers</label>
+            <label class="check"><input type="checkbox" name="overlay_on_hotkey"> Show hotkey answers on the HUD</label>
             <button type="submit" class="primary">Save</button>
             <div id="settings-status" class="status"></div>
           </form>
@@ -169,8 +166,7 @@
       <div class="col narrow">
         <div class="card">
           <h2>About</h2>
-          <p class="hint">Reads your PoE2 log (zones, levels, deaths, passives, rewards) and Build Planner folder. Writes only .build files you ask for.
-            This product isn't affiliated with or endorsed by Grinding Gear Games in any way.</p>
+          <p class="hint">Reads your PoE2 log. Writes only files you approve. Not affiliated with Grinding Gear Games.</p>
         </div>
       </div>
     </section>

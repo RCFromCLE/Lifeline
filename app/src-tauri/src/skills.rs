@@ -25,7 +25,7 @@ pub fn run(app: AppHandle) {
     }
     let _ = app.emit(
         "skills-status",
-        json!({"busy": true, "text": "Setting up your skills and rotations (Opus 5.5)…"}),
+        json!({"busy": true, "text": "Thinking…"}),
     );
     std::thread::spawn(move || {
         let state = app.state::<AppState>();

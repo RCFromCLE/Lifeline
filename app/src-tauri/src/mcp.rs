@@ -313,7 +313,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             let max = args["max_listings"].as_u64().unwrap_or(10) as usize;
             let _ = app.emit(
                 "ai",
-                json!({"conv": conv, "type": "tool", "text": "searching the trade market…"}),
+                json!({"conv": conv, "type": "tool", "text": "searching market…"}),
             );
             let outcome = state.market.search(&league, &body, max)?;
             {

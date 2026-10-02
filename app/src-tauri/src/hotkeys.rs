@@ -65,10 +65,11 @@ pub fn register(app: &AppHandle, hotkeys: &Hotkeys) -> Vec<String> {
 }
 
 pub fn toggle_overlay(app: &AppHandle) {
+    // The setting is the switch; the HUD loop shows it whenever the game (or this app) is in front.
+    let show = !app.state::<AppState>().settings.lock().unwrap().overlay_visible;
+    remember_overlay(app, Some(show), None);
     if let Some(w) = app.get_webview_window("overlay") {
-        let show = !w.is_visible().unwrap_or(false);
         let _ = if show { w.show() } else { w.hide() };
-        remember_overlay(app, Some(show), None);
     }
 }
 
@@ -82,11 +83,6 @@ pub fn remember_overlay(app: &AppHandle, visible: Option<bool>, pos: Option<(f64
             s.overlay_pos = Some((p.0.round(), p.1.round()));
         }
     });
-}
-
-/// Persists the HUD's size (logical px) after the player resizes it.
-pub fn remember_overlay_size(app: &AppHandle, size: (f64, f64)) {
-    update_overlay_settings(app, |s| s.overlay_size = Some((size.0.round(), size.1.round())));
 }
 
 fn update_overlay_settings(app: &AppHandle, change: impl FnOnce(&mut crate::state::Settings)) {

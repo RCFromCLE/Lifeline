@@ -2433,7 +2433,7 @@ dependencies = [
 
 [[package]]
 name = "polr-ai"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -2443,7 +2443,7 @@ dependencies = [
 
 [[package]]
 name = "polr-app"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arboard",
  "polr-ai",
@@ -2464,7 +2464,7 @@ dependencies = [
 
 [[package]]
 name = "polr-data"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "regex",
  "serde",
@@ -2473,7 +2473,7 @@ dependencies = [
 
 [[package]]
 name = "polr-gamefiles"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "dirs 6.0.0",
  "regex",
@@ -2484,7 +2484,7 @@ dependencies = [
 
 [[package]]
 name = "polr-model"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "polr-data",
  "polr-gamefiles",
@@ -2494,7 +2494,7 @@ dependencies = [
 
 [[package]]
 name = "polr-pob"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "flate2",
@@ -2505,7 +2505,7 @@ dependencies = [
 
 [[package]]
 name = "polr-trade"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "polr-ai",
  "regex",

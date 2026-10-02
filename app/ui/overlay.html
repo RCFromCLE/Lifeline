@@ -4,335 +4,238 @@
   <meta charset="utf-8">
   <title>PoLR HUD</title>
   <style>
-    /* The panel fills the window: drag any edge or corner to resize; text scales with the width. */
-    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; }
-    body { font: clamp(11px, 3.5vw, 18px)/1.4 "Segoe UI", system-ui, sans-serif; color: #ece2d0; }
-    .hud {
-      position: absolute; inset: 3px; padding: .75em .9em .65em; border-radius: 12px;
-      background: rgba(14, 11, 9, 0.84); border: 1px solid rgba(214, 167, 86, 0.28);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); backdrop-filter: blur(6px);
-      display: flex; flex-direction: column; gap: .5em; overflow: hidden;
+    /* A tiny bar of buttons. The window hugs whatever is showing (fit_overlay). */
+    html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
+    body { font: 12px/1.35 "Segoe UI", system-ui, sans-serif; color: #ece2d0; }
+    #root { position: absolute; left: 2px; top: 2px; width: max-content; display: flex; flex-direction: column; gap: 3px; }
+    .bar {
+      display: flex; align-items: center; gap: 2px; height: 30px; padding: 0 4px 0 2px; width: max-content;
+      background: rgba(14, 11, 9, 0.86); border: 1px solid rgba(214, 167, 86, 0.3); border-radius: 9px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     }
-    .hud.unlocked { border: 1px dashed #f0c878; cursor: move; box-shadow: 0 0 0 3px rgba(240, 200, 120, 0.18); }
-    .handle { display: none; text-align: center; font-size: .85em; color: #f0c878; letter-spacing: .4px; }
-    .hud.unlocked .handle { display: block; }
-    .row { display: flex; align-items: center; gap: .6em; }
-    .grow { flex: 1; min-width: 0; }
-    .name { font-weight: 600; color: #f3d08a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sub { color: #a8977f; font-size: .92em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pill { font-weight: 700; font-size: .92em; padding: .15em .6em; border-radius: 999px; background: #241d16; border: 1px solid #3a2e24; white-space: nowrap; }
-    .pill.warn { color: #f0c878; border-color: #6e5226; }
-    .pill.bad { color: #ff9585; border-color: #7a3a32; }
-    .pill.death { color: #e9a094; }
-    .next { font-size: .92em; color: #f0c878; background: rgba(110, 82, 38, 0.18); border-radius: 6px; padding: .2em .55em; }
-    .sec { font-size: .8em; text-transform: uppercase; letter-spacing: .7px; color: #8d7d66; margin-bottom: .25em; }
-    .bar { height: 5px; background: #241d16; border-radius: 3px; overflow: hidden; }
-    .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8a6430, #f0c878); }
-    .chips { display: flex; flex-wrap: wrap; gap: .3em; margin-top: .4em; }
-    .chip { font-size: .88em; padding: .05em .55em; border-radius: 999px; background: #211a14; border: 1px solid #3a2e24; }
-    .chip.notable { border-color: #8a6430; color: #f3d08a; }
-    /* Rotation and answer share whatever height is left; each scrolls on its own. */
-    #rotation { flex: 1 1 auto; min-height: 3.2em; display: flex; flex-direction: column; }
-    .answer-box { flex: 2 1 auto; min-height: 4em; display: flex; flex-direction: column; border-top: 1px solid #2a221b; padding-top: .45em; }
-    .status { font-size: .88em; color: #8fb8e6; }
-    .answer { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
-    .answer::-webkit-scrollbar, .rot-steps::-webkit-scrollbar { width: 6px; }
-    .answer::-webkit-scrollbar-thumb, .rot-steps::-webkit-scrollbar-thumb { background: #6e5226; border-radius: 3px; }
-    .answer ul { margin: 2px 0; padding-left: 1.2em; }
-    .answer pre, .answer code { display: none; }
-    .err { color: #ff9c8f; }
-    .foot { margin-top: auto; display: flex; align-items: center; gap: .8em; font-size: .8em; color: #8d7d66; border-top: 1px solid #2a221b; padding-top: .4em; flex-wrap: wrap; }
-    .meter { display: flex; align-items: center; gap: 4px; }
-    .meter .bar { width: 3em; }
-    .meter .bar i.mid { background: #d6a756; } .meter .bar i.high { background: #d2574a; }
-    .keys { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-    .keys b { color: #c8a76a; font-weight: 600; }
-    .hidden { display: none !important; }
-    .actions { display: flex; flex-wrap: wrap; gap: .35em; }
-    .act { cursor: pointer; font: inherit; font-size: .88em; color: #e8dcc8; background: #221a14; border: 1px solid #3a2e24; border-radius: 7px; padding: .2em .6em; }
-    .act:hover { border-color: #f0c878; color: #f3d08a; }
-    .act.primary { background: linear-gradient(#5a3f1c, #3d2a12); border-color: #8a6430; color: #f3d08a; }
-    .answer-head { display: flex; align-items: center; gap: .45em; }
-    .answer-head .sec { flex: 1; margin: 0; }
-    .mini { cursor: pointer; font: inherit; font-size: .85em; color: #c8a76a; background: transparent; border: 1px solid #3a2e24; border-radius: 6px; padding: .05em .55em; }
-    .mini:hover { border-color: #f0c878; }
-    .gbtn { cursor: pointer; border: none; font-family: Georgia, serif; font-weight: 800; font-size: 1.15em; min-width: 2.5em; height: 1.85em; padding: 0 .45em; border-radius: 8px; }
-    .gbtn:hover { outline: 2px solid #f0c878; }
-    .gbtn.busy { animation: pulse 1s infinite; }
-    @keyframes pulse { 50% { opacity: .45; } }
+    .unlocked .bar { border: 1px dashed #f0c878; cursor: move; }
+    .knob { color: #6f6150; font-size: 14px; padding: 0 3px; cursor: move; line-height: 30px; }
+    .knob:hover { color: #f0c878; }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    .grade {
+      border: none; font-family: Georgia, serif; font-weight: 800; font-size: 14px; min-width: 30px; height: 22px;
+      padding: 0 5px; border-radius: 6px;
+    }
+    .grade:hover { outline: 2px solid #f0c878; }
+    .grade.busy { animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity: .4; } }
     .g-S { background: linear-gradient(135deg, #6b4a12, #e9c46a); color: #1b1206; }
     .g-A { background: #1f4d1a; color: #a6f59a; } .g-B { background: #2c4a1e; color: #cdeaa0; }
     .g-C { background: #4a4317; color: #f2df7d; } .g-D { background: #5a3414; color: #f8b26a; }
     .g-F { background: #5e1c16; color: #ff8f80; } .g-none { background: #241d16; color: #a8977f; }
-    /* The grade explanation floats over the panel instead of pushing it around. */
-    .explain {
-      position: absolute; left: .7em; right: .7em; top: 3.6em; z-index: 5; max-height: 65%; overflow-y: auto;
-      font-size: .96em; background: rgba(36, 28, 21, 0.97); border: 1px solid #6e5226; border-radius: 8px; padding: .55em .7em;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, .6);
+    .res { font-weight: 700; font-size: 11px; padding: 1px 5px; border-radius: 999px; color: #cdbfa8; white-space: nowrap; }
+    .res.warn { color: #f0c878; } .res.bad { color: #ff9585; }
+    .res .up { color: #f0c878; margin-left: 2px; }
+    .deaths { font-size: 11px; color: #e9a094; padding: 0 2px; }
+    .sep { width: 1px; height: 16px; background: #3a2e24; margin: 0 2px; }
+    .ic {
+      width: 26px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: 1px solid transparent; border-radius: 6px; color: #c8b89c; padding: 0;
     }
-    .explain .s { color: #f3d08a; font-weight: 600; margin-bottom: 3px; }
-    .rsum { font-size: .92em; color: #cdbfa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rot-tabs { display: flex; gap: .3em; margin-bottom: .3em; flex-wrap: wrap; }
-    .rot-tab { cursor: pointer; font: inherit; font-size: .8em; text-transform: uppercase; letter-spacing: .6px; color: #8d7d66; background: transparent; border: 1px solid #2a221b; border-radius: 6px; padding: .05em .55em; }
-    .rot-tab.on { color: #f3d08a; border-color: #8a6430; background: rgba(110, 82, 38, 0.2); }
-    .rot-steps { flex: 1; min-height: 0; margin: 0; padding-left: 1.4em; font-size: .96em; overflow-y: auto; }
-    .rot-steps li { margin-bottom: 2px; }
-    /* The header (handle, name, location) always drags the HUD. */
-    .drag { cursor: move; }
-    .knob { color: #8d7d66; font-size: 1.2em; line-height: 1; padding: .1em .15em; border-radius: 5px; }
-    .knob:hover { color: #f0c878; background: rgba(110, 82, 38, 0.25); }
-    /* Resize grips on every edge and corner. */
-    .grip { position: absolute; z-index: 10; }
-    .grip[data-dir=North], .grip[data-dir=South] { left: 14px; right: 14px; height: 6px; cursor: ns-resize; }
-    .grip[data-dir=East], .grip[data-dir=West] { top: 14px; bottom: 14px; width: 6px; cursor: ew-resize; }
-    .grip[data-dir=North] { top: 0; } .grip[data-dir=South] { bottom: 0; }
-    .grip[data-dir=East] { right: 0; } .grip[data-dir=West] { left: 0; }
-    .grip.corner { width: 14px; height: 14px; }
-    .grip[data-dir=NorthWest] { top: 0; left: 0; cursor: nwse-resize; }
-    .grip[data-dir=NorthEast] { top: 0; right: 0; cursor: nesw-resize; }
-    .grip[data-dir=SouthWest] { bottom: 0; left: 0; cursor: nesw-resize; }
-    .grip[data-dir=SouthEast] { bottom: 0; right: 0; cursor: nwse-resize; }
-    .grip[data-dir=SouthEast]::after {
-      content: ""; position: absolute; right: 3px; bottom: 3px; width: 7px; height: 7px; opacity: .55;
-      border-right: 2px solid #c8a76a; border-bottom: 2px solid #c8a76a; border-bottom-right-radius: 3px;
+    .ic:hover { border-color: #6e5226; color: #f3d08a; background: rgba(110, 82, 38, 0.2); }
+    .ic.on { color: #f3d08a; border-color: #8a6430; }
+    .ic.busy svg { animation: pulse 1s infinite; }
+    .ic svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .compact .full { display: none !important; }
+    .panel {
+      width: 0; min-width: 100%; box-sizing: border-box; max-height: 240px; display: flex; flex-direction: column;
+      background: rgba(14, 11, 9, 0.9); border: 1px solid rgba(214, 167, 86, 0.3); border-radius: 9px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55); padding: 6px 8px 7px;
     }
-    .grip[data-dir=SouthEast]:hover::after { opacity: 1; }
+    .phead { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+    .ptitle { flex: 1; min-width: 0; font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; color: #8d7d66; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .phead .ic { width: 20px; height: 18px; }
+    .phead .ic svg { width: 12px; height: 12px; }
+    .pbody { overflow-y: auto; min-height: 0; padding-right: 3px; font-size: 12.5px; }
+    .pbody::-webkit-scrollbar { width: 5px; } .pbody::-webkit-scrollbar-thumb { background: #6e5226; border-radius: 3px; }
+    .pbody ul, .pbody ol { margin: 2px 0; padding-left: 16px; }
+    .pbody p { margin: 2px 0; }
+    .pbody pre, .pbody code { display: none; }
+    .status { color: #8fb8e6; font-size: 11.5px; }
+    .err { color: #ff9c8f; }
+    .tabs { display: flex; gap: 3px; }
+    .tab { font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px; color: #8d7d66; background: transparent; border: 1px solid #2a221b; border-radius: 5px; padding: 0 6px; }
+    .tab.on { color: #f3d08a; border-color: #8a6430; }
+    .mini { font-size: 11.5px; color: #f3d08a; background: #2b2113; border: 1px solid #8a6430; border-radius: 6px; padding: 1px 8px; margin-top: 4px; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <div class="hud" id="hud">
-    <div class="grip hit" data-dir="North"></div><div class="grip hit" data-dir="South"></div><div class="grip hit" data-dir="East"></div><div class="grip hit" data-dir="West"></div>
-    <div class="grip corner hit" data-dir="NorthWest"></div><div class="grip corner hit" data-dir="NorthEast"></div><div class="grip corner hit" data-dir="SouthWest"></div><div class="grip corner hit" data-dir="SouthEast" title="Drag to resize"></div>
-    <div class="handle">⠿ drag to move · press <span id="move-key">Alt+Shift+M</span> to lock</div>
-    <div class="row">
-      <div class="drag hit knob" title="Drag to move">⠿</div>
-      <div class="grow drag hit" title="Drag to move">
-        <div class="name" id="name">PathOfLeastResistance</div>
-        <div class="sub" id="where">Waiting for the game log…</div>
+  <div id="root">
+    <div class="bar hit" id="bar">
+      <span class="knob drag" title="Drag to move">⠿</span>
+      <button class="grade g-none" id="grade" title="Rate build">?</button>
+      <span class="res full" id="pen" title="Resistance penalty here">–</span>
+      <span class="deaths full hidden" id="deaths"></span>
+      <span class="sep full"></span>
+      <button class="ic full" data-action="item_check" title="Check item">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>
+      <button class="ic full" data-action="what_next" title="What next">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button class="ic full" id="rot-btn" title="Rotation">
+        <svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button>
+      <button class="ic full" data-action="record_equipped" title="Record gear">
+        <svg viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.4 3 7.4 7 9 4-1.6 7-4.6 7-9V6z"/></svg></button>
+      <button class="ic full" data-action="ask" title="Open app">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></button>
+      <button class="ic full" data-action="toggle_overlay" title="Hide">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="panel hit hidden" id="panel">
+      <div class="phead">
+        <div class="ptitle" id="ptitle"></div>
+        <button class="ic" id="p-open" title="Open in app"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg></button>
+        <button class="ic" id="p-close" title="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
-      <button class="gbtn g-none hit" id="grade" title="">?</button>
-      <span class="pill" id="pen">Res —</span>
-      <span class="pill death hidden" id="deaths"></span>
-    </div>
-    <div class="rsum" id="rsum">Click ? to rate your build</div>
-    <div class="explain hidden" id="explain"><div class="s" id="explain-s"></div><div id="explain-t"></div></div>
-    <div class="next hidden" id="next"></div>
-    <div id="plan" class="hidden">
-      <div class="sec" id="plan-title"></div>
-      <div class="bar"><i id="plan-bar" style="width:0"></i></div>
-      <div class="chips" id="plan-next"></div>
-    </div>
-    <div id="rotation" class="hidden">
-      <div class="rot-tabs" id="rot-tabs"></div>
-      <ol class="rot-steps" id="rot-steps"></ol>
-    </div>
-    <div class="actions">
-      <button class="act primary hit" data-action="item_check" title="Check the item you have selected (controller) — with a mouse use the hotkey so the cursor stays on the item">Check item</button>
-      <button class="act hit" data-action="what_next" title="Next 1–3 steps for where you are">What next</button>
-      <button class="act hit" data-action="ask" title="Open the app's chat">Ask</button>
-      <button class="act hit" data-action="skills" title="Suggest skills, supports, buttons and rotations for where you are">Skills</button>
-      <button class="act hit" data-action="record_equipped" title="Record the selected item as equipped (controller) — with a mouse use the hotkey">Record gear</button>
-      <button class="act hit" data-action="move_overlay" title="Unlock to drag; click again to lock">Move</button>
-      <button class="act hit" data-action="toggle_overlay" title="Hide the HUD (show it again with the hotkey or from the app)">Hide</button>
-    </div>
-    <div class="answer-box hidden hit" id="answer-box">
-      <div class="answer-head"><div class="sec" id="answer-label"></div><button class="mini" id="open-app">Open in app</button><button class="mini" id="close-answer">✕</button></div>
-      <div class="status" id="status"></div>
-      <div class="answer" id="answer"></div>
-    </div>
-    <div class="foot">
-      <span class="meter"><span>5h</span><span class="bar"><i id="u5"></i></span></span>
-      <span class="meter"><span>7d</span><span class="bar"><i id="u7"></i></span></span>
-      <span class="keys" id="keys"></span>
+      <div class="pbody" id="pbody"></div>
     </div>
   </div>
   <script src="common.js"></script>
   <script>
     const el = id => document.getElementById(id);
-    let raw = "", hudConv = null, refreshTimer = null;
+    const win = () => window.__TAURI__.window.getCurrentWindow();
+    const ROT_LABEL = { Clearing: "Clear", Bossing: "Boss", Emergency: "Panic" };
 
-    function shortKey(k) { return (k || "").replace(/Alt\+Shift\+/i, "⇧⌥"); }
+    // Panel: "answer" (hotkey replies), "rotation", or none; hovering the grade shows its reason on top.
+    let mode = null, hoverGrade = false, compact = false;
+    let answer = { label: "", status: "", html: "", error: false, conv: null, raw: "" };
+    let rating = null, rotations = null, rotIndex = 1, nextPenalty = null;
+
+    function renderPanel() {
+      const show = !compact && (hoverGrade || mode);
+      el("panel").classList.toggle("hidden", !show);
+      el("rot-btn").classList.toggle("on", mode === "rotation");
+      if (!show) return fit();
+      el("p-open").classList.toggle("hidden", hoverGrade || mode !== "answer");
+      el("p-close").classList.toggle("hidden", hoverGrade);
+      if (hoverGrade) {
+        el("ptitle").textContent = rating ? `${rating.grade} · ${rating.stage} · click to re-rate` : "Click to rate";
+        el("pbody").innerHTML = rating
+          ? `<p>${escapeHtml(rating.summary || "")}</p><p style="color:#a8977f">${escapeHtml(rating.explanation || "")}</p>`
+          : `<p style="color:#a8977f">Grades your build F–S+ for where you are.</p>`;
+      } else if (mode === "answer") {
+        el("ptitle").textContent = answer.label;
+        el("pbody").innerHTML = (answer.status ? `<div class="status">${escapeHtml(answer.status)}</div>` : "")
+          + `<div class="${answer.error ? "err" : ""}">${answer.html}</div>`;
+      } else if (mode === "rotation") {
+        if (!rotations) {
+          el("ptitle").textContent = "Rotation";
+          el("pbody").innerHTML = `<div style="color:#a8977f">None yet.</div><button class="mini" id="make-rot">Make one</button>`;
+          el("make-rot").onclick = () => { invoke("overlay_action", { action: "skills" }); el("rot-btn").classList.add("busy"); };
+        } else {
+          rotIndex = Math.min(rotIndex, rotations.length - 1);
+          el("ptitle").innerHTML = `<span class="tabs">${rotations.map((r, i) =>
+            `<button class="tab ${i === rotIndex ? "on" : ""}" data-i="${i}">${escapeHtml(ROT_LABEL[r.situation] || r.situation)}</button>`).join("")}</span>`;
+          el("ptitle").querySelectorAll(".tab").forEach(b => b.onclick = () => { rotIndex = Number(b.dataset.i); renderPanel(); });
+          el("pbody").innerHTML = `<ol>${rotations[rotIndex].steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ol>`;
+        }
+      }
+      fit();
+    }
+
+    // The window hugs the content; only the bar and panel take clicks.
+    let fitFrame = 0;
+    function fit() {
+      cancelAnimationFrame(fitFrame);
+      fitFrame = requestAnimationFrame(() => {
+        const r = el("root").getBoundingClientRect();
+        invoke("fit_overlay", { width: r.width + 6, height: r.height + 6 });
+        const rects = [...document.querySelectorAll(".hit")].filter(e => e.offsetParent).map(e => {
+          const b = e.getBoundingClientRect();
+          return [b.left, b.top, b.right, b.bottom];
+        });
+        invoke("overlay_regions", { rects });
+      });
+    }
+    new ResizeObserver(fit).observe(el("root"));
+
+    function setCompact(on) {
+      compact = !!on;
+      document.body.classList.toggle("compact", compact);
+      renderPanel();
+    }
 
     function render(h) {
       const c = h.character;
-      const d = describeCharacter(c);
-      el("name").textContent = d.name;
-      el("where").textContent = d.where || "Waiting for the game log…";
-      el("pen").textContent = c.res_penalty === null || c.res_penalty === undefined ? "Res —" : `Res ${c.res_penalty}%`;
-      el("pen").className = `pill ${penaltyClass(c.res_penalty)}`;
-      el("deaths").textContent = `☠ ${c.deaths}`;
+      const pen = c.res_penalty;
+      el("pen").className = `res full ${penaltyClass(pen)}`;
+      nextPenalty = h.next_penalty;
+      el("pen").innerHTML = (pen === null || pen === undefined ? "–" : `${pen}%`) + (nextPenalty ? `<span class="up">▲</span>` : "");
+      el("pen").title = `Resistance penalty here${nextPenalty ? ` · next: ${nextPenalty}` : ""}`;
+      el("deaths").textContent = `☠${c.deaths}`;
       el("deaths").classList.toggle("hidden", !c.deaths);
-      el("next").textContent = h.next_penalty ? `Next: ${h.next_penalty} resistance — cap before you go` : "";
-      el("next").classList.toggle("hidden", !h.next_penalty);
-      if (h.plan) {
-        el("plan").classList.remove("hidden");
-        el("plan-title").textContent = `${h.plan.stage} plan · ${h.plan.allocated}/${h.plan.planned} passives`;
-        el("plan-bar").style.width = `${h.plan.planned ? Math.round(100 * h.plan.allocated / h.plan.planned) : 0}%`;
-        el("plan-next").innerHTML = h.plan.next.map(n => `<span class="chip ${n.notable ? "notable" : ""}">${escapeHtml(n.name)}</span>`).join("");
-      } else el("plan").classList.add("hidden");
-      const k = h.hotkeys;
-      el("keys").innerHTML = `<b>${shortKey(k.item_check)}</b> check · <b>${shortKey(k.what_next)}</b> next · <b>${shortKey(k.record_equipped)}</b> gear`;
-      el("move-key").textContent = k.move_overlay;
-      setUnlocked(h.unlocked);
-      reportRegions();
+      document.body.classList.toggle("unlocked", !!h.unlocked);
+      fit();
+    }
+    let refreshTimer = null;
+    function refresh() { clearTimeout(refreshTimer); refreshTimer = setTimeout(() => invoke("hud").then(render), 250); }
+
+    function renderGrade(r) {
+      rating = r;
+      el("grade").textContent = r ? r.grade : "?";
+      el("grade").className = `grade ${r ? "g-" + r.grade[0] : "g-none"}`;
+      if (hoverGrade) renderPanel();
     }
 
-    function refresh() {
-      clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => invoke("hud").then(render), 250);
-    }
-
-    function setUnlocked(on) { el("hud").classList.toggle("unlocked", !!on); }
-
-    // In move mode the whole panel drags the window.
-    el("hud").addEventListener("mousedown", ev => {
-      if (ev.button === 0 && el("hud").classList.contains("unlocked")) {
-        window.__TAURI__.window.getCurrentWindow().startDragging();
-      }
-    });
-
-    // Edges and corners resize the window; the layout follows (text scales with width).
-    document.querySelectorAll(".grip").forEach(g => g.addEventListener("mousedown", ev => {
-      if (ev.button !== 0) return;
-      ev.stopPropagation();
-      window.__TAURI__.window.getCurrentWindow().startResizeDragging(g.dataset.dir)
-        .catch(e => invoke("log_debug", { msg: `overlay resize failed: ${e}` }));
-    }));
+    // ---- interactions ----
     document.querySelectorAll(".drag").forEach(d => d.addEventListener("mousedown", ev => {
-      if (ev.button !== 0) return;
-      ev.stopPropagation();
-      window.__TAURI__.window.getCurrentWindow().startDragging()
-        .catch(e => invoke("log_debug", { msg: `overlay drag failed: ${e}` }));
+      if (ev.button === 0) { ev.stopPropagation(); win().startDragging(); }
     }));
+    el("bar").addEventListener("mousedown", ev => {
+      if (ev.button === 0 && document.body.classList.contains("unlocked") && ev.target === el("bar")) win().startDragging();
+    });
+    document.querySelectorAll("[data-action]").forEach(b => b.addEventListener("click", () => {
+      invoke("overlay_action", { action: b.dataset.action }).catch(e => {
+        answer = { ...answer, label: "Error", status: "", html: escapeHtml(String(e)), error: true };
+        mode = "answer"; renderPanel();
+      });
+    }));
+    el("rot-btn").addEventListener("click", () => { mode = mode === "rotation" ? null : "rotation"; renderPanel(); });
+    el("p-close").addEventListener("click", () => { mode = null; renderPanel(); });
+    el("p-open").addEventListener("click", () => invoke("open_in_game_chat"));
+    el("grade").addEventListener("mouseenter", () => { hoverGrade = true; renderPanel(); });
+    el("grade").addEventListener("mouseleave", () => { hoverGrade = false; renderPanel(); });
+    el("grade").addEventListener("click", () => { el("grade").classList.add("busy"); invoke("rate_now"); });
 
-    listen("overlay-mode", ({ payload }) => setUnlocked(payload));
+    // ---- events ----
+    listen("hud-compact", ({ payload }) => setCompact(payload));
+    listen("overlay-mode", ({ payload }) => document.body.classList.toggle("unlocked", !!payload));
     listen("character", refresh);
     listen("feed", refresh);
-    listen("equipped", refresh);
-    listen("usage", ({ payload }) => {
-      for (const w of payload.windows || []) {
-        const bar = el(w.name === "five_hour" ? "u5" : w.name === "seven_day" ? "u7" : "");
-        if (!bar) continue;
-        bar.style.width = `${Math.min(100, w.pct)}%`;
-        bar.className = w.pct >= 80 ? "high" : w.pct >= 50 ? "mid" : "";
-      }
-    });
     listen("ai", ({ payload: e }) => {
       if (e.type === "start") {
         if (!e.hotkey) return;
-        hudConv = e.conv; raw = "";
-        el("answer-box").classList.remove("hidden");
-        el("answer-label").textContent = e.label;
-        setTimeout(reportRegions, 0);
-        el("status").textContent = "thinking…";
-        el("answer").innerHTML = "";
-        el("answer").className = "answer";
-      } else if (e.conv !== hudConv) return;
-      else if (e.type === "tool") el("status").textContent = `↳ ${e.text}`;
-      else if (e.type === "delta") { raw += e.text; el("status").textContent = ""; el("answer").innerHTML = renderMarkdown(raw); el("answer").scrollTop = el("answer").scrollHeight; reportRegions(); }
-      else if (e.type === "done") {
-        el("status").textContent = "";
-        el("answer").innerHTML = renderMarkdown(e.text || raw);
-        el("answer").className = e.error ? "answer err" : "answer";
-        el("answer").scrollTop = 0;
-        reportRegions();
-      }
+        answer = { label: e.label, status: "…", html: "", error: false, conv: e.conv, raw: "" };
+        mode = "answer";
+      } else if (e.conv !== answer.conv) return;
+      else if (e.type === "tool") answer.status = "…";
+      else if (e.type === "delta") { answer.raw += e.text; answer.status = ""; answer.html = renderMarkdown(answer.raw); }
+      else if (e.type === "done") { answer.status = ""; answer.html = renderMarkdown(e.text || answer.raw); answer.error = !!e.error; }
+      else return;
+      if (mode === "answer") renderPanel();
     });
-    listen("notice", ({ payload }) => {
-      el("answer-box").classList.remove("hidden");
-      el("answer-label").textContent = "Notice";
-      el("status").textContent = "";
-      el("answer").innerHTML = escapeHtml(payload);
-      el("answer").className = "answer";
-      setTimeout(reportRegions, 0);
+    listen("rating", ({ payload }) => { renderGrade(payload.rating); el("grade").classList.toggle("busy", !!payload.busy); });
+    listen("rating-status", ({ payload }) => el("grade").classList.toggle("busy", !!payload.busy));
+    listen("skills", ({ payload }) => {
+      const r = payload.plan && payload.plan.rotations;
+      rotations = Array.isArray(r) && r.length ? r : null;
+      el("rot-btn").classList.remove("busy");
+      if (mode === "rotation") renderPanel();
     });
-    // ---- clickable regions (the rest of the HUD stays click-through) ----
-    function reportRegions() {
-      const rects = [...document.querySelectorAll(".hit")].filter(e => e.offsetParent).map(e => {
-        const r = e.getBoundingClientRect();
-        return [r.left - 2, r.top - 2, r.right + 2, r.bottom + 2];
-      });
-      invoke("overlay_regions", { rects });
-    }
-    window.addEventListener("resize", reportRegions);
+    listen("skills-status", ({ payload }) => el("rot-btn").classList.toggle("busy", !!payload.busy));
 
-    // diagnostics: log clicks the page receives
-    document.addEventListener("click", e => {
-      invoke("log_debug", { msg: `overlay click on ${e.target.id || e.target.className}` });
-    }, true);
-
-    // ---- overlay buttons for every hotkey action ----
-    document.querySelectorAll("[data-action]").forEach(b => b.addEventListener("click", () => {
-      invoke("overlay_action", { action: b.dataset.action }).catch(e => listenNotice(e));
-    }));
-    function listenNotice(text) {
-      el("answer-box").classList.remove("hidden");
-      el("answer-label").textContent = "Notice";
-      el("answer").innerHTML = escapeHtml(text);
-      reportRegions();
-    }
-    el("open-app").addEventListener("click", () => invoke("open_in_game_chat"));
-    el("close-answer").addEventListener("click", () => { el("answer-box").classList.add("hidden"); reportRegions(); });
-
-    // ---- rotation (from the skill coach): clickable situation tabs ----
-    let rotations = null, rotIndex = 1;
-    function renderRotation(rots) {
-      rotations = Array.isArray(rots) && rots.length ? rots : null;
-      el("rotation").classList.toggle("hidden", !rotations);
-      if (!rotations) { reportRegions(); return; }
-      rotIndex = Math.min(rotIndex, rotations.length - 1);
-      el("rot-tabs").innerHTML = rotations.map((r, i) => `<button class="rot-tab hit ${i === rotIndex ? "on" : ""}" data-i="${i}">${escapeHtml(r.situation)}</button>`).join("");
-      el("rot-tabs").querySelectorAll(".rot-tab").forEach(b => b.addEventListener("click", () => { rotIndex = Number(b.dataset.i); renderRotation(rotations); }));
-      el("rot-steps").innerHTML = rotations[rotIndex].steps.map(s => `<li>${escapeHtml(s)}</li>`).join("");
-      reportRegions();
-    }
-    listen("skills", ({ payload }) => renderRotation(payload.plan && payload.plan.rotations));
-    listen("skills-status", ({ payload }) => { if (payload.text) el("rsum").textContent = payload.text; });
-
-    // ---- build rating: hover explains, click re-rates ----
-    let ratingStarted = 0, ratingTicker = null;
-    function ratingTick(on, text) {
-      clearInterval(ratingTicker);
-      if (!on) return;
-      ratingStarted = ratingStarted || Date.now();
-      const show = () => { el("rsum").textContent = `${text || "Rating your build"} · ${Math.round((Date.now() - ratingStarted) / 1000)}s`; };
-      show();
-      ratingTicker = setInterval(show, 1000);
-    }
-    let rating = null;
-    function renderGrade(r) {
-      rating = r;
-      const g = el("grade");
-      g.textContent = r ? r.grade : "?";
-      g.className = `gbtn hit ${r ? "g-" + r.grade[0] : "g-none"}`;
-      el("rsum").textContent = r ? `${r.stage}: ${r.summary}` : "Click ? to rate your build";
-      el("explain-s").textContent = r ? `${r.grade} — ${r.stage}, level ${r.level} (click to re-rate)` : "Click to rate your build";
-      el("explain-t").textContent = r ? r.explanation : "Opus 5.5 grades your build F to S+ for where you are in the campaign.";
-      reportRegions();
-    }
-    el("grade").addEventListener("mouseenter", () => { el("explain").classList.remove("hidden"); reportRegions(); });
-    el("grade").addEventListener("mouseleave", () => { el("explain").classList.add("hidden"); reportRegions(); });
-    el("grade").addEventListener("click", () => {
-      el("grade").classList.add("busy");
-      ratingStarted = Date.now();
-      ratingTick(true, "Rating your build (Opus 5.5)");
-      invoke("rate_now");
+    invoke("hud").then(h => {
+      render(h);
+      renderGrade(h.rating);
+      rotations = Array.isArray(h.rotations) && h.rotations.length ? h.rotations : null;
+      setCompact(h.compact);
     });
-    listen("rating", ({ payload }) => {
-      renderGrade(payload.rating);
-      el("grade").classList.toggle("busy", !!payload.busy);
-      if (!payload.busy) { ratingTick(false); ratingStarted = 0; if (rating) el("rsum").textContent = `${rating.stage}: ${rating.summary}`; }
-    });
-    listen("rating-status", ({ payload }) => {
-      el("grade").classList.toggle("busy", !!payload.busy);
-      if (payload.busy && payload.text) ratingTick(true, payload.text.replace(/…$/, ""));
-      else {
-        ratingTick(false); ratingStarted = 0;
-        if (payload.text) el("rsum").textContent = payload.text;
-        else if (rating) el("rsum").textContent = `${rating.stage}: ${rating.summary}`;
-      }
-    });
-    invoke("hud").then(h => { render(h); renderGrade(h.rating); renderRotation(h.rotations); });    setInterval(refresh, 15000);
+    setInterval(refresh, 15000);
   </script>
 </body>
 </html>

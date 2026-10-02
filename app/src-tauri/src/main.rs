@@ -204,7 +204,8 @@ fn hud(state: tauri::State<'_, AppState>) -> serde_json::Value {
         "rotations": state.skills_plan.lock().unwrap().as_ref().map(|p| p["rotations"].clone()),
         "skills_busy": state.skills_busy.load(std::sync::atomic::Ordering::SeqCst),
         "hotkeys": settings.hotkeys,
-        "unlocked": state.overlay_unlocked.load(std::sync::atomic::Ordering::SeqCst)
+        "unlocked": state.overlay_unlocked.load(std::sync::atomic::Ordering::SeqCst),
+        "compact": input::foreground() == input::Foreground::Ours
     })
 }
 
@@ -287,22 +288,31 @@ fn spawn_overlay_hit_test(app: AppHandle) {
     std::thread::spawn(move || {
         let mut ignoring = true;
         let mut tick = 0u32;
-        // The HUD was up when the game got minimized, so bring it back on restore.
-        let mut hidden_with_game = false;
+        let mut last_fg: Option<input::Foreground> = None;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(40));
             let Some(w) = app.get_webview_window("overlay") else {
                 continue;
             };
             tick = tick.wrapping_add(1);
-            if tick % 6 == 0 {
-                let minimized = input::game_minimized() == Some(true);
-                if minimized && w.is_visible().unwrap_or(false) {
-                    hidden_with_game = true;
-                    let _ = w.hide();
-                } else if !minimized && hidden_with_game {
-                    hidden_with_game = false;
-                    let _ = w.show();
+            // Every ~200 ms: the HUD only shows while the game is running, and only
+            // over the game (full) or this app (shrunk to the grade). Over anything
+            // else, a minimized game, or no game at all, it hides.
+            if tick % 5 == 0 {
+                let fg = input::foreground();
+                let enabled = app.state::<AppState>().settings.lock().unwrap().overlay_visible;
+                let want = enabled
+                    && match fg {
+                        input::Foreground::Game => true,
+                        input::Foreground::Ours => input::game_running(),
+                        input::Foreground::Other => false,
+                    };
+                if want != w.is_visible().unwrap_or(false) {
+                    let _ = if want { w.show() } else { w.hide() };
+                }
+                if last_fg != Some(fg) {
+                    last_fg = Some(fg);
+                    let _ = app.emit_to("overlay", "hud-compact", fg == input::Foreground::Ours);
                 }
             }
             let state = app.state::<AppState>();
@@ -347,7 +357,6 @@ fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, 
         // The HUD's place and on/off state are owned by the HUD, not the form.
         let current = state.settings.lock().unwrap();
         settings.overlay_pos = current.overlay_pos;
-        settings.overlay_size = current.overlay_size;
         settings.overlay_visible = current.overlay_visible;
     }
     settings.save(&state.data_dir)?;
@@ -356,14 +365,10 @@ fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, 
     Ok(failed)
 }
 
+/// The HUD: a tiny always-on-top bar the page sizes to its content (`fit_overlay`).
 fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
-    const DEFAULT_SIZE: (f64, f64) = (380.0, 500.0);
-    const MIN_SIZE: (f64, f64) = (240.0, 150.0);
-    let state = app.state::<AppState>();
-    let (saved_pos, saved_size, visible) = {
-        let s = state.settings.lock().unwrap();
-        (s.overlay_pos, s.overlay_size, s.overlay_visible)
-    };
+    const START_SIZE: (f64, f64) = (300.0, 44.0);
+    let saved_pos = app.state::<AppState>().settings.lock().unwrap().overlay_pos;
     // Monitor bounds in logical px: (x, y, width, height).
     let bounds = |m: &tauri::Monitor| {
         let s = m.scale_factor();
@@ -373,74 +378,52 @@ fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
     };
     let monitors: Vec<_> = app.available_monitors().unwrap_or_default().iter().map(bounds).collect();
     let primary = app.primary_monitor().ok().flatten().map(|m| bounds(&m));
-    // The saved spot's monitor, else the primary one; the HUD is kept fully on it.
-    let (pos, screen) = match saved_pos.and_then(|(x, y)| {
-        monitors
-            .iter()
-            .find(|m| x + 40.0 >= m.0 && x < m.0 + m.2 - 40.0 && y + 10.0 >= m.1 && y < m.1 + m.3 - 40.0)
-            .map(|m| ((x, y), *m))
-    }) {
-        Some(found) => (Some(found.0), Some(found.1)),
-        // Default: tucked into the top-left corner, away from the top-right minimap.
-        None => (primary.map(|m| (m.0 + 8.0, m.1 + 8.0)), primary),
-    };
-    let mut size = saved_size.unwrap_or(DEFAULT_SIZE);
-    if let Some(m) = screen {
-        // A size that filled the screen (e.g. an accidental maximize) resets to the default.
-        if size.0 > m.2 - 16.0 || size.1 > m.3 - 16.0 {
-            size = DEFAULT_SIZE;
-        }
-    }
+    // The saved spot if it's still on a connected monitor, else the top-left corner.
+    let pos = saved_pos
+        .and_then(|(x, y)| {
+            monitors
+                .iter()
+                .find(|m| x + 40.0 >= m.0 && x < m.0 + m.2 - 40.0 && y + 10.0 >= m.1 && y < m.1 + m.3 - 30.0)
+                .map(|m| (x.clamp(m.0, m.0 + m.2 - 60.0), y.clamp(m.1, m.1 + m.3 - 30.0)))
+        })
+        .or(primary.map(|m| (m.0 + 8.0, m.1 + 8.0)));
     let mut builder = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("overlay.html".into()))
         .title("PoLR HUD")
-        .inner_size(size.0, size.1)
-        .min_inner_size(MIN_SIZE.0, MIN_SIZE.1)
+        .inner_size(START_SIZE.0, START_SIZE.1)
         .decorations(false)
         .transparent(true)
         .always_on_top(true)
         .skip_taskbar(true)
-        .resizable(true)
+        .resizable(false)
         .maximizable(false)
         .minimizable(false)
         .shadow(false)
         .focused(false)
         .focusable(false)
         .visible(false);
-    if let (Some((x, y)), Some(m)) = (pos, screen) {
-        let x = x.clamp(m.0, m.0 + m.2 - size.0);
-        let y = y.clamp(m.1, m.1 + m.3 - size.1);
+    if let Some((x, y)) = pos {
         builder = builder.position(x, y);
     }
     let window = builder.build()?;
     window.set_ignore_cursor_events(true)?;
     let handle = app.clone();
     window.on_window_event(move |event| {
-        let Some(w) = handle.get_webview_window("overlay") else {
-            return;
-        };
-        let scale = w.scale_factor().unwrap_or(1.0);
-        match event {
-            tauri::WindowEvent::Moved(pos) => {
-                let l = pos.to_logical::<f64>(scale);
+        if let tauri::WindowEvent::Moved(pos) = event {
+            if let Some(w) = handle.get_webview_window("overlay") {
+                let l = pos.to_logical::<f64>(w.scale_factor().unwrap_or(1.0));
                 hotkeys::remember_overlay(&handle, None, Some((l.x, l.y)));
             }
-            tauri::WindowEvent::Resized(size) => {
-                if w.is_maximized().unwrap_or(false) {
-                    let _ = w.unmaximize();
-                    return;
-                }
-                if size.width > 0 && size.height > 0 {
-                    let l = size.to_logical::<f64>(scale);
-                    hotkeys::remember_overlay_size(&handle, (l.width, l.height));
-                }
-            }
-            _ => {}
         }
     });
-    if visible {
-        window.show()?;
-    }
     Ok(())
+}
+
+/// The HUD page reports its content size; the window hugs it.
+#[tauri::command]
+fn fit_overlay(app: AppHandle, width: f64, height: f64) {
+    if let Some(w) = app.get_webview_window("overlay") {
+        let _ = w.set_size(tauri::LogicalSize::new(width.clamp(40.0, 720.0).ceil(), height.clamp(24.0, 720.0).ceil()));
+    }
 }
 
 fn main() {
@@ -488,6 +471,7 @@ fn main() {
             rate_build,
             rate_now,
             log_debug,
+            fit_overlay,
             skills_snapshot,
             run_skills,
             overlay_action,

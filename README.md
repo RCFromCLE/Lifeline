@@ -63,13 +63,10 @@ When it says you're logged in, type `/exit` and close PowerShell.
   pathofexile.com. The *Travel to hideout* buttons need this.
 - **Your gear:** in game, hover each item you're wearing and press **Alt+Shift+E**.
   This powers the ±% on market cards and the build rating.
-- **HUD:** it starts in the top-left corner.
-  - Drag the **⠿** handle or your character name to move it.
-  - Drag any edge or corner to resize it. The text scales with the size.
-  - **Alt+Shift+O** shows or hides it.
-  - It hides while the game is minimized.
-  - Its position, size and on/off state are remembered.
-
+- **HUD:** a small bar of buttons in the top-left corner. It only shows while PoE2 is running and in front;
+  when the app is in front it shrinks to just the grade. Drag the **⠿** handle to move it (remembered).
+  Buttons: grade (click to rate; hover for why), resistance penalty (▲ = the next act lowers it),
+  🔍 check item, → what next, ⚡ rotation, 🛡 record gear, 💬 open app, ✕ hide.
 ### Updating
 
 Download the newest `…_x64-setup.exe` from the same Releases page and run it.
@@ -122,9 +119,9 @@ suite) are scheduled in PLAN.md §11 and §13.
 | `Alt+Shift+D` | **Item check** — with an item hovered in PoE2, sends one Ctrl+Alt+C, the Opus 5.5 gear appraiser judges it, answer shows on the HUD |
 | `Alt+Shift+N` | **What next** — route coach's next 1–3 steps for where you are |
 | `Alt+Shift+A` | **Ask** — brings the app up with the chat focused |
-| `Alt+Shift+O` | **HUD overlay**: show/hide the click-through overlay over the game. On/off, position and size are remembered. It starts in the top-left corner and hides while the game is minimized. |
+| `Alt+Shift+O` | **HUD on/off**: the small button bar. It only shows while the game is running and in front. |
 | `Alt+Shift+E` | **Record equipped** — hover an item you're wearing; used for ±% on market cards and the build rating |
-| `Alt+Shift+M` | **Move HUD**: unlocks the whole overlay for dragging; press again to lock. You can also drag the HUD by its ⠿ handle or name at any time, and resize it from any edge or corner. |
+| `Alt+Shift+M` | **Move HUD**: unlock to drag, press again to lock. The ⠿ handle always drags it too. |
 
 Click the **grade** on the overlay to rate your build (F → S+ for where you are in the campaign; hover for the why). The **Rating** tab shows the breakdown and market picks for the top upgrades within your budget (market searches run on Sonnet 5.5).
 

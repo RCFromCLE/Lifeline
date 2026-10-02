@@ -72,9 +72,6 @@ pub struct Settings {
     /// Saved HUD position (logical px).
     #[serde(default)]
     pub overlay_pos: Option<(f64, f64)>,
-    /// Saved HUD size (logical px); the HUD fills whatever size the player drags it to.
-    #[serde(default)]
-    pub overlay_size: Option<(f64, f64)>,
     /// Whether the HUD was on when last toggled; restored at startup.
     #[serde(default = "default_true")]
     pub overlay_visible: bool,
@@ -107,7 +104,6 @@ impl Default for Settings {
                 move_overlay: default_move_overlay(),
             },
             overlay_pos: None,
-            overlay_size: None,
             overlay_visible: true,
             rating_budget: default_budget(),
             auto_rate_on_act: false,

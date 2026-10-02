@@ -118,11 +118,7 @@ pub fn spawn_log_watcher(app: AppHandle) {
             }
             if !warned {
                 warned = true;
-                let _ = app.emit(
-                    "notice",
-                    "Path of Exile 2's log (logs/Client.txt) wasn't found in any Steam library or the standalone \
-                     install folders. Start the game once; the app keeps checking.",
-                );
+                let _ = app.emit("notice", "Game log not found yet. Start PoE2 once; still looking.");
             }
             std::thread::sleep(Duration::from_secs(15));
         };

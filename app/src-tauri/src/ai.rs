@@ -188,7 +188,7 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
             emit(
                 app,
                 conv_id,
-                json!({"type": "error", "text": "This conversation is still answering — open another one to ask in parallel."}),
+                json!({"type": "error", "text": "Still answering. Start a new chat to ask in parallel."}),
             );
             return;
         }
@@ -205,9 +205,7 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
     }
     let _ = app.emit("conversations", conversation_list(&state));
     if origin == Origin::Hotkey && state.settings.lock().unwrap().overlay_on_hotkey {
-        if let Some(w) = app.get_webview_window("overlay") {
-            let _ = w.show();
-        }
+        crate::hotkeys::remember_overlay(app, Some(true), None);
     }
     emit(
         app,
@@ -218,7 +216,13 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
     let app = app.clone();
     std::thread::spawn(move || {
         let state = app.state::<AppState>();
-        let prompt = format!("{}{}\n\n{question}", context(&state), awareness(&state, conv_id));
+        // Hotkey answers land on a tiny in-game HUD.
+        let hud = if origin == Origin::Hotkey {
+            "\n\n(Shown on a tiny in-game HUD: at most 25 words, one line or up to 3 very short bullets, no headings.)"
+        } else {
+            ""
+        };
+        let prompt = format!("{}{}\n\n{question}{hud}", context(&state), awareness(&state, conv_id));
         let resume = state
             .conversations
             .lock()
@@ -293,13 +297,13 @@ pub fn conversation_list(state: &AppState) -> serde_json::Value {
 pub fn item_question(item: &str) -> String {
     format!(
         "Item check — I copied this item in game (Ctrl+Alt+C):\n```\n{item}\n```\n\
-         Should I equip it, keep it for later, or sell/ignore it for my current stage? Delegate to the \
-         gear-appraiser. Lead with the verdict and the two or three numbers that decide it."
+         Equip, keep or sell for my current stage? Delegate to the gear-appraiser. \
+         Verdict first, then the one or two numbers that decide it."
     )
 }
 
-pub const WHAT_NEXT: &str = "What should I do next? Delegate to the route-coach. Give at most three short steps, \
-     safety first if anything is pressing.";
+pub const WHAT_NEXT: &str = "What should I do next? Delegate to the route-coach. At most three steps of a few words \
+     each, safety first if anything is pressing.";
 
 #[cfg(test)]
 mod tests {
