@@ -112,7 +112,7 @@ fn conversation(state: tauri::State<'_, AppState>, conv: u64) -> Option<Conversa
         .cloned()
 }
 #[tauri::command]
-fn confirm_action(app: AppHandle, id: u64) -> Result<String, String> {
+async fn confirm_action(app: AppHandle, id: u64) -> Result<String, String> {
     market::confirm(&app, id)
 }
 
@@ -127,7 +127,7 @@ fn pending_actions(state: tauri::State<'_, AppState>) -> Vec<state::PendingActio
 }
 
 #[tauri::command]
-fn open_trade_window(app: AppHandle) -> Result<(), String> {
+async fn open_trade_window(app: AppHandle) -> Result<(), String> {
     market::open_trade_window(&app, None).map(|_| ())
 }
 
