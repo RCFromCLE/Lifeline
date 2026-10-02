@@ -686,7 +686,7 @@ Order rationale: M1–M2 give value with no AI at all. M3 builds on solid data. 
 **Done (2026-10-01):**
 - **Installed:** Rust 1.99 (stable-msvc), VS 2022 Build Tools (C++), and Claude Code 2.1.286, which is already logged in to your Max plan and added to your user PATH.
 - **Decisions recorded in §2.1:** grey areas on, league asked with HC Forbidden Rites as the default, GPU voice.
-- **Git:** repo initialised with your personal identity (`rudycorradetti4@gmail.com`, repo-local).
+- **Git:** repo initialised with the owner's personal identity (repo-local).
 
 **Still needed:**
 1. ~~GitHub login for the private repo.~~ Done: private repo `RCFromCLE/Lifeline` (renamed from PathOfLeastResistance in 0.2).
