@@ -1,0 +1,7 @@
+cargo:rerun-if-changed=permissions
+cargo:PERMISSION_FILES_PATH=C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\target-dist\release\build\tauri-plugin-global-shortcut-cfd4264666863e9e\out\tauri-plugin-global-shortcut-permission-files
+cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
+cargo:GLOBAL_API_SCRIPT_PATH=\\?\C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-global-shortcut-2.4.0\api-iife.js
+cargo:rustc-check-cfg=cfg(mobile)
+cargo:rustc-check-cfg=cfg(desktop)
+cargo:rustc-cfg=desktop

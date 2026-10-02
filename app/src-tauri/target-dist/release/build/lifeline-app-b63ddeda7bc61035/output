@@ -1,0 +1,29 @@
+cargo:rerun-if-env-changed=TAURI_CONFIG
+cargo:rustc-check-cfg=cfg(desktop)
+cargo:rustc-cfg=desktop
+cargo:rustc-check-cfg=cfg(mobile)
+cargo:rerun-if-changed=C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\tauri.conf.json
+cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_APP_NAME=lifeline
+cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_PREFIX=com_rudyc
+cargo:rustc-check-cfg=cfg(dev)
+cargo:PERMISSION_FILES_PATH=C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\target-dist\release\build\lifeline-app-b63ddeda7bc61035\out\app-manifest\__app__-permission-files
+cargo:rerun-if-changed=C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\capabilities
+cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
+cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE=x86_64-pc-windows-msvc
+package.metadata does not exist
+Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+cargo:rustc-link-arg-bins=C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\target-dist\release\build\lifeline-app-b63ddeda7bc61035\out\resource.lib
+cargo:rustc-link-search=native=C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\target-dist\release\build\lifeline-app-b63ddeda7bc61035\out
+cargo:rustc-link-arg=/NODEFAULTLIB:libvcruntimed.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:vcruntime.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:vcruntimed.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:libcmtd.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:msvcrt.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:msvcrtd.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:libucrt.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:libucrtd.lib
+cargo:rustc-link-arg=/DEFAULTLIB:libcmt.lib
+cargo:rustc-link-arg=/DEFAULTLIB:libvcruntime.lib
+cargo:rustc-link-arg=/DEFAULTLIB:ucrt.lib

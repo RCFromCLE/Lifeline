@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Main window and HUD overlay","local":true,"windows":["main","overlay"],"permissions":["core:default","core:window:allow-start-dragging","core:window:allow-start-resize-dragging"]}}

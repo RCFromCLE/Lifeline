@@ -98,6 +98,9 @@ pub struct Settings {
     /// The first-run welcome (Claude Code setup, game, tour) is done.
     #[serde(default)]
     pub onboarded: bool,
+    /// The My builds entry being followed, if the current build came from there.
+    #[serde(default)]
+    pub active_saved: Option<u64>,
 }
 
 fn default_input() -> String {
@@ -153,6 +156,7 @@ impl Default for Settings {
             sound_cues: default_cues(),
             input: default_input(),
             onboarded: false,
+            active_saved: None,
             overlay_on_hotkey: true,
         }
     }

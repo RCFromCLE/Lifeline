@@ -322,3 +322,12 @@ button.danger { border-color: var(--red) !important; color: #ffb3a8 !important; 
 .d-sec li.notable { color: var(--gold-2); }
 .gear-align td.okc { color: var(--green); }
 .gear-align td.noc { color: var(--muted); font-style: italic; }
+
+/* My builds: header tools, per-card delete, followed build */
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.card-head h2 { margin: 0; }
+.mine-item { position: relative; display: flex; }
+.mine-item > .bcard { flex: 1; width: 100%; }
+.mine-item.is-followed > .bcard { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(217, 169, 87, 0.5), 0 0 18px rgba(217, 169, 87, 0.18); }
+.card-del { position: absolute; top: 8px; right: 8px; padding: 3px 8px; min-width: 0; font-size: 12px; line-height: 1.2; opacity: 0.55; background: rgba(15, 11, 8, 0.85); }
+.mine-item:hover .card-del, .card-del:focus-visible, .card-del.danger { opacity: 1; }

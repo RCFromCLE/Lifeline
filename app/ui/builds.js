@@ -262,24 +262,65 @@ function openSaved(e) {
   } else {
     $("d-gen").addEventListener("click", () => generate(a));
   }
-  $("d-del").addEventListener("click", async () => {
-    LIB = await invoke("remove_saved", { id: e.id });
-    renderMine();
+  $("d-del").addEventListener("click", () => confirmClick($("d-del"), "Sure? Delete", async () => {
+    await deleteSaved([e.id]);
     closeModal();
-  });
+  }));
 }
+
+// ---- My builds: open, delete one, or clear older copies of the same build ----
+let ACTIVE_SAVED = null;
+async function refreshActiveSaved() {
+  try { ACTIVE_SAVED = await invoke("active_saved"); } catch (_) { ACTIVE_SAVED = null; }
+  renderMine();
+}
+listen("imported", refreshActiveSaved);
+
+async function deleteSaved(ids) {
+  try {
+    for (const id of ids) LIB = await invoke("remove_saved", { id });
+    renderMine();
+    toast(ids.length > 1 ? `✓ Deleted ${ids.length} builds.` : "✓ Build deleted.", "ok");
+  } catch (err) { toast(`Couldn't delete: ${err}`, "err"); }
+}
+
+// Older entries of the same build and kind (newest first in LIB; the followed one is kept).
+function olderCopies() {
+  const seen = new Set(), extra = [];
+  const key = e => `${e.archetype?.id || e.design?.name}|${e.design ? "full" : "idea"}`;
+  const ordered = [...LIB].sort((x, y) => (y.id === ACTIVE_SAVED) - (x.id === ACTIVE_SAVED));
+  for (const e of ordered) (seen.has(key(e)) ? extra.push(e.id) : seen.add(key(e)));
+  return extra;
+}
+
+const when = s => s ? new Date(s * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+  new Date(s * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "";
 
 function renderMine() {
   $("mine-count").textContent = LIB.length ? `(${LIB.length})` : "";
+  const extra = olderCopies();
+  $("mine-tools").innerHTML = extra.length
+    ? `<button class="ghost" id="mine-dedupe" title="Keeps the newest (or followed) copy of each build">Delete ${extra.length} older ${extra.length > 1 ? "copies" : "copy"}</button>` : "";
+  if (extra.length) $("mine-dedupe").addEventListener("click", () =>
+    confirmClick($("mine-dedupe"), `Sure? Delete ${extra.length}`, () => deleteSaved(extra)));
   if (!LIB.length) {
     $("mine").innerHTML = `<p class="hint">Star builds in the Showcase to compare them here, or create a full build.</p>`;
     return;
   }
   $("mine").innerHTML = LIB.map((e, i) => {
     const a = e.archetype || { name: e.design?.name, class: e.design?.class, ascendancy: e.design?.ascendancy, main_skill: "", summary: e.summary, ratings: {}, style: [], damage: [] };
-    return `<button class="bcard" data-i="${i}">${a.ratings?.damage ? buildCard(a, { state: e.design ? "Full build" : "Idea" }) : esc(a.name)}</button>`;
+    const following = e.id === ACTIVE_SAVED;
+    const state = [following ? "▶ Following" : e.design ? "Full build" : "Idea", when(e.saved_at)].filter(Boolean).join(" · ");
+    return `<div class="mine-item${following ? " is-followed" : ""}">
+      <button class="bcard" data-i="${i}">${a.ratings?.damage ? buildCard(a, { state }) : `<div class="nm">${esc(a.name)}</div><div class="state">${esc(state)}</div>`}</button>
+      <button class="card-del" data-i="${i}" title="Delete" aria-label="Delete ${esc(a.name)}">✕</button>
+    </div>`;
   }).join("");
   $("mine").querySelectorAll(".bcard").forEach(b => b.addEventListener("click", () => openSaved(LIB[b.dataset.i])));
+  $("mine").querySelectorAll(".card-del").forEach(b => b.addEventListener("click", ev => {
+    ev.stopPropagation();
+    confirmClick(b, "Delete?", () => deleteSaved([LIB[b.dataset.i].id]));
+  }));
 }
 
 // Play tab's "Create build" opens the guided showcase.
@@ -291,7 +332,7 @@ function openShowcase() {
 (async () => {
   try { ART = await invoke("class_art"); } catch (_) { ART = {}; }
   LIB = await invoke("library");
-  renderMine();
+  await refreshActiveSaved();
   await loadShowcase();
   const st = await invoke("build_status");
   if (st.busy) toast("A build is still being generated.");

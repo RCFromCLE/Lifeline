@@ -1,0 +1,10 @@
+C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\target-dist\release\deps\cargo_toml-6ed6fc67b3c55b56.d: C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\cargo_toml.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\afs.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\error.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\inheritable.rs
+
+C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\target-dist\release\deps\libcargo_toml-6ed6fc67b3c55b56.rlib: C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\cargo_toml.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\afs.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\error.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\inheritable.rs
+
+C:\Users\rudyc\Downloads\PathofChangeMeOnceNameIsDecided\app\src-tauri\target-dist\release\deps\libcargo_toml-6ed6fc67b3c55b56.rmeta: C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\cargo_toml.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\afs.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\error.rs C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\inheritable.rs
+
+C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\cargo_toml.rs:
+C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\afs.rs:
+C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\error.rs:
+C:\Users\rudyc\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_toml-1.0.1\src\inheritable.rs:

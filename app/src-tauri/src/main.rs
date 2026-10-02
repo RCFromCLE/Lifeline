@@ -54,7 +54,12 @@ fn snapshot(state: tauri::State<'_, AppState>) -> Snapshot {
 
 #[tauri::command]
 async fn import_build(app: AppHandle, input: String) -> Result<builds::ImportView, String> {
-    tauri::async_runtime::spawn_blocking(move || builds::import(&app.state::<AppState>(), &input))
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let view = builds::import(&state, &input)?;
+        set_active_saved(&state, None);
+        Ok(view)
+    })
         .await
         .map_err(|e| e.to_string())?
 }
@@ -86,6 +91,7 @@ async fn follow_planner(app: AppHandle, files: Vec<String>) -> Result<builds::Im
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         let view = builds::follow_planner(&state, &files)?;
+        set_active_saved(&state, None);
         let _ = app.emit("imported", &view);
         Ok(view)
     })
@@ -159,6 +165,27 @@ async fn class_art(app: AppHandle) -> serde_json::Value {
         .unwrap_or_default()
 }
 
+fn set_active_saved(state: &AppState, id: Option<u64>) {
+    let mut s = state.settings.lock().unwrap();
+    s.active_saved = id;
+    let _ = s.save(&state.data_dir);
+}
+
+/// The My builds entry currently followed (if any).
+#[tauri::command]
+fn active_saved(state: tauri::State<'_, AppState>) -> Option<u64> {
+    if let Some(id) = state.settings.lock().unwrap().active_saved {
+        return Some(id);
+    }
+    // Followed before this was tracked: the newest saved design with that name.
+    let imported = state.imported.lock().unwrap().as_ref().filter(|i| i.source == "Lifeline").map(|i| i.name.clone())?;
+    wizard::library(&state)
+        .into_iter()
+        .filter(|e| e.design.as_ref().is_some_and(|d| d.name == imported))
+        .max_by_key(|e| e.saved_at)
+        .map(|e| e.id)
+}
+
 #[tauri::command]
 fn library(state: tauri::State<'_, AppState>) -> Vec<wizard::SavedBuild> {
     wizard::library(&state)
@@ -171,6 +198,9 @@ fn save_idea(state: tauri::State<'_, AppState>, id: String) -> Result<Vec<wizard
 
 #[tauri::command]
 fn remove_saved(state: tauri::State<'_, AppState>, id: u64) -> Vec<wizard::SavedBuild> {
+    if state.settings.lock().unwrap().active_saved == Some(id) {
+        set_active_saved(&state, None);
+    }
     wizard::remove(&state, id)
 }
 
@@ -179,6 +209,7 @@ async fn use_saved(app: AppHandle, id: u64, write: bool) -> Result<serde_json::V
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         let view = wizard::activate(&state, id)?;
+        set_active_saved(&state, Some(id));
         let _ = app.emit("imported", &view);
         let files = if write { builds::write_stages(&state)? } else { Vec::new() };
         Ok(serde_json::json!({"view": view, "files": files}))
@@ -521,6 +552,7 @@ fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, 
         let current = state.settings.lock().unwrap();
         settings.overlay_pos = current.overlay_pos;
         settings.overlay_visible = current.overlay_visible;
+        settings.active_saved = current.active_saved;
     }
     settings.save(&state.data_dir)?;
     let failed = hotkeys::register(&app, &settings.hotkeys);
@@ -691,6 +723,7 @@ fn main() {
             follow_planner,
             build_alignment,
             build_check_chat,
+            active_saved,
             check_update,
             fit_overlay,
             skills_snapshot,
