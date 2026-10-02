@@ -17,6 +17,7 @@ mod mcp;
 mod rating;
 mod skills;
 mod state;
+mod wizard;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
@@ -90,6 +91,58 @@ fn new_conversation(app: AppHandle) -> u64 {
     state.save_conversations();
     let _ = app.emit("conversations", ai::conversation_list(&state));
     id
+}
+
+#[tauri::command]
+async fn showcase(app: AppHandle, prefs: polr_model::Preferences) -> serde_json::Value {
+    tauri::async_runtime::spawn_blocking(move || wizard::showcase(&app.state::<AppState>(), &prefs))
+        .await
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+async fn class_art(app: AppHandle) -> serde_json::Value {
+    tauri::async_runtime::spawn_blocking(move || wizard::art(&app.state::<AppState>()))
+        .await
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn library(state: tauri::State<'_, AppState>) -> Vec<wizard::SavedBuild> {
+    wizard::library(&state)
+}
+
+#[tauri::command]
+fn save_idea(state: tauri::State<'_, AppState>, id: String) -> Result<Vec<wizard::SavedBuild>, String> {
+    wizard::save_idea(&state, &id)
+}
+
+#[tauri::command]
+fn remove_saved(state: tauri::State<'_, AppState>, id: u64) -> Vec<wizard::SavedBuild> {
+    wizard::remove(&state, id)
+}
+
+#[tauri::command]
+async fn use_saved(app: AppHandle, id: u64, write: bool) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let view = wizard::activate(&state, id)?;
+        let _ = app.emit("imported", &view);
+        let files = if write { builds::write_stages(&state)? } else { Vec::new() };
+        Ok(serde_json::json!({"view": view, "files": files}))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn generate_build(app: AppHandle, id: String, prefs: polr_model::Preferences) -> Result<(), String> {
+    wizard::generate(app, id, prefs)
+}
+
+#[tauri::command]
+fn build_status(state: tauri::State<'_, AppState>) -> serde_json::Value {
+    wizard::status(&state)
 }
 
 /// Opens a "Build creator" chat: the companion asks a few questions, then
@@ -496,6 +549,14 @@ fn main() {
             rate_now,
             log_debug,
             create_build_chat,
+            showcase,
+            class_art,
+            library,
+            save_idea,
+            remove_saved,
+            use_saved,
+            generate_build,
+            build_status,
             fit_overlay,
             skills_snapshot,
             run_skills,

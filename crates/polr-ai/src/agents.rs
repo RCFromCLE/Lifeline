@@ -117,11 +117,11 @@ pub fn roster() -> Vec<AgentSpec> {
                     GAME_DATA,
                     &[BUILD_PLAN, CHARACTER_STATE, DESIGN_BUILD, PROPOSE_ACTION],
                 ],
-                &["WebSearch", "WebFetch", consults],
+                &["WebSearch", "WebFetch", consults, STRUCTURED_OUTPUT],
             ),
             model: MODEL,
             effort: Some("high"),
-            max_turns: Some(60),
+            max_turns: Some(120),
         },
         AgentSpec {
             name: BUILD_AUDITOR,

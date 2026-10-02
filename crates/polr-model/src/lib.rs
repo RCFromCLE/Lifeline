@@ -3,8 +3,10 @@
 
 use std::collections::BTreeMap;
 
+pub mod catalog;
 pub mod design;
 
+pub use catalog::{rank, Archetype, Preferences, Ranked, Ratings};
 pub use design::{realize, stage_budget, BuildDesign, DesignReport, Realized};
 
 use polr_data::PassiveTree;

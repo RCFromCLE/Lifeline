@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::agents::{BUILD_AUDITOR, BUILD_RATER, HC_SAFETY_OFFICER, PATCH_ANALYST, ROUTE_COACH, SKILL_COACH};
+use crate::agents::{BUILD_ARCHITECT, BUILD_AUDITOR, BUILD_RATER, HC_SAFETY_OFFICER, PATCH_ANALYST, ROUTE_COACH, SKILL_COACH};
 use crate::{ClaudeCli, RunResult};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,6 +23,8 @@ pub enum Job {
     Rating,
     /// Skills, supports, buttons and rotations for the current stage.
     Skills,
+    /// Design the whole build from a catalog archetype the player picked.
+    DesignBuild,
 }
 
 impl Job {
@@ -34,6 +36,7 @@ impl Job {
             Job::SessionRecap => ROUTE_COACH,
             Job::Rating => BUILD_RATER,
             Job::Skills => SKILL_COACH,
+            Job::DesignBuild => BUILD_ARCHITECT,
         }
     }
 
@@ -57,6 +60,13 @@ impl Job {
             }
             Job::Rating => "Rate the character's build for where it is right now in the campaign or endgame.",
             Job::Skills => "Set up this character's skills, supports, buttons and rotations for where it is right now.",
+            Job::DesignBuild => {
+                "Design this player's whole build, Act 1 to Endgame, from the archetype they picked and their \
+                 preferences (context). Follow the archetype's skills, ascendancy order and key passives; fill \
+                 in every stage. Save it with design_build until the report is clean. Then return the report \
+                 object: summary = the build in two short sentences; findings = the hardcore risks and what \
+                 the player should watch, most dangerous first."
+            }
         }
     }
 
@@ -98,6 +108,21 @@ pub fn report_schema() -> Value {
 pub const GRADES: &[&str] = &[
     "F", "F+", "D-", "D", "D+", "C-", "C", "C+", "B-", "B", "B+", "A-", "A", "A+", "S", "S+",
 ];
+
+/// Lowers `rating` to at most `max` (a [`GRADES`] entry), noting why. Used
+/// for hard limits the rater may not talk its way past (e.g. unknown gear).
+pub fn cap_grade(rating: &mut Rating, max: &str, reason: &str) {
+    let rank = |g: &str| GRADES.iter().position(|x| *x == g);
+    let (Some(cur), Some(cap)) = (rank(&rating.grade), rank(max)) else {
+        return;
+    };
+    if cur > cap {
+        rating.grade = max.to_owned();
+        // Keep the score in step: grade bands are 100 / 16 wide.
+        rating.score = rating.score.min(((cap + 1) * 100 / GRADES.len()) as f64);
+        rating.explanation = format!("Capped at {max}: {reason} {}", rating.explanation);
+    }
+}
 
 /// Schema for [`Job::Rating`].
 pub fn rating_schema() -> Value {
@@ -320,5 +345,22 @@ mod tests {
     fn prompts_carry_context() {
         let p = Job::PatchWatch.prompt(r#"{"from":"4.5.5.2","to":"4.5.6.0"}"#);
         assert!(p.contains("4.5.6.0") && p.ends_with("report object only."));
+    }
+
+    #[test]
+    fn caps_only_lower_grades() {
+        let mut r = Rating {
+            grade: "B".into(),
+            score: 70.0,
+            summary: String::new(),
+            explanation: "Looks fine.".into(),
+            categories: vec![],
+            recommendations: vec![],
+        };
+        cap_grade(&mut r, "D+", "no gear recorded.");
+        assert_eq!(r.grade, "D+");
+        assert!(r.score <= 31.0 && r.explanation.starts_with("Capped at D+"));
+        cap_grade(&mut r, "C", "irrelevant");
+        assert_eq!(r.grade, "D+", "a higher cap never raises a grade");
     }
 }

@@ -24,7 +24,7 @@
     <button class="tab active" data-tab="play">Play</button>
     <button class="tab" data-tab="rating">Rating</button>
     <button class="tab" data-tab="skills">Skills</button>
-    <button class="tab" data-tab="build">Build</button>
+    <button class="tab" data-tab="build">Builds</button>
     <button class="tab" data-tab="settings">Settings</button>
   </nav>
 
@@ -43,7 +43,7 @@
           <div class="quick">
             <button id="btn-next" class="primary">What next</button>
             <button id="btn-paste-item" title="Judge the item text on your clipboard">Check item</button>
-            <button id="btn-create-build-play" title="Answer a few questions; the AI designs every stage and writes it to the in-game Build Planner">Create build</button>
+            <button id="btn-create-build-play" title="Pick from researched hardcore builds; the AI designs every stage for the Build Planner">Create build</button>
             <button id="btn-trade-login" title="Log in to pathofexile.com once so Travel works">Trade login</button>
             <button id="btn-delete-conv" class="ghost">Delete</button>
           </div>
@@ -125,27 +125,66 @@
       </div>
     </section>
 
-    <section class="view" id="view-build">
+    <section class="view scroll" id="view-build">
       <div class="col">
-        <div class="card">
-          <h2>Build</h2>
-          <div class="quick"><button id="btn-create-build" class="primary" title="Answer a few questions; the AI designs Act 1 to Endgame and writes it to the in-game Build Planner">Create with AI</button><span class="hint" style="align-self:center;margin:0">or import:</span></div>
-          <form id="import-form" class="ask">
-            <textarea id="import-input" rows="3" placeholder="PoB code or link (pobb.in, Maxroll, poe2db, pastebin)"></textarea>
-            <button type="submit" class="primary">Import</button>
-          </form>
-          <div id="import-status" class="status"></div>
-          <div id="import-result"></div>
+        <nav class="subtabs" id="subtabs">
+          <button class="subtab active" data-sub="showcase">Showcase</button>
+          <button class="subtab" data-sub="mine">My builds <span class="count" id="mine-count"></span></button>
+          <button class="subtab" data-sub="import">Import</button>
+        </nav>
+
+        <div class="sub active" id="sub-showcase">
+          <div class="card">
+            <div class="step-h"><span class="step-n">1</span><h2>Class</h2><span class="hint" id="w-char"></span></div>
+            <div class="art-grid" id="w-classes"></div>
+          </div>
+          <div class="card">
+            <div class="step-h"><span class="step-n">2</span><h2>Ascendancy</h2></div>
+            <div class="art-grid small" id="w-ascs"></div>
+          </div>
+          <div class="card">
+            <div class="step-h"><span class="step-n">3</span><h2>What matters</h2></div>
+            <div class="pref-rows">
+              <div class="pref"><span>Focus</span><div class="chips" data-key="focus">
+                <button data-v="damage">Damage-heavy</button><button data-v="balanced" class="on">Balanced</button><button data-v="tanky">Tanky</button></div></div>
+              <div class="pref"><span>Style</span><div class="chips multi" data-key="styles">
+                <button data-v="melee">Melee</button><button data-v="ranged">Ranged</button><button data-v="caster">Caster</button><button data-v="minion">Minions</button></div></div>
+              <div class="pref"><span>Budget</span><div class="chips" data-key="budget">
+                <button data-v="ssf">Self-found</button><button data-v="low" class="on">Low trade</button><button data-v="high">Big budget</button></div></div>
+              <div class="pref"><span>Play</span><div class="chips" data-key="complexity">
+                <button data-v="simple">Simple</button><button data-v="any" class="on">Any</button></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="step-h"><span class="step-n">4</span><h2>Pick a build</h2><span class="hint" id="w-count"></span></div>
+            <div class="build-grid" id="w-builds"></div>
+          </div>
         </div>
-      </div>
-      <div class="col narrow">
-        <div class="card">
-          <h2>Planner files</h2>
-          <ul class="files" id="planner-files"></ul>
+
+        <div class="sub" id="sub-mine">
+          <div class="card">
+            <h2>My builds</h2>
+            <div class="build-grid" id="mine"></div>
+          </div>
+        </div>
+
+        <div class="sub" id="sub-import">
+          <div class="card">
+            <h2>Import</h2>
+            <form id="import-form" class="ask">
+              <textarea id="import-input" rows="3" placeholder="PoB code or link (pobb.in, Maxroll, poe2db, pastebin)"></textarea>
+              <button type="submit" class="primary">Import</button>
+            </form>
+            <div id="import-status" class="status"></div>
+            <div id="import-result"></div>
+          </div>
+          <div class="card">
+            <h2>Planner files</h2>
+            <ul class="files" id="planner-files"></ul>
+          </div>
         </div>
       </div>
     </section>
-
     <section class="view" id="view-settings">
       <div class="col">
         <div class="card">
@@ -173,8 +212,15 @@
       </div>
     </section>
   </main>
+  <div class="modal hidden" id="build-modal">
+    <div class="modal-box">
+      <button class="ghost modal-x" id="modal-x" title="Close">✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
   <div id="toast" class="toast"></div>
   <script src="common.js"></script>
   <script src="app.js"></script>
+  <script src="builds.js"></script>
 </body>
 </html>

@@ -174,7 +174,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
         n if n == tools::BUILD_PLAN => {
             let imported = state.imported.lock().unwrap();
             let Some(i) = imported.as_ref() else {
-                return Ok(json!("No build yet. Offer the player two options: paste a Path of Building link on the Build tab, or create one together now (ask your build questions, then delegate to build-architect)."));
+                return Ok(json!("No build yet. Point the player to the Builds tab: the Showcase guides them to a researched hardcore build and creates it (or Import for a Path of Building link)."));
             };
             let c = state.character.lock().unwrap().clone();
             let stage = crate::ai::current_stage(c.act, c.area_level);
@@ -375,11 +375,20 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
         n if n == tools::DESIGN_BUILD => {
             let design: polr_model::BuildDesign =
                 serde_json::from_value(args.clone()).map_err(|e| format!("design doesn't match the schema: {e}"))?;
-            let (report, view) = crate::builds::create(&state, &design)?;
-            let _ = app.emit("imported", &view);
+            // Wizard runs fill the library; chat runs make the build active.
+            let report = if conv == crate::wizard::BUILD_SCOPE {
+                let (_, report) = crate::builds::realize_design(&state, &design)?;
+                crate::wizard::attempt(app, &report);
+                *state.last_design.lock().unwrap() = Some((design.clone(), report.clone()));
+                report
+            } else {
+                let (report, view) = crate::builds::create(&state, &design)?;
+                let _ = app.emit("imported", &view);
+                report
+            };
             let unspent: u32 = report.stages.last().map_or(0, |s| s.points_unspent);
             let next = if report.is_clean() && unspent <= 10 {
-                "Clean. The build is saved in the app. Summarise it for the player, then offer propose_action kind 'write_planner'."
+                "Clean. Saved. Finish up as your instructions say."
             } else {
                 "Saved, but fix what's listed (missed targets, problems, unspent points) and call design_build again."
             };

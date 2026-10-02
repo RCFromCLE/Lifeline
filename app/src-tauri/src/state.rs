@@ -275,6 +275,13 @@ pub struct AppState {
     /// (port, bearer token) of the local MCP server.
     pub mcp: Mutex<Option<(u16, String)>>,
     pub settings: Mutex<Settings>,
+    /// The wizard's latest design_build result (design, report), before it
+    /// goes into the library.
+    pub last_design: Mutex<Option<(polr_model::BuildDesign, polr_model::DesignReport)>>,
+    /// A wizard build is being generated.
+    pub build_busy: std::sync::atomic::AtomicBool,
+    /// Steps shown while a wizard build is generated.
+    pub build_steps: Mutex<Vec<String>>,
 }
 
 impl AppState {
@@ -307,6 +314,9 @@ impl AppState {
             skills_busy: std::sync::atomic::AtomicBool::new(false),
             mcp: Mutex::new(None),
             settings: Mutex::new(settings),
+            last_design: Mutex::new(None),
+            build_busy: std::sync::atomic::AtomicBool::new(false),
+            build_steps: Mutex::new(Vec::new()),
             data_dir,
         }
     }

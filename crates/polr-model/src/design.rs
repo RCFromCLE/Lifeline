@@ -138,7 +138,7 @@ fn pob_slot(slot: &str, rings: &mut u8) -> Option<&'static str> {
     })
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct StageReport {
     pub stage: String,
     pub level: u32,
@@ -155,7 +155,7 @@ pub struct StageReport {
     pub problems: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DesignReport {
     pub name: String,
     pub class: String,

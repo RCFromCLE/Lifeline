@@ -450,14 +450,7 @@ listen("open-conversation", ({ payload: id }) => {
 });
 listen("imported", ({ payload }) => renderImport(payload));
 listen("planner-files", () => refreshPlannerFiles());
-async function createBuild() {
-  const id = await invoke("create_build_chat");
-  document.querySelector('.tab[data-tab="play"]').click();
-  await selectConv(id);
-  $("ask-input").focus();
-}
-$("btn-create-build").addEventListener("click", createBuild);
-$("btn-create-build-play").addEventListener("click", createBuild);
+$("btn-create-build-play").addEventListener("click", () => openShowcase());
 listen("focus-chat", () => {
   document.querySelector('.tab[data-tab="play"]').click();
   $("ask-input").focus();

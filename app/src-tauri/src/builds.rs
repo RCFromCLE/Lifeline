@@ -138,9 +138,9 @@ fn save(state: &AppState, saved: &SavedBuild) {
     }
 }
 
-/// Makes `design` the player's build (paths computed, gems checked). The
-/// report says what didn't fit so the designer can fix it and call again.
-pub fn create(state: &AppState, design: &BuildDesign) -> Result<(DesignReport, ImportView), String> {
+/// Turns `design` into a staged build (paths computed, gems checked)
+/// without making it active. The report says what didn't fit.
+pub fn realize_design(state: &AppState, design: &BuildDesign) -> Result<(Imported, DesignReport), String> {
     let tree = load_tree(state)?;
     let data = crate::gamedata::load(state)?;
     let realized = realize(design, &tree, &data)?;
@@ -151,10 +151,25 @@ pub fn create(state: &AppState, design: &BuildDesign) -> Result<(DesignReport, I
         link: None,
         name: format!("{} (PoLR)", design.name.trim()),
     };
+    Ok((imported, realized.report))
+}
+
+/// Makes `design` the build the player follows (and keeps it across restarts).
+pub fn activate(state: &AppState, design: &BuildDesign) -> Result<ImportView, String> {
+    let (imported, _) = realize_design(state, design)?;
     let v = view(&imported, None);
     *state.imported.lock().unwrap() = Some(imported);
     save(state, &SavedBuild::Design { design: design.clone() });
-    Ok((realized.report, v))
+    Ok(v)
+}
+
+/// Realizes and activates in one go (the chat path).
+pub fn create(state: &AppState, design: &BuildDesign) -> Result<(DesignReport, ImportView), String> {
+    let (imported, report) = realize_design(state, design)?;
+    let v = view(&imported, None);
+    *state.imported.lock().unwrap() = Some(imported);
+    save(state, &SavedBuild::Design { design: design.clone() });
+    Ok((report, v))
 }
 
 /// Restores the saved build at startup; returns its view.
