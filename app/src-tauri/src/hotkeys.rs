@@ -95,6 +95,21 @@ pub fn toggle_move_mode(app: &AppHandle) {
     let _ = app.emit("overlay-mode", unlock);
 }
 
+/// Runs a hotkey action by name (overlay buttons).
+pub fn run_named(app: &AppHandle, name: &str) -> Result<(), String> {
+    let action = match name {
+        "item_check" => Action::ItemCheck,
+        "what_next" => Action::WhatNext,
+        "ask" => Action::Ask,
+        "toggle_overlay" => Action::ToggleOverlay,
+        "record_equipped" => Action::RecordEquipped,
+        "move_overlay" => Action::MoveOverlay,
+        other => return Err(format!("unknown action {other}")),
+    };
+    run(app, action);
+    Ok(())
+}
+
 fn run(app: &AppHandle, action: Action) {
     match action {
         Action::ItemCheck => {

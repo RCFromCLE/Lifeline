@@ -223,6 +223,23 @@ fn rate_build(app: AppHandle, budget: String, auto: bool) {
 }
 
 #[tauri::command]
+fn overlay_action(app: AppHandle, action: String) -> Result<(), String> {
+    hotkeys::run_named(&app, &action)
+}
+
+/// Brings the main window up on the in-game (hotkey) conversation.
+#[tauri::command]
+fn open_in_game_chat(app: AppHandle) {
+    let id = app.state::<AppState>().in_game_conversation();
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
+    let _ = app.emit("open-conversation", id);
+}
+
+#[tauri::command]
 fn rate_now(app: AppHandle) {
     rating::run(app);
 }
@@ -284,7 +301,7 @@ fn save_settings(app: AppHandle, settings: Settings) -> Result<Vec<String>, Stri
 fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
     let mut builder = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("overlay.html".into()))
         .title("PoLR HUD")
-        .inner_size(380.0, 360.0)
+        .inner_size(420.0, 700.0)
         .decorations(false)
         .transparent(true)
         .always_on_top(true)
@@ -351,6 +368,8 @@ fn main() {
             rating_snapshot,
             rate_build,
             rate_now,
+            overlay_action,
+            open_in_game_chat,
             overlay_regions,
             confirm_action,
             dismiss_action,

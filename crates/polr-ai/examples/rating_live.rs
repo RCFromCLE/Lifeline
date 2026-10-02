@@ -37,13 +37,27 @@ fn main() {
     let mut cli = ClaudeCli::new(dir.clone());
     cli.agents_file = Some(agents::write_agents_file(&dir).unwrap());
     cli.mcp_config = Some(cfg);
-    cli.allowed_tools.extend(["character_state", "build_plan", "equipped_items"].map(polr_ai::mcp_tool_name));
+    cli.allowed_tools
+        .extend(["character_state", "build_plan", "equipped_items"].map(polr_ai::mcp_tool_name));
     let job = cli.for_job(Job::Rating);
     match job.run_turn(&Job::Rating.prompt("{}"), None, |_| {}) {
         Ok(o) => match parse_rating(&o.result) {
-            Some(r) => println!("\nRATING {} ({:.0}/100): {}\n{}\ncategories: {:?}\nrecs: {:?}", r.grade, r.score, r.summary, r.explanation,
-                r.categories.iter().map(|c| (&c.name, &c.grade)).collect::<Vec<_>>(), r.recommendations.iter().map(|x| (&x.slot, &x.title)).collect::<Vec<_>>()),
-            None => println!("no rating parsed; raw: {:?} structured={:?}", o.result.result, o.result.structured_output),
+            Some(r) => println!(
+                "\nRATING {} ({:.0}/100): {}\n{}\ncategories: {:?}\nrecs: {:?}",
+                r.grade,
+                r.score,
+                r.summary,
+                r.explanation,
+                r.categories.iter().map(|c| (&c.name, &c.grade)).collect::<Vec<_>>(),
+                r.recommendations
+                    .iter()
+                    .map(|x| (&x.slot, &x.title))
+                    .collect::<Vec<_>>()
+            ),
+            None => println!(
+                "no rating parsed; raw: {:?} structured={:?}",
+                o.result.result, o.result.structured_output
+            ),
         },
         Err(e) => println!("ERROR {e}"),
     }

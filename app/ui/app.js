@@ -425,6 +425,10 @@ listen("feed", ({ payload }) => { $("feed").prepend(feedItem(payload)); if (payl
 listen("usage", ({ payload }) => renderUsage(payload));
 listen("notice", ({ payload }) => toast(payload));
 listen("item", () => toast("Item copied from the game — asking the gear appraiser…"));
+listen("open-conversation", ({ payload: id }) => {
+  document.querySelector('.tab[data-tab="play"]').click();
+  selectConv(id);
+});
 listen("focus-chat", () => {
   document.querySelector('.tab[data-tab="play"]').click();
   $("ask-input").focus();
