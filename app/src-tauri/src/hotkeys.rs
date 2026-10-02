@@ -140,7 +140,8 @@ fn run(app: &AppHandle, action: Action) {
     match action {
         Action::ItemCheck => {
             let app = app.clone();
-            std::thread::spawn(move || match crate::input::copy_hovered_item() {
+            let key = app.state::<AppState>().settings.lock().unwrap().hotkeys.item_check.clone();
+            std::thread::spawn(move || match crate::input::copy_hovered_item(&key) {
                 Ok(item) => {
                     let _ = app.emit("item", &item);
                     ai::ask(&app, None, ai::item_question(&item), "Item check", Origin::Hotkey);
@@ -165,21 +166,17 @@ fn run(app: &AppHandle, action: Action) {
         Action::ToggleOverlay => toggle_overlay(app),
         Action::RecordEquipped => {
             let app = app.clone();
+            let key = app.state::<AppState>().settings.lock().unwrap().hotkeys.record_equipped.clone();
             std::thread::spawn(move || {
-                let message = match crate::input::copy_hovered_item() {
+                let message = match crate::input::copy_hovered_item(&key) {
                     Ok(item) => {
-                        let class = item
-                            .lines()
-                            .next()
-                            .and_then(|l| l.strip_prefix("Item Class:"))
-                            .map(|c| c.trim().to_owned())
-                            .unwrap_or_else(|| "Unknown".into());
                         let name: Vec<&str> = item.lines().skip(2).take(2).collect();
                         let state = app.state::<AppState>();
-                        state.equipped.lock().unwrap().insert(class.clone(), item.clone());
+                        let slot = crate::state::record_equipped(&mut state.equipped.lock().unwrap(), &item);
                         state.save_equipped();
                         let _ = app.emit("equipped", state.equipped.lock().unwrap().clone());
-                        format!("Recorded as equipped ({class}): {}", name.join(" "))
+                        crate::sound::play(&app, crate::sound::Cue::Ready);
+                        format!("✓ Recorded {slot}: {}", name.join(" "))
                     }
                     Err(e) => e,
                 };

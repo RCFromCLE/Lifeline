@@ -378,6 +378,23 @@ function renderCurrent(v) {
   refreshAlignment();
 }
 
+// What Lifeline knows you wear. The game doesn't log gear, so each piece is
+// recorded with one key press while pointing at it in game.
+function wornChecklist(worn) {
+  const key = settings?.hotkeys?.record_equipped || "Alt+Shift+E";
+  const done = worn.filter(w => w.recorded).length;
+  return `<div class="d-sec worn" style="margin-top:12px">
+    <h3>Your gear <span class="hint">${done} of ${worn.length} recorded</span></h3>
+    <div class="worn-grid">${worn.map(w => `<div class="worn-slot ${w.recorded ? "ok" : ""}"><span class="ws">${esc(w.slot)}</span>
+      <span class="wi">${w.recorded ? "✓ " + esc(w.recorded) : "—"}</span></div>`).join("")}</div>
+    ${done < worn.length ? `<ol class="worn-steps">
+      <li>In game, open your inventory (<b>I</b>).</li>
+      <li>Point the mouse at a worn item and press <kbd>${esc(key)}</kbd>. It ticks off here.</li>
+      <li>Do each slot once; again whenever you swap an item.</li></ol>
+      <div class="hint">The game doesn't share your gear with other apps, so this is the only way Lifeline sees it. Playing on a controller? Map a spare button to ${esc(key)} in Steam's controller settings for the game.</div>` : `<div class="hint">All slots recorded. Press ${esc(key)} on a new item whenever you swap.</div>`}
+  </div>`;
+}
+
 let alignTimer = null;
 function refreshAlignment() {
   clearTimeout(alignTimer);
@@ -403,8 +420,9 @@ function refreshAlignment() {
         <div class="d-sec"><h3>Skills for this stage</h3><ul>${a.skills.map(s => `<li><span class="gem">${esc(s.skill)}</span>${s.supports.length ? ` <span class="sups">+ ${s.supports.map(esc).join(", ")}</span>` : ""}</li>`).join("") || "<li>—</li>"}</ul>
           <div class="hint">The game doesn't log gems; the AI will ask what you have socketed.</div></div>
       </div>
-      <div class="d-sec" style="margin-top:12px"><h3>Gear</h3><table class="gear-align"><thead><tr><th>Slot</th><th>Goal</th><th>You</th></tr></thead><tbody>${gear || `<tr><td colspan="3" class="hint">This build has no gear goals.</td></tr>`}</tbody></table>
-        <div class="hint">Record what you wear: hover an item in game and press your Record gear hotkey.</div></div>`;
+      ${wornChecklist(a.worn || [])}
+      <div class="d-sec" style="margin-top:12px"><h3>Gear goals</h3><table class="gear-align"><thead><tr><th>Slot</th><th>Goal</th><th>You</th></tr></thead><tbody>${gear || `<tr><td colspan="3" class="hint">This build has no gear goals.</td></tr>`}</tbody></table>
+</div>`;
     if (typeof refreshTree === "function") refreshTree();
   }, 250);
 }

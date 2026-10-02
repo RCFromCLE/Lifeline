@@ -124,12 +124,13 @@ pub fn left_button_down() -> bool {
     false
 }
 
+/// `hotkey` names the key the player pressed, for the error message.
 #[cfg(windows)]
-pub fn copy_hovered_item() -> Result<String, String> {
+pub fn copy_hovered_item(hotkey: &str) -> Result<String, String> {
     if !win::foreground_is_poe() {
-        return Err(
-            "Path of Exile 2 isn't the active window. Hover an item in game, then press the item-check hotkey.".into(),
-        );
+        return Err(format!(
+            "Path of Exile 2 isn't the active window. In game, point the mouse at an item, then press {hotkey}."
+        ));
     }
     // The hotkey's own modifiers are still held when it fires; wait for the
     // player to release them so the game sees exactly Ctrl+Alt+C.
@@ -155,10 +156,10 @@ pub fn copy_hovered_item() -> Result<String, String> {
     if let Some(prev) = previous {
         let _ = clipboard.set_text(prev);
     }
-    item.ok_or_else(|| "No item text came back. Hover (or select with the controller) an item and try again.".into())
+    item.ok_or_else(|| format!("No item came back. Point at the item in game, then press {hotkey} again."))
 }
 
 #[cfg(not(windows))]
-pub fn copy_hovered_item() -> Result<String, String> {
+pub fn copy_hovered_item(_hotkey: &str) -> Result<String, String> {
     Err("Item copy is only implemented on Windows.".into())
 }

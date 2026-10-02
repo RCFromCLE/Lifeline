@@ -213,6 +213,37 @@ fn load_json<T: serde::de::DeserializeOwned>(dir: &Path, file: &str) -> Option<T
         .and_then(|t| serde_json::from_str(&t).ok())
 }
 
+/// Item class of a copied item ("Item Class: Rings" → "Rings").
+pub fn item_class(item: &str) -> String {
+    item.lines()
+        .next()
+        .and_then(|l| l.strip_prefix("Item Class:"))
+        .map(|c| c.trim().to_owned())
+        .unwrap_or_else(|| "Unknown".into())
+}
+
+/// Second ring slot key (the first is "Rings").
+pub const SECOND_RING: &str = "Rings (2)";
+
+/// Stores a copied item as worn, keyed by item class. Rings fill two slots:
+/// a new ring goes in "Rings" and the one there moves to "Rings (2)", so the
+/// two most recent different rings are kept. Returns the slot name.
+pub fn record_equipped(equipped: &mut std::collections::BTreeMap<String, String>, item: &str) -> String {
+    let class = item_class(item);
+    if class == "Rings" {
+        if equipped.get("Rings").map(String::as_str) == Some(item) || equipped.get(SECOND_RING).map(String::as_str) == Some(item) {
+            return "ring (already recorded)".into();
+        }
+        if let Some(old) = equipped.insert("Rings".into(), item.to_owned()) {
+            equipped.insert(SECOND_RING.into(), old);
+            return "Ring 1 (previous ring is now Ring 2)".into();
+        }
+        return "Ring 1".into();
+    }
+    equipped.insert(class.clone(), item.to_owned());
+    class
+}
+
 fn load_equipped(dir: &Path) -> std::collections::BTreeMap<String, String> {
     std::fs::read_to_string(dir.join(EQUIPPED_FILE))
         .ok()
@@ -373,5 +404,28 @@ impl AppState {
             build_steps: Mutex::new(Vec::new()),
             data_dir,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn two_rings_are_kept() {
+        let mut worn = std::collections::BTreeMap::new();
+        let ring = |n: &str| format!("Item Class: Rings
+Rarity: Rare
+{n}
+Ruby Ring");
+        assert_eq!(record_equipped(&mut worn, &ring("Blood Loop")), "Ring 1");
+        record_equipped(&mut worn, &ring("Storm Band"));
+        assert!(worn["Rings"].contains("Storm Band") && worn[SECOND_RING].contains("Blood Loop"));
+        record_equipped(&mut worn, &ring("Storm Band"));
+        assert!(worn[SECOND_RING].contains("Blood Loop"), "re-recording the same ring changes nothing");
+        assert_eq!(record_equipped(&mut worn, "Item Class: Boots
+Rarity: Rare
+Gale Stride
+Leather Shoes"), "Boots");
     }
 }

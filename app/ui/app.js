@@ -319,7 +319,11 @@ function renderPieces(r) {
     if (!g) groups.push(g = { name: p.group, items: [] });
     g.items.push(p);
   }
-  $("r-pieces").innerHTML = groups.map(g => `
+  const unrecorded = pieces.filter(p => p.group === "Gear" && /not recorded/i.test(p.note)).length;
+  const key = settings?.hotkeys?.record_equipped || "Alt+Shift+E";
+  const nudge = unrecorded ? `<div class="r-nudge">${unrecorded} gear slot${unrecorded > 1 ? "s" : ""} not recorded, so ${unrecorded > 1 ? "they grade" : "it grades"} F. In game, point at each worn item and press <kbd>${escapeHtml(key)}</kbd>, then Rate again.
+    <button class="link" id="r-gear-help">Show the checklist</button></div>` : "";
+  $("r-pieces").innerHTML = nudge + groups.map(g => `
     <div class="r-group"><h3>${escapeHtml(g.name)} <span class="hint">${g.items.length}</span></h3>
       <div class="r-pieces">${g.items.map(p => `
         <div class="r-piece${p.verified ? "" : " unverified"}">
@@ -331,6 +335,11 @@ function renderPieces(r) {
           </div>
         </div>`).join("")}
       </div></div>`).join("");
+  $("r-gear-help")?.addEventListener("click", () => {
+    document.querySelector('.tab[data-tab="build"]').click();
+    showSub("current");
+    setTimeout(() => document.querySelector(".worn")?.scrollIntoView({ behavior: "smooth", block: "center" }), 400);
+  });
 }
 
 $("r-run").addEventListener("click", () => {

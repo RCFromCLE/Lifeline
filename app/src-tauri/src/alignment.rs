@@ -18,7 +18,8 @@ fn classes_for(slot: &str) -> &'static [&'static str] {
         "Gloves" => &["Gloves"],
         "Boots" => &["Boots"],
         "Amulet" => &["Amulets"],
-        "Ring 1" | "Ring 2" => &["Rings"],
+        "Ring 1" => &["Rings"],
+        "Ring 2" => &[crate::state::SECOND_RING],
         "Belt" => &["Belts"],
         "Weapon 2" => &["Shields", "Bucklers", "Quivers", "Foci", "Sceptres", "Wands"],
         _ => &[],
@@ -142,7 +143,7 @@ pub fn alignment(state: &AppState) -> Value {
                         .find_map(|cl| equipped.get(*cl))
                         .or_else(|| {
                             (s.slot == "Weapon 1")
-                                .then(|| equipped.iter().find(|(k, _)| !["Helmets", "Body Armours", "Gloves", "Boots", "Amulets", "Rings", "Belts", "Shields", "Bucklers", "Quivers", "Foci"].contains(&k.as_str())).map(|(_, v)| v))
+                                .then(|| equipped.iter().find(|(k, _)| !["Helmets", "Body Armours", "Gloves", "Boots", "Amulets", "Rings", crate::state::SECOND_RING, "Belts", "Shields", "Bucklers", "Quivers", "Foci"].contains(&k.as_str())).map(|(_, v)| v))
                                 .flatten()
                         })
                         .map(|t| item_title(t));
@@ -151,6 +152,21 @@ pub fn alignment(state: &AppState) -> Value {
                 .collect()
         })
         .unwrap_or_default();
+
+    // Every worn slot, recorded or not (the "Record your gear" checklist).
+    const NOT_WEAPONS: [&str; 12] = ["Helmets", "Body Armours", "Gloves", "Boots", "Amulets", "Rings", crate::state::SECOND_RING, "Belts", "Shields", "Bucklers", "Quivers", "Foci"];
+    let worn: Vec<Value> = ["Weapon 1", "Weapon 2", "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Belt"]
+        .iter()
+        .map(|slot| {
+            let item = if *slot == "Weapon 1" {
+                equipped.iter().find(|(k, _)| !NOT_WEAPONS.contains(&k.as_str())).map(|(_, v)| v)
+            } else {
+                classes_for(slot).iter().find_map(|cl| equipped.get(*cl))
+            };
+            let label = match *slot { "Weapon 1" => "Weapon", "Weapon 2" => "Off-hand", s => s };
+            json!({"slot": label, "recorded": item.map(|t| item_title(t))})
+        })
+        .collect();
 
     let done = have.len();
     let total = planned.len();
@@ -169,6 +185,7 @@ pub fn alignment(state: &AppState) -> Value {
         },
         "skills": skills,
         "gear": gear,
+        "worn": worn,
         "note": "Allocated passives come from the game log (only allocations Lifeline has seen). The game doesn't log gems; ask the player what's socketed.",
     })
 }
@@ -180,7 +197,8 @@ mod tests {
     #[test]
     fn item_titles_and_slot_classes() {
         assert_eq!(item_title("Item Class: Boots\nRarity: Rare\nGale Stride\nThreaded Shoes\n--------\n+20 life"), "Gale Stride");
-        assert_eq!(classes_for("Ring 2"), &["Rings"]);
+        assert_eq!(classes_for("Ring 1"), &["Rings"]);
+        assert_eq!(classes_for("Ring 2"), &[crate::state::SECOND_RING]);
         assert!(classes_for("Weapon 1").is_empty());
     }
 }
