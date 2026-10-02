@@ -212,11 +212,12 @@ pub fn rank(list: &[Archetype], p: &Preferences) -> Vec<Ranked> {
         .filter(|a| p.styles.is_empty() || p.styles.iter().any(|s| a.style.iter().any(|x| eq(x, s))))
         .map(|a| {
             let r = &a.ratings;
-            // Weights: damage, bossing, clear, tankiness, hardcore.
+            // Weights: damage, bossing, clear, tankiness, hardcore. This is a
+            // hardcore app: safety always carries the most weight.
             let w: [u32; 5] = match p.focus.as_deref() {
-                Some("damage") => [3, 2, 2, 1, 2],
-                Some("tanky") => [1, 1, 1, 3, 4],
-                _ => [2, 2, 2, 2, 3],
+                Some("damage") => [3, 2, 2, 1, 4],
+                Some("tanky") => [1, 1, 1, 3, 6],
+                _ => [2, 2, 2, 2, 5],
             };
             let vals = [r.damage, r.bossing, r.clear_speed, r.tankiness, r.hardcore].map(u32::from);
             let got: u32 = w.iter().zip(vals).map(|(w, v)| w * v).sum();
@@ -243,6 +244,9 @@ pub fn rank(list: &[Archetype], p: &Preferences) -> Vec<Ranked> {
             }
             if a.league_start && matches!(p.budget.as_deref(), Some("ssf" | "low")) {
                 score += 4;
+            }
+            if r.hardcore <= 2 {
+                score -= 10;
             }
             if r.hardcore >= 4 {
                 reasons.push(format!("Hardcore-safe ({}/5)", r.hardcore));
