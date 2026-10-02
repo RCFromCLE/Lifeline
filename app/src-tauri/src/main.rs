@@ -20,6 +20,7 @@ mod setup;
 mod skills;
 mod sound;
 mod state;
+mod treeview;
 mod wizard;
 
 use serde::Serialize;
@@ -97,6 +98,22 @@ async fn follow_planner(app: AppHandle, files: Vec<String>) -> Result<builds::Im
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// The whole passive tree's layout (drawn once, then cached by the page).
+#[tauri::command]
+async fn tree_layout(app: AppHandle) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || treeview::layout(&app.state::<AppState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// The followed build's tree plan for a stage ("Act 2"; default: current).
+#[tauri::command]
+async fn tree_plan(app: AppHandle, stage: Option<String>) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || treeview::plan(&app.state::<AppState>(), stage.as_deref()))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -723,6 +740,8 @@ fn main() {
             follow_planner,
             build_alignment,
             build_check_chat,
+            tree_layout,
+            tree_plan,
             active_saved,
             check_update,
             fit_overlay,

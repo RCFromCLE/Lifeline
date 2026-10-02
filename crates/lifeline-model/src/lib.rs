@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 
+pub mod attributes;
 pub mod catalog;
 pub mod design;
 pub mod planner;

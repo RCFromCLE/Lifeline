@@ -54,6 +54,34 @@ pub struct TreeNode {
     /// Nodes only some ascendancies can take (`{"ascendancy": "Druid1"}`).
     #[serde(default, rename = "unlockConstraint")]
     pub unlock_constraint: Option<UnlockConstraint>,
+    /// "+5 to any Attribute": the player picks Strength, Dexterity or Intelligence.
+    #[serde(default, rename = "isGenericAttribute")]
+    pub is_generic_attribute: bool,
+    /// Position on the tree (export coordinates).
+    #[serde(default)]
+    pub x: Option<f64>,
+    #[serde(default)]
+    pub y: Option<f64>,
+}
+
+/// A drawn connection; `center` is set when it follows an orbit (an arc).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TreeEdge {
+    pub from: u32,
+    pub to: u32,
+    pub center: Option<(f64, f64)>,
+}
+
+#[derive(Deserialize)]
+struct RawEdge {
+    #[serde(default)]
+    from: Value,
+    #[serde(default)]
+    to: Value,
+    #[serde(default, rename = "orbitX")]
+    orbit_x: Option<f64>,
+    #[serde(default, rename = "orbitY")]
+    orbit_y: Option<f64>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -66,6 +94,12 @@ pub struct UnlockConstraint {
 pub struct ClassInfo {
     #[serde(default, deserialize_with = "null_as_empty")]
     pub name: String,
+    #[serde(default)]
+    pub base_str: u32,
+    #[serde(default)]
+    pub base_dex: u32,
+    #[serde(default)]
+    pub base_int: u32,
     #[serde(default)]
     pub ascendancies: Vec<AscendancyInfo>,
 }
@@ -128,6 +162,8 @@ struct RawExport {
     classes: Vec<ClassInfo>,
     #[serde(default, rename = "skillOverrides")]
     skill_overrides: HashMap<String, TreeNode>,
+    #[serde(default)]
+    edges: Vec<RawEdge>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -139,6 +175,7 @@ pub struct PassiveTree {
     skill_overrides: HashMap<String, TreeNode>,
     /// Passive id (what the game logs and planner files store) → node.
     by_id: HashMap<String, u32>,
+    edges: Vec<TreeEdge>,
 }
 
 /// Why a target passive couldn't be added.
@@ -183,12 +220,25 @@ impl PassiveTree {
                 }
             }
         }
+        let edges = raw
+            .edges
+            .iter()
+            .filter_map(|e| {
+                let (from, to) = (as_node_id(&e.from)?, as_node_id(&e.to)?);
+                (nodes.contains_key(&from) && nodes.contains_key(&to)).then_some(TreeEdge {
+                    from,
+                    to,
+                    center: e.orbit_x.zip(e.orbit_y),
+                })
+            })
+            .collect();
         Ok(Self {
             nodes,
             links,
             classes: raw.classes,
             skill_overrides: raw.skill_overrides,
             by_id,
+            edges,
         })
     }
 
@@ -355,6 +405,16 @@ impl PassiveTree {
         }
         allocated.extend(path);
         Ok(spent)
+    }
+
+    /// Every connection as drawn on the tree (straight or along an orbit).
+    pub fn edges(&self) -> &[TreeEdge] {
+        &self.edges
+    }
+
+    /// Every node, keyed by skill id.
+    pub fn nodes(&self) -> impl Iterator<Item = (u32, &TreeNode)> {
+        self.nodes.iter().map(|(&k, n)| (k, n))
     }
 
     pub fn len(&self) -> usize {

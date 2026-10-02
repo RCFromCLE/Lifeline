@@ -145,6 +145,18 @@
             <div class="step-h"><h2>How you line up</h2><span class="hint" id="align-stage"></span><button id="align-refresh" class="ghost" title="Refresh">↻</button></div>
             <div id="align-body"></div>
           </div>
+          <div class="card hidden" id="tree-card">
+            <div class="step-h"><h2>Passive tree</h2><span class="tree-stages" id="tree-stages"></span></div>
+            <div class="tree-wrap">
+              <div class="tree-view" id="tree-view" tabindex="0" aria-label="Passive tree: drag to pan, scroll or plus/minus to zoom">
+                <svg id="tree-svg" preserveAspectRatio="xMidYMid meet"></svg>
+                <div class="tree-tip hidden" id="tree-tip"></div>
+                <div class="tree-zoom"><button id="tz-in" title="Zoom in">+</button><button id="tz-out" title="Zoom out">−</button><button id="tz-fit" title="Fit the plan">⤢</button></div>
+                <div class="tree-legend"><span class="lg plan"></span>Planned <span class="lg taken"></span>Taken <span class="lg earlier"></span>Earlier stage <span class="lg off"></span>Off-plan <b style="color:#e58a6e">S</b><b style="color:#8fd17a">D</b><b style="color:#79b2e8">I</b> Attribute pick</div>
+              </div>
+              <div class="tree-side" id="tree-side"></div>
+            </div>
+          </div>
         </div>
         <div class="sub active" id="sub-showcase">
           <div class="card">
@@ -265,6 +277,7 @@
   <script src="common.js"></script>
   <script src="app.js"></script>
   <script src="builds.js"></script>
+  <script src="tree.js"></script>
   <script src="embers.js"></script>
   <script src="welcome.js"></script>
 </body>

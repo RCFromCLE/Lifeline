@@ -370,6 +370,11 @@ function renderCurrent(v) {
     } catch (e) { toast(`Couldn't save to the Build Planner: ${e}`, "err"); }
   });
   $("cur-change").addEventListener("click", () => showSub("showcase"));
+  // Stage chips show that stage on the tree.
+  $("cur-card").querySelectorAll(".cstage").forEach(c => c.addEventListener("click", () => {
+    refreshTree(c.dataset.stage);
+    $("tree-card").scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
   refreshAlignment();
 }
 
@@ -377,7 +382,7 @@ let alignTimer = null;
 function refreshAlignment() {
   clearTimeout(alignTimer);
   alignTimer = setTimeout(async () => {
-    if (!CURRENT) { $("align-card").classList.add("hidden"); return; }
+    if (!CURRENT) { $("align-card").classList.add("hidden"); $("tree-card").classList.add("hidden"); return; }
     const a = await invoke("build_alignment");
     $("align-card").classList.remove("hidden");
     if (!a.passives) { $("align-body").innerHTML = `<p class="hint">${esc(a.note || "")}</p>`; return; }
@@ -400,6 +405,7 @@ function refreshAlignment() {
       </div>
       <div class="d-sec" style="margin-top:12px"><h3>Gear</h3><table class="gear-align"><thead><tr><th>Slot</th><th>Goal</th><th>You</th></tr></thead><tbody>${gear || `<tr><td colspan="3" class="hint">This build has no gear goals.</td></tr>`}</tbody></table>
         <div class="hint">Record what you wear: hover an item in game and press your Record gear hotkey.</div></div>`;
+    if (typeof refreshTree === "function") refreshTree();
   }, 250);
 }
 

@@ -71,13 +71,36 @@ pub fn alignment(state: &AppState) -> Value {
         .flat_map(|s| s.nodes.iter().filter_map(|&n| tree.node_for(n, s.ascendancy_internal_id.as_deref()).map(|x| x.id.clone())))
         .collect();
     let have: Vec<(u32, &String)> = planned.iter().filter(|(_, id)| c.allocated.contains(id)).map(|(n, id)| (*n, id)).collect();
-    let mut missing: Vec<(bool, String)> = planned
+    // In the order they're taken (outward from the class start), with the
+    // stat to pick on each "+5 to any Attribute" node.
+    let main_planned: HashSet<u32> = planned
         .iter()
-        .filter(|(_, id)| !c.allocated.contains(id))
-        .map(|(n, _)| (tree.node(*n).is_some_and(|x| x.is_notable || x.is_keystone), name_of(*n)))
+        .map(|(n, _)| *n)
+        .filter(|n| tree.node(*n).is_some_and(|x| x.ascendancy_id.is_none()))
+        .collect();
+    let start = imported.build.class_name.as_deref().and_then(|cl| tree.class_start(cl));
+    let order = lifeline_model::attributes::allocation_order(&tree, start, &main_planned);
+    let data = crate::gamedata::load(state).ok();
+    let needs = lifeline_model::attributes::stage_needs(&tree, &imported.build, current.spec_index, current.stage_key, data.as_deref());
+    let picks = lifeline_model::attributes::plan(&tree, &order, &needs).choices;
+    let id_of = |n: u32| planned.iter().find(|(m, _)| *m == n).map(|(_, id)| id.clone()).unwrap_or_default();
+    let missing: Vec<(bool, String)> = order
+        .iter()
+        .chain(planned.iter().map(|(n, _)| n).filter(|n| !main_planned.contains(n)))
+        .copied()
+        .filter(|n| !c.allocated.contains(&id_of(*n)))
+        .map(|n| {
+            let notable = tree.node(n).is_some_and(|x| x.is_notable || x.is_keystone);
+            let name = match picks.get(&n) {
+                Some(lifeline_model::attributes::Attr::Str) => "Attribute → Strength".to_owned(),
+                Some(lifeline_model::attributes::Attr::Dex) => "Attribute → Dexterity".to_owned(),
+                Some(lifeline_model::attributes::Attr::Int) => "Attribute → Intelligence".to_owned(),
+                None => name_of(n),
+            };
+            (notable, name)
+        })
         .filter(|(_, name)| !name.is_empty())
         .collect();
-    missing.sort_by_key(|(notable, _)| !notable);
     let off_plan: Vec<String> = c
         .allocated
         .iter()

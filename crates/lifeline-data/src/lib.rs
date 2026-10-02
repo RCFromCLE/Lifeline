@@ -5,4 +5,4 @@ pub mod game;
 pub mod tree;
 
 pub use game::{GameData, REPOE_BASE, REPOE_FILES};
-pub use tree::{AscendancyInfo, ClassInfo, Miss, PassiveTree, TreeNode, TREE_EXPORT_URL};
+pub use tree::{AscendancyInfo, ClassInfo, Miss, PassiveTree, TreeEdge, TreeNode, TREE_EXPORT_URL};
