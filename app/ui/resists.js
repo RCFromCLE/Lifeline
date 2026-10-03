@@ -23,16 +23,16 @@
     pill.title = tooltip(r);
     if (!focus.length && r.focus?.physical) {
       pill.className = "stat res-pill";
-      pill.innerHTML = `<span class="rp-label">Resist here:</span><span class="rp phys">Physical (armour, life)</span>`;
+      pill.innerHTML = `<span class="rp-label">${escapeHtml(r.zone || "This zone")}: physical</span><span class="rp phys">(armour, life)</span>`;
       return;
     }
     if (!focus.length) {
       pill.className = "stat";
-      pill.textContent = r.need != null ? `Res cap: ${r.need}%` : "Res —";
+      pill.textContent = r.zone ? `${r.zone}${r.need != null ? `: res cap ${r.need}%` : ""}` : (r.need != null ? `Res cap: ${r.need}%` : "Res —");
       return;
     }
     pill.className = "stat res-pill";
-    pill.innerHTML = `<span class="rp-label">Resist here:</span>` + focus.map(k => `<span class="rp ${k}">${NAMES[k]}</span>`).join(`<span class="rp-sep">·</span>`);
+    pill.innerHTML = `<span class="rp-label">${escapeHtml(r.zone || "This zone")}: resist</span>` + focus.map(k => `<span class="rp ${k}">${NAMES[k]}</span>`).join(`<span class="rp-sep">·</span>`);
   }
 
   // After app.js draws the character line, so this wins.

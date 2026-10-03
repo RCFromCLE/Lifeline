@@ -81,6 +81,7 @@
     .res .el { margin-right: 4px; }
     .res .el.fire { color: #ff8a6a; } .res .el.cold { color: #8fc3ff; } .res .el.lightning { color: #ffe066; }
     .res .el.chaos { color: #d58cff; }
+    .res .zn { color: #cdbfa8; font-weight: 600; margin-right: 6px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: bottom; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -189,9 +190,10 @@
       const NAMES = { fire: "Fire", cold: "Cold", lightning: "Light", chaos: "Chaos" };
       const focus = (f.resists || []).filter(k => NAMES[k]);
       el("pen").className = "res full";
-      el("pen").innerHTML = focus.length
+      const zone = r.zone ? `<span class="zn">${escapeHtml(r.zone)}</span>` : "";
+      el("pen").innerHTML = zone + (focus.length
         ? focus.map(k => `<span class="el ${k}">${NAMES[k]}</span>`).join("")
-        : f.physical ? `<span class="el">Physical</span>` : (r.need != null ? `Cap ${r.need}%` : "Res –");
+        : f.physical ? `<span class="el">Physical</span>` : (r.need != null ? `Cap ${r.need}%` : "Res –"));
       el("pen").title = `${r.zone || "This zone"}${f.boss ? ` (boss: ${f.boss})` : ""}: ${f.why || "no data"}`
         + (r.need != null ? `
 Capped at 75% here needs ${r.need}% (${r.penalty}% penalty).` : "")
