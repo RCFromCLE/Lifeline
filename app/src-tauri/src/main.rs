@@ -13,6 +13,7 @@ mod game;
 mod gear;
 mod gamedata;
 mod hotkeys;
+mod hud_place;
 mod input;
 mod market;
 mod mcp;
@@ -591,6 +592,10 @@ fn spawn_overlay_hit_test(app: AppHandle) {
                         input::Foreground::Other => false,
                     };
                 if want != w.is_visible().unwrap_or(false) {
+                    // Always the top-left of the game's screen, at any size.
+                    if want {
+                        hud_place::pin_top_left(&w);
+                    }
                     let _ = if want { w.show() } else { w.hide() };
                 }
                 if last_fg != Some(fg) {
@@ -694,6 +699,7 @@ fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
         builder = builder.position(x, y);
     }
     let window = builder.build()?;
+    hud_place::pin_top_left(&window);
     window.set_ignore_cursor_events(true)?;
     let handle = app.clone();
     window.on_window_event(move |event| {
