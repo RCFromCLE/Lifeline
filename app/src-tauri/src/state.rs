@@ -95,6 +95,13 @@ pub struct Settings {
     /// "death", "ready"). Level up and death are off unless chosen.
     #[serde(default = "default_cues")]
     pub sound_cues: std::collections::BTreeMap<String, bool>,
+    /// Per cue: show its 3-second HUD pop-up (on unless turned off; works
+    /// even with the sound muted).
+    #[serde(default)]
+    pub cue_popups: std::collections::BTreeMap<String, bool>,
+    /// Short HUD messages: gear recorded, Travel results, problems.
+    #[serde(default = "yes")]
+    pub hud_notices: bool,
     /// How the player plays: "playstation", "xbox" or "keyboard".
     #[serde(default = "default_input")]
     pub input: String,
@@ -134,6 +141,10 @@ fn default_volume() -> f32 {
     0.6
 }
 
+fn yes() -> bool {
+    true
+}
+
 pub fn default_cues() -> std::collections::BTreeMap<String, bool> {
     [("level_up", false), ("new_act", true), ("boss_area", true), ("penalty", true), ("death", false), ("ready", true)]
         .into_iter()
@@ -168,6 +179,8 @@ impl Default for Settings {
             sound: true,
             volume: default_volume(),
             sound_cues: default_cues(),
+            cue_popups: Default::default(),
+            hud_notices: true,
             input: default_input(),
             text_size: default_text_size(),
             show_trade_on_travel: false,

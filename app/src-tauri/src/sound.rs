@@ -169,10 +169,10 @@ pub fn play(app: &tauri::AppHandle, cue: Cue) {
 
 /// Plays `cue` and shows what it means on the HUD for a few seconds
 /// (`detail`, e.g. "Level 14", says what happened), so a sound is never a
-/// mystery. Nothing shows when the sound is off.
+/// mystery. The sound and the pop-up each have their own Settings switch.
 pub fn play_with(app: &tauri::AppHandle, cue: Cue, detail: &str) {
     let state = app.state::<AppState>();
-    let (on, volume) = {
+    let (on, popup, volume) = {
         let s = state.settings.lock().unwrap();
         // A cue missing from saved settings falls back to its default.
         let enabled = s
@@ -181,10 +181,14 @@ pub fn play_with(app: &tauri::AppHandle, cue: Cue, detail: &str) {
             .copied()
             .or_else(|| crate::state::default_cues().get(cue.name()).copied())
             .unwrap_or(true);
-        (s.sound && enabled, s.volume)
+        let popup = s.cue_popups.get(cue.name()).copied().unwrap_or(true);
+        (s.sound && enabled, popup, s.volume)
     };
     if on {
         let _ = sender().lock().unwrap().send((cue, volume.clamp(0.0, 1.0)));
+    }
+    // The pop-up has its own switch: it can show with the sound muted.
+    if popup {
         let _ = app.emit("sound-cue", serde_json::json!({"cue": cue.name(), "title": cue.title(), "detail": detail}));
     }
 }

@@ -17,6 +17,7 @@ mod hud_place;
 mod input;
 mod market;
 mod mcp;
+mod notify_settings;
 mod rating;
 mod setup;
 mod single;
@@ -157,6 +158,17 @@ fn set_trade_on_travel(state: tauri::State<'_, AppState>, show: bool) -> Result<
     let mut s = state.settings.lock().unwrap();
     s.show_trade_on_travel = show;
     s.save(&state.data_dir)
+}
+
+/// HUD pop-up and message switches (Settings → Sounds & notifications).
+#[tauri::command]
+fn notification_settings(state: tauri::State<'_, AppState>) -> serde_json::Value {
+    notify_settings::current(&state)
+}
+
+#[tauri::command]
+fn set_notification(app: AppHandle, kind: String, cue: Option<String>, on: bool) -> Result<serde_json::Value, String> {
+    notify_settings::set(&app, &kind, cue.as_deref(), on)
 }
 
 /// The whole passive tree's layout (drawn once, then cached by the page).
@@ -651,6 +663,8 @@ fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, 
         settings.rating_budget.clone_from(&current.rating_budget);
         settings.auto_rate_on_act = current.auto_rate_on_act;
         settings.show_trade_on_travel = current.show_trade_on_travel;
+        settings.cue_popups.clone_from(&current.cue_popups);
+        settings.hud_notices = current.hud_notices;
         settings.onboarded = settings.onboarded || current.onboarded;
     }
     settings.save(&state.data_dir)?;
@@ -847,6 +861,8 @@ fn main() {
             rerun_upgrade,
             rate_market_chat,
             set_trade_on_travel,
+            notification_settings,
+            set_notification,
             clipboard_item,
             tree_plan,
             active_saved,

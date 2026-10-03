@@ -258,7 +258,12 @@
     });
     // Short messages (gear recorded, copy failed…) show on the HUD for a few seconds.
     let noticeTimer = null;
+    // Settings → Sounds & notifications can turn HUD messages off.
+    let hudNotices = true;
+    invoke("notification_settings").then(s => { hudNotices = s.hud_notices !== false; }).catch(() => {});
+    listen("notification-settings", ({ payload }) => { hudNotices = payload.hud_notices !== false; });
     listen("notice", ({ payload }) => {
+      if (!hudNotices) return;
       const text = String(payload);
       const bad = /couldn|failed|isn't|no item|blocks|copy an item/i.test(text);
       answer = { ...answer, label: text.startsWith("✓") ? "Done" : "Lifeline", status: "", html: escapeHtml(text), error: bad };

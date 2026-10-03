@@ -10,3 +10,15 @@
 .mk-head .hint { margin: 0 auto 0 0; }
 .focus-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; margin: 6px 0 10px; }
 @media (max-width: 900px) { .focus-row { grid-template-columns: 1fr 1fr; } }
+
+/* Settings → Sounds & notifications (notify.js) */
+.cue-table { display: flex; flex-direction: column; gap: 6px; }
+.cue-table .cue-head, .cue-table .cue { display: grid; grid-template-columns: minmax(0, 1fr) 64px 64px 44px; align-items: center; gap: 8px; }
+.cue-table .cue-head span { font-size: 13px; color: var(--muted); text-align: center; text-transform: uppercase; letter-spacing: .5px; }
+.cue-table .cue { padding: 8px 0; border-top: 1px solid var(--line); }
+.cue-about { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cue-about span { font-size: 13.5px; color: var(--muted); }
+.cue-switch { display: flex; justify-content: center; cursor: pointer; }
+.cue-switch input { width: 18px; height: 18px; }
+.cue-extra { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; }
+.cue-extra .hint { display: inline; }
