@@ -158,6 +158,7 @@ async function toggleFullscreen() {
   await w.setFullscreen(!(await w.isFullscreen()));
 }
 $("d-full").addEventListener("click", () => toggleFullscreen().catch(() => {}));
+$("d-market").addEventListener("click", () => invoke("overlay_action", { action: "open_market" }).catch(() => {}));
 document.addEventListener("keydown", ev => {
   if (ev.key === "F11") { ev.preventDefault(); toggleFullscreen().catch(() => {}); }
 });

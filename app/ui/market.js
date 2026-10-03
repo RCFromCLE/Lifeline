@@ -169,5 +169,8 @@
     });
   }
   new MutationObserver(decorateUpgrades).observe($("r-recs"), { childList: true });
+
+  // The dashboard's Market button brings this window up on the Market tab.
+  listen("show-tab", ({ payload }) => document.querySelector(`.tab[data-tab="${payload}"]`)?.click());
   decorateUpgrades();
 })();

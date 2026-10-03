@@ -141,6 +141,16 @@ pub fn run_named(app: &AppHandle, name: &str) -> Result<(), String> {
             }
             return Ok(());
         }
+        // The main window on its Market tab (dashboard button).
+        "open_market" => {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+            let _ = app.emit_to("main", "show-tab", "market");
+            return Ok(());
+        }
         "gear_watch_toggle" => {
             let on = crate::gear::watch_left(&app.state::<AppState>()) == 0;
             crate::gear::set_watch(app, on);

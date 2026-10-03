@@ -97,3 +97,4 @@ body.dash::after { display: none; }
   background: rgba(14, 10, 7, 0.97); border: 1px solid rgba(217, 169, 87, 0.55); font-size: 0.95rem; pointer-events: none;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6); }
 .d-tip b { display: block; color: var(--gold-2); margin-bottom: 0.2rem; }
+#d-market { font-size: 1rem; padding: 0.35rem 0.9rem; }
