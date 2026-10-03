@@ -145,36 +145,108 @@ fn shop(app: &AppHandle, state: &AppState) {
         .unwrap_or_default();
     let budget = state.settings.lock().unwrap().rating_budget.clone();
     for (i, rec) in recs.iter().take(MARKET_PICKS).enumerate() {
-        let slot = rec["slot"].as_str().unwrap_or("item");
-        let _ = app.emit(
-            "rating-status",
-            json!({"busy": true, "text": format!("Searching {slot}…"), "index": i}),
-        );
-        let prompt = format!(
-            "Shop for this upgrade for the player.\nSlot: {slot}\nGoal: {}\nWhy: {}\nLook for: {}\nBudget: at most {budget} per item.\n\
-             Search Instant Buyout listings in their league within the budget (trade_search with max_listings 20), then \
-             call rate_listings once with every listing returned (up to 20), each rated against what they wear in that \
-             slot (equipped_items) or the plan. Reply with one sentence.",
-            rec["title"].as_str().unwrap_or(""),
-            rec["why"].as_str().unwrap_or(""),
-            rec["look_for"].as_str().unwrap_or(""),
-        );
-        let scope = MARKET_SCOPE_BASE + i as u64;
-        let run = crate::ai::companion(state, scope).and_then(|mut cli| {
-            cli.main_agent = Some(MARKET_SCOUT.into());
-            cli.model = Some(MARKET_MODEL.into());
-            cli.persist_session = false;
-            cli.run_turn(&prompt, None, |e| usage(app, e))
-                .map_err(|e| e.to_string())
-        });
-        if let Err(e) = run {
-            let _ = app.emit(
-                "rating-status",
-                json!({"busy": true, "text": format!("Market search for {slot} failed: {e}"), "index": i}),
-            );
-        }
+        shop_one(app, state, i, rec, None, Some(&budget));
     }
     let _ = app.emit("rating-status", json!({"busy": false, "text": ""}));
+}
+
+/// Modifiers the player wants an upgrade search to put first (from the
+/// trade site's stat list or an item property such as total Armour).
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Focus {
+    pub primary: Option<String>,
+    pub secondary: Option<String>,
+}
+
+/// Shops for one recommendation: within `budget`, or with no price limit
+/// (None: the best piece the character can wear, just to see what's there).
+fn shop_one(app: &AppHandle, state: &AppState, i: usize, rec: &Value, focus: Option<&Focus>, budget: Option<&str>) {
+    let slot = rec["slot"].as_str().unwrap_or("item");
+    let _ = app.emit(
+        "rating-status",
+        json!({"busy": true, "text": format!("Searching {slot}…"), "index": i}),
+    );
+    let level = state.character.lock().unwrap().level;
+    let focus_text = focus
+        .map(|f| {
+            let mut lines = Vec::new();
+            if let Some(p) = f.primary.as_deref().filter(|s| !s.is_empty()) {
+                lines.push(format!("Primary modifier (most important, sort by it): {p}"));
+            }
+            if let Some(s) = f.secondary.as_deref().filter(|s| !s.is_empty()) {
+                lines.push(format!("Secondary modifier (next most important): {s}"));
+            }
+            if lines.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    "\n{}\nRequire these and rank by them first (stat ids via trade_find_stat; total Armour, Evasion, Energy \
+                     Shield, Spirit, Block and weapon DPS are equipment_filters such as ar, ev, es — use those, sorted \
+                     descending). Then judge the rest for the build as usual.",
+                    lines.join("\n")
+                )
+            }
+        })
+        .unwrap_or_default();
+    let money = match budget {
+        Some(b) => format!("Budget: at most {b} per item."),
+        None => format!(
+            "No budget: money is no object. Find the strongest pieces the character can wear right now (requirements \
+             filter lvl max {level}), sorted by the most important modifier, whatever they cost."
+        ),
+    };
+    let prompt = format!(
+        "Shop for this upgrade for the player.\nSlot: {slot}\nGoal: {}\nWhy: {}\nLook for: {}\n{money}{focus_text}\n\
+         Search Instant Buyout listings in their league (trade_search with max_listings 20), then call rate_listings \
+         once with every listing returned (up to 20), each rated against what they wear in that slot (equipped_items) \
+         or the plan. Reply with one sentence.",
+        rec["title"].as_str().unwrap_or(""),
+        rec["why"].as_str().unwrap_or(""),
+        rec["look_for"].as_str().unwrap_or(""),
+    );
+    let scope = MARKET_SCOPE_BASE + i as u64;
+    let run = crate::ai::companion(state, scope).and_then(|mut cli| {
+        cli.main_agent = Some(MARKET_SCOUT.into());
+        cli.model = Some(MARKET_MODEL.into());
+        cli.persist_session = false;
+        cli.run_turn(&prompt, None, |e| usage(app, e)).map_err(|e| e.to_string())
+    });
+    if let Err(e) = run {
+        let _ = app.emit(
+            "rating-status",
+            json!({"busy": true, "text": format!("Market search for {slot} failed: {e}"), "index": i}),
+        );
+    }
+}
+
+/// Re-runs one upgrade's market search with the player's focus modifiers,
+/// within the Rating budget or (`any_price`) with no budget.
+pub fn rerun_upgrade(app: AppHandle, index: usize, focus: Focus, any_price: bool) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    let rec = state
+        .rating
+        .lock()
+        .unwrap()
+        .as_ref()
+        .and_then(|r| r["recommendations"].get(index).cloned())
+        .ok_or("That upgrade is gone. Rate again.")?;
+    if index >= MARKET_PICKS {
+        return Err("Only the top upgrades have market searches.".into());
+    }
+    if state.rating_busy.swap(true, Ordering::SeqCst) {
+        return Err("Still rating or searching. Try again in a moment.".into());
+    }
+    std::thread::spawn(move || {
+        let state = app.state::<AppState>();
+        let budget = state.settings.lock().unwrap().rating_budget.clone();
+        shop_one(&app, &state, index, &rec, Some(&focus), (!any_price).then_some(budget.as_str()));
+        state.rating_busy.store(false, Ordering::SeqCst);
+        let _ = app.emit("rating-status", json!({"busy": false, "text": ""}));
+        state.save_rating();
+        let _ = app.emit("rating", snapshot(&state));
+        crate::sound::play(&app, crate::sound::Cue::Ready);
+    });
+    Ok(())
 }
 
 #[cfg(test)]

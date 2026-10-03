@@ -19,6 +19,12 @@ fn trade_home(league: &str) -> String {
 
 /// Shows (creating if needed) the trade window, optionally at `url`.
 pub fn open_trade_window(app: &AppHandle, url: Option<&str>) -> Result<WebviewWindow, String> {
+    trade_window(app, url, true)
+}
+
+/// The trade window, created if needed; shown and focused only with `show`
+/// (Travel works from a hidden one).
+fn trade_window(app: &AppHandle, url: Option<&str>, show: bool) -> Result<WebviewWindow, String> {
     let league = app.state::<AppState>().settings.lock().unwrap().league.clone();
     let target = url.map(str::to_owned).unwrap_or_else(|| trade_home(&league));
     if let Some(w) = app.get_webview_window(TRADE_LABEL) {
@@ -26,15 +32,18 @@ pub fn open_trade_window(app: &AppHandle, url: Option<&str>) -> Result<WebviewWi
             let parsed = target.parse().map_err(|e| format!("bad url: {e}"))?;
             w.navigate(parsed).map_err(|e| e.to_string())?;
         }
-        let _ = w.show();
-        let _ = w.unminimize();
-        let _ = w.set_focus();
+        if show {
+            let _ = w.show();
+            let _ = w.unminimize();
+            let _ = w.set_focus();
+        }
         return Ok(w);
     }
     let parsed = target.parse().map_err(|e| format!("bad url: {e}"))?;
     WebviewWindowBuilder::new(app, TRADE_LABEL, WebviewUrl::External(parsed))
         .title("pathofexile.com trade — log in here once")
         .inner_size(1180.0, 820.0)
+        .visible(show)
         .on_page_load(|window, payload| {
             // A Travel waiting on the page (first load, or back from signing in).
             if payload.event() != PageLoadEvent::Finished || !on_trade_site(payload.url()) {
@@ -59,6 +68,7 @@ fn travel_script(listing_id: &str, search_id: &str) -> String {
     let qid = serde_json::to_string(search_id).unwrap_or_default();
     format!(
         r#"(async () => {{
+  const signal = s => {{ try {{ history.replaceState(null, '', location.pathname + location.search + '#lifeline=' + s); }} catch (_) {{}} }};
   const banner = (msg, ok) => {{
     let b = document.getElementById('lifeline-banner');
     if (!b) {{ b = document.createElement('div'); b.id = 'lifeline-banner'; document.body.appendChild(b); }}
@@ -66,21 +76,22 @@ fn travel_script(listing_id: &str, search_id: &str) -> String {
       + (ok ? 'background:#1f3d1a;color:#c8f0b0' : 'background:#4a1d17;color:#ffd0c8');
     b.textContent = 'Lifeline: ' + msg;
   }};
+  signal('busy');
   try {{
-    if (!/(^|\.)pathofexile\.com$/.test(location.hostname)) {{ banner('finish signing in to pathofexile.com, then press Travel again.', false); return; }}
+    if (!/(^|\.)pathofexile\.com$/.test(location.hostname)) {{ banner('finish signing in to pathofexile.com, then press Travel again.', false); signal('login'); return; }}
     const hdr = {{ 'X-Requested-With': 'XMLHttpRequest' }};
     const r = await fetch('/api/trade2/fetch/' + {lid} + '?query=' + {qid} + '&realm=poe2', {{ credentials: 'same-origin', headers: hdr }});
-    if (!(r.headers.get('content-type') || '').includes('json')) {{ banner('the trade site did not answer (HTTP ' + r.status + '). Log in on this page, then press Travel again.', false); return; }}
+    if (!(r.headers.get('content-type') || '').includes('json')) {{ banner('the trade site did not answer (HTTP ' + r.status + '). Log in on this page, then press Travel again.', false); signal('login'); return; }}
     const j = await r.json();
     const listing = j && j.result && j.result[0] && j.result[0].listing;
     const token = listing && listing.hideout_token;
-    if (!token) {{ banner(listing ? 'no travel token — log in on this page, or this listing is not Instant Buyout.' : 'listing not found (sold or expired).', false); return; }}
+    if (!token) {{ banner(listing ? 'no travel token — log in on this page, or this listing is not Instant Buyout.' : 'listing not found (sold or expired).', false); signal(listing ? 'login' : 'gone'); return; }}
     const w = await fetch('/api/trade2/whisper', {{ method: 'POST', credentials: 'same-origin',
       headers: Object.assign({{ 'Content-Type': 'application/json' }}, hdr), body: JSON.stringify({{ token }}) }});
-    if (w.ok) banner('travelling to the seller\'s hideout — check the game.', true);
-    else if (w.status === 404) banner('that item already sold.', false);
-    else banner('travel failed (HTTP ' + w.status + '). You must be in game, in the same league, past Act 4.', false);
-  }} catch (e) {{ banner('travel failed: ' + e, false); }}
+    if (w.ok) {{ banner('travelling to the seller\'s hideout — check the game.', true); signal('ok'); }}
+    else if (w.status === 404) {{ banner('that item already sold.', false); signal('gone'); }}
+    else {{ banner('travel failed (HTTP ' + w.status + '). You must be in game, in the same league, past Act 4.', false); signal('fail' + w.status); }}
+  }} catch (e) {{ banner('travel failed: ' + e, false); signal('fail'); }}
 }})();"#
     )
 }
@@ -120,18 +131,58 @@ fn run_travel(app: &AppHandle, listing_id: &str, search_id: &str) -> Result<&'st
         .and_then(|w| w.url().ok())
         .is_some_and(|u| on_trade_site(&u));
     let state = app.state::<AppState>();
+    let show = state.settings.lock().unwrap().show_trade_on_travel;
     if ready {
         *state.pending_travel.lock().unwrap() = None;
-        let window = open_trade_window(app, None)?;
+        let window = trade_window(app, None, show)?;
         window
             .eval(travel_script(listing_id, search_id))
             .map_err(|_| "Couldn't reach the trade window.")?;
-        Ok("Travel requested — watch the game.")
+        watch_travel(app, window);
+        Ok("Travelling… watch the game.")
     } else {
         *state.pending_travel.lock().unwrap() = Some((listing_id.to_owned(), search_id.to_owned()));
-        open_trade_window(app, None)?;
-        Ok("Sign in to pathofexile.com in the trade window; Travel runs as soon as you're on the trade site.")
+        let window = trade_window(app, None, show)?;
+        watch_travel(app, window);
+        Ok("Getting the trade site ready; Travel runs as soon as it loads.")
     }
+}
+
+/// Reads the travel result the page leaves in its address (`#lifeline=…`)
+/// and tells the player, showing the trade window only when they must sign
+/// in there.
+fn watch_travel(app: &AppHandle, window: WebviewWindow) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        for _ in 0..80 {
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            let Some(result) = window
+                .url()
+                .ok()
+                .and_then(|u| u.fragment().and_then(|f| f.strip_prefix("lifeline=")).map(str::to_owned))
+                .filter(|r| r != "busy")
+            else {
+                continue;
+            };
+            let message = match result.as_str() {
+                "ok" => "✓ Travelling to the seller's hideout — check the game.".to_owned(),
+                "gone" => "That item already sold or expired.".to_owned(),
+                "login" => {
+                    let _ = window.show();
+                    let _ = window.unminimize();
+                    let _ = window.set_focus();
+                    "Sign in to pathofexile.com in the trade window (only once), then press Travel again.".to_owned()
+                }
+                other => format!("Travel failed ({other}). You must be in game, in the same league."),
+            };
+            let _ = app.emit("notice", message);
+            return;
+        }
+        // No answer: probably a sign-in page the script can't run on.
+        let _ = window.show();
+        let _ = window.set_focus();
+        let _ = app.emit("notice", "The trade site didn't answer. Check the trade window (sign in if asked), then press Travel again.");
+    });
 }
 
 /// Runs a confirmed action.

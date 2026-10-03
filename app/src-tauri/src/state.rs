@@ -101,6 +101,10 @@ pub struct Settings {
     /// The first-run welcome (Claude Code setup, game, tour) is done.
     #[serde(default)]
     pub onboarded: bool,
+    /// Show the trade window when travelling (otherwise it works hidden and
+    /// only appears when you need to sign in).
+    #[serde(default)]
+    pub show_trade_on_travel: bool,
     /// App text size: "auto" (by window size), "normal", "large", "xlarge".
     #[serde(default = "default_text_size")]
     pub text_size: String,
@@ -166,6 +170,7 @@ impl Default for Settings {
             sound_cues: default_cues(),
             input: default_input(),
             text_size: default_text_size(),
+            show_trade_on_travel: false,
             onboarded: false,
             active_saved: None,
             overlay_on_hotkey: true,

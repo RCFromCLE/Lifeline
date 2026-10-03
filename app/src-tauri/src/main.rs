@@ -21,6 +21,7 @@ mod setup;
 mod skills;
 mod sound;
 mod state;
+mod trade_tools;
 mod treeview;
 mod wizard;
 
@@ -118,6 +119,42 @@ fn gear_watch(app: AppHandle, on: bool) -> u64 {
 #[tauri::command]
 fn gear_watch_left(state: tauri::State<'_, AppState>) -> u64 {
     gear::watch_left(&state)
+}
+
+/// Modifiers for the market pickers (item properties, then trade stats).
+#[tauri::command]
+async fn trade_modifiers(app: AppHandle) -> Result<Vec<serde_json::Value>, String> {
+    tauri::async_runtime::spawn_blocking(move || trade_tools::modifiers(&app.state::<AppState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// A market search the player set up (Market tab).
+#[tauri::command]
+async fn market_search(app: AppHandle, request: trade_tools::SearchRequest) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || trade_tools::search(&app, &request))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Re-runs one Rating upgrade's market search with chosen modifiers.
+#[tauri::command]
+fn rerun_upgrade(app: AppHandle, index: usize, focus: rating::Focus, any_price: bool) -> Result<(), String> {
+    rating::rerun_upgrade(app, index, focus, any_price)
+}
+
+/// Asks Lifeline in a new chat to rate market results for the build.
+#[tauri::command]
+fn rate_market_chat(app: AppHandle, search_id: String, listing_ids: Vec<String>) -> Result<u64, String> {
+    trade_tools::rate_in_chat(&app, &search_id, &listing_ids)
+}
+
+/// Whether Travel shows the trade window (otherwise it works hidden).
+#[tauri::command]
+fn set_trade_on_travel(state: tauri::State<'_, AppState>, show: bool) -> Result<(), String> {
+    let mut s = state.settings.lock().unwrap();
+    s.show_trade_on_travel = show;
+    s.save(&state.data_dir)
 }
 
 /// The whole passive tree's layout (drawn once, then cached by the page).
@@ -607,6 +644,7 @@ fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, 
         // Owned by the Rating screen and the welcome, not the Settings form.
         settings.rating_budget.clone_from(&current.rating_budget);
         settings.auto_rate_on_act = current.auto_rate_on_act;
+        settings.show_trade_on_travel = current.show_trade_on_travel;
         settings.onboarded = settings.onboarded || current.onboarded;
     }
     settings.save(&state.data_dir)?;
@@ -792,6 +830,11 @@ fn main() {
             tree_layout,
             gear_watch,
             gear_watch_left,
+            trade_modifiers,
+            market_search,
+            rerun_upgrade,
+            rate_market_chat,
+            set_trade_on_travel,
             clipboard_item,
             tree_plan,
             active_saved,
