@@ -760,7 +760,7 @@ dependencies = [
 
 [[package]]
 name = "dirs-sys"
-version = "0.5.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
 dependencies = [
@@ -988,7 +988,7 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "foreign-types"
-version = "0.5.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d737d9aa519fb7b749cbc3b962edcf310a8dd1f4b67c91c4f83975dbdd17d965"
 dependencies = [
@@ -1443,7 +1443,7 @@ checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "heck"
-version = "0.5.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
@@ -1578,7 +1578,7 @@ dependencies = [
 
 [[package]]
 name = "ico"
-version = "0.5.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e795dff5605e0f04bff85ca41b51a96b83e80b281e96231bcaaf1ac35103371"
 dependencies = [
@@ -2018,7 +2018,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-ai"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -2028,7 +2028,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-app"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "arboard",
  "lifeline-ai",
@@ -2050,7 +2050,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-data"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "regex",
  "serde",
@@ -2059,7 +2059,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-gamefiles"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "dirs 6.0.0",
  "regex",
@@ -2070,7 +2070,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-model"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "lifeline-data",
  "lifeline-gamefiles",
@@ -2082,7 +2082,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-pob"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "base64 0.22.1",
  "flate2",
@@ -2093,7 +2093,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-trade"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "lifeline-ai",
  "regex",
@@ -3429,7 +3429,7 @@ dependencies = [
 
 [[package]]
 name = "soup3"
-version = "0.5.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "471f924a40f31251afc77450e781cb26d55c0b650842efafc9c6cbd2f7cc4f9f"
 dependencies = [
@@ -3442,7 +3442,7 @@ dependencies = [
 
 [[package]]
 name = "soup3-sys"
-version = "0.5.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ebe8950a680a12f24f15ebe1bf70db7af98ad242d9db43596ad3108aab86c27"
 dependencies = [
@@ -4440,7 +4440,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-streams"
-version = "0.5.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d1ec4f6517c9e11ae630e200b2b65d193279042e28edd4a2cda233e46670bbb"
 dependencies = [
