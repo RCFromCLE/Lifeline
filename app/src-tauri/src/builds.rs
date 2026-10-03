@@ -274,6 +274,8 @@ pub fn write_stages(state: &AppState) -> Result<Vec<String>, String> {
         let mut planner = to_planner_build(&imported.build, stage, &tree, &imported.name, imported.link.as_deref());
         // Supports the player can use at this stage: unique, cuttable, every socket filled.
         if let Some(data) = data.as_deref() {
+            let weapon = lifeline_model::stage_weapon(&imported.build, stage.stage_key, data);
+            lifeline_model::supports::fit_skills(&mut planner.skills, data, stage.stage_key, weapon);
             lifeline_model::supports::complete(&mut planner.skills, data, stage.stage_key);
         }
         let path = build_planner::write(&dir, &planner).map_err(|e| e.to_string())?;

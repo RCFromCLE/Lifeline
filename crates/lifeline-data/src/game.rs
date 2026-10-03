@@ -38,6 +38,8 @@ pub struct Gem {
     /// Supports: the Uncut Support Gem level needed to cut it (1–5 in the
     /// data; 0 = can't be cut, e.g. lineage).
     pub crafting_level: u64,
+    /// Gemcutting category: "Spear", "Quarterstaff", "Bow", "Occult"…
+    pub crafting_types: Vec<String>,
     pub recommended_supports: Vec<String>,
     /// Supports: skill-type rules (reverse-Polish with AND/OR/NOT) from the
     /// game data; a support works on a skill when `allowed` matches its types
@@ -253,6 +255,7 @@ impl GameData {
                 skill_types: types,
                 is_lineage: g["is_lineage"].as_bool().unwrap_or(false),
                 crafting_level: g["crafting_level"].as_u64().unwrap_or(0),
+                crafting_types: strings(&g["crafting_types"]),
                 recommended_supports: strings(&g["recommended_supports"])
                     .iter()
                     .filter_map(|s| names.get(s).cloned())
@@ -351,6 +354,11 @@ impl GameData {
             areas,
             by_gem_id,
         })
+    }
+
+    /// Every skill, spirit and support gem.
+    pub fn gems(&self) -> &[Gem] {
+        &self.gems
     }
 
     pub fn gem_by_id(&self, id: &str) -> Option<&Gem> {

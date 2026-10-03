@@ -27,3 +27,11 @@ Return a short summary for the companion, at most 8 lines:
 - any assumptions or open risks
 
 Don't call `propose_action`; the companion offers the write to the Build Planner.
+
+## Gems the player can actually use at each stage
+
+- A skill gem is cut from an Uncut Skill Gem of at least its `crafting_level` (see `lookup_gem`). Roughly when a hardcore player has each: level 1 from the start, 3 around character level 5, 5 around 9, 7 around 12, 9 around 24, 11 from late Act 3 (~42), 13–14 in Act 4 and later. Only plan a skill in a stage whose levels reach that point, and give every stage a skill usable at its first levels (Act 1: a level 1 gem for levels 1–8 or so).
+- An attack's gemcutting category (`crafting_types`, e.g. Spear, Quarterstaff, Bow) is the weapon it needs. Every attack must match the build's weapon; Whirling Assault is a Quarterstaff attack, Whirling Slash the Spear one.
+- Support sockets per skill: 2 in Act 1, 3 in Acts 2–3, 4 in Act 4 and the Interludes, 5 in maps. Fill them. Each support gem can be used in only one skill. A support needs an Uncut Support Gem of its level (`uncut_support_level_needed`): 1–2 through Act 2, up to 4 from Act 3, 5 from the Interludes.
+- Lifeline checks all of this when it writes the game's planner files and replaces what doesn't fit, but plans that already follow it are better.
+

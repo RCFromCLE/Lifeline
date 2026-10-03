@@ -172,9 +172,20 @@ fn planner_skills(set: &SkillSet) -> Vec<SkillRef> {
 pub fn usable_skills(build: &PobBuild, stage: Stage, data: Option<&lifeline_data::GameData>) -> Vec<SkillRef> {
     let mut skills = skills_for_stage(build, stage);
     if let Some(data) = data {
+        supports::fit_skills(&mut skills, data, stage, stage_weapon(build, stage, data));
         supports::complete(&mut skills, data, stage);
     }
     skills
+}
+
+/// The weapon category the stage's gear plans for its main hand ("Spear"),
+/// else the one any other stage plans (some plans only name it once).
+pub fn stage_weapon(build: &PobBuild, stage: Stage, data: &lifeline_data::GameData) -> Option<&'static str> {
+    let in_set = |set: &ItemSet| {
+        let slot = set.slots.iter().find(|s| s.slot == "Weapon 1")?;
+        supports::weapon_type(build.items.get(&slot.item_id)?, data)
+    };
+    items_for_stage(build, stage).and_then(in_set).or_else(|| build.item_sets.iter().find_map(in_set))
 }
 
 /// The item set a stage uses (same choice as the Build Planner files).

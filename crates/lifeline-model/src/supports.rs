@@ -1,4 +1,10 @@
-//! Support gems a stage's skills can actually use. The game allows each
+//! Skills and support gems a stage can actually use. Skills: an attack
+//! must suit the build's weapon (Whirling Assault is a Quarterstaff attack,
+//! so a spear build can't use it), each skill shows in the in-game planner
+//! from the level its gem is usually cut, and a low-level skill covers a
+//! stage's first levels when nothing else can.
+//!
+//! Supports: The game allows each
 //! support gem in only one skill, a skill gem has 2 support sockets until
 //! Jeweller's Orbs add more (Lesser 3, Greater 4, Perfect 5), and a support
 //! needs an Uncut Support Gem of high enough level to cut. This keeps the
@@ -9,7 +15,7 @@ use std::collections::HashSet;
 
 use lifeline_data::game::Gem;
 use lifeline_data::GameData;
-use lifeline_gamefiles::build_planner::{SkillRef, SupportRef};
+use lifeline_gamefiles::build_planner::{LevelInterval, SkillRef, SupportRef};
 use lifeline_pob::Stage;
 
 /// Support sockets per skill gem by the end of a stage (Jeweller's Orbs:
@@ -66,6 +72,174 @@ fn fit(support: &Gem, skill: &Gem) -> i32 {
     }
     // Higher tiers of a family are better when they can be cut.
     score + support.crafting_level as i32
+}
+
+/// Item class of a weapon → the gemcutting category of its attacks.
+const WEAPON_TYPES: [(&str, &str); 17] = [
+    ("Spears", "Spear"),
+    ("Quarterstaves", "Quarterstaff"),
+    ("Bows", "Bow"),
+    ("Crossbows", "Crossbow"),
+    ("One Hand Maces", "Mace"),
+    ("Two Hand Maces", "Mace"),
+    ("Sceptres", "Sceptre"),
+    ("Wands", "Wand"),
+    ("Staves", "Staff"),
+    ("Talismans", "Talisman"),
+    ("Flails", "Flail"),
+    ("Daggers", "Dagger"),
+    ("Claws", "Claw"),
+    ("One Hand Swords", "Sword"),
+    ("Two Hand Swords", "Sword"),
+    ("One Hand Axes", "Axe"),
+    ("Two Hand Axes", "Axe"),
+];
+
+/// Weapon category for an item class, in either spelling: the game's
+/// copied items ("Spears", "Quarterstaves") or the base data ("Spear",
+/// "Warstaff").
+pub fn weapon_kind(class: &str) -> Option<&'static str> {
+    if class == "Warstaff" || class == "Warstaves" {
+        return Some("Quarterstaff");
+    }
+    WEAPON_TYPES
+        .iter()
+        .find(|(plural, _)| *plural == class || plural.strip_suffix('s') == Some(class) || plural.strip_suffix("es") == Some(class))
+        .map(|(_, kind)| *kind)
+}
+
+/// The weapon category named in an item or gear goal text ("1. Hardwood
+/// Spear" → "Spear"), from the first line that is a weapon base.
+pub fn weapon_type(text: &str, data: &GameData) -> Option<&'static str> {
+    text.lines().find_map(|line| {
+        let line = line.trim();
+        let name = line
+            .split_once(". ")
+            .filter(|(n, _)| n.chars().all(|c| c.is_ascii_digit()))
+            .map_or(line, |(_, r)| r);
+        let base = data.find_bases(name, 1).into_iter().find(|b| b.name.eq_ignore_ascii_case(name))?;
+        weapon_kind(&base.item_class)
+    })
+}
+
+/// The weapon an attack gem needs (its gemcutting category), if any.
+fn weapon_of(gem: &Gem) -> Option<&str> {
+    if !gem.skill_types.iter().any(|t| t == "Attack") {
+        return None;
+    }
+    gem.crafting_types
+        .first()
+        .map(String::as_str)
+        .filter(|c| WEAPON_TYPES.iter().any(|(_, k)| k == c))
+}
+
+/// Character level a skill gem of this crafting level is usually cut by:
+/// level 1 gems from the start, level 7 around character level 12 (a
+/// hardcore Huntress had Tame Beast at 13 in Act 1), level 11 from late
+/// Act 3 (~42), level 13–14 in Act 4 and later.
+pub fn skill_available_from(crafting_level: u64) -> u32 {
+    const TABLE: [(u64, u32); 10] =
+        [(1, 1), (3, 5), (4, 7), (5, 9), (7, 12), (8, 16), (9, 24), (11, 42), (13, 50), (14, 57)];
+    TABLE.iter().rev().find(|(cl, _)| crafting_level >= *cl).map_or(1, |(_, lvl)| *lvl)
+}
+
+/// The closest cuttable attack for `weapon` to `like`: most shared name
+/// words and skill types, usable by `by_level`.
+fn similar_attack<'a>(data: &'a GameData, like: &Gem, weapon: &str, by_level: u32) -> Option<&'a Gem> {
+    let words: Vec<&str> = like.name.split_whitespace().collect();
+    data.gems()
+        .iter()
+        .filter(|g| g.kind != "support" && weapon_of(g) == Some(weapon) && g.crafting_level > 0)
+        .filter(|g| skill_available_from(g.crafting_level) <= by_level)
+        .max_by_key(|g| {
+            let shared = g.skill_types.iter().filter(|t| like.skill_types.contains(t)).count();
+            let named = g.name.split_whitespace().filter(|w| words.contains(w)).count();
+            (named * 3 + shared, g.crafting_level, std::cmp::Reverse(g.name.clone()))
+        })
+}
+
+fn note(skill: &mut SkillRef, text: String) {
+    skill.additional_text = Some(match skill.additional_text.take() {
+        Some(old) if !old.is_empty() => format!("{old}\n{text}"),
+        _ => text,
+    });
+}
+
+/// Makes a stage's skills usable: attacks swapped to the build's weapon,
+/// skills too advanced for the stage swapped for one that isn't, each skill
+/// shown from the level its gem is usually cut, and a low-level skill for
+/// the stage's first levels when nothing else covers them.
+pub fn fit_skills(skills: &mut Vec<SkillRef>, data: &GameData, stage: Stage, weapon: Option<&str>) {
+    let (start, end) = lifeline_pob::stage_level_span(stage);
+    for skill in skills.iter_mut() {
+        let Some(gem) = data.gem_by_id(&skill.id) else { continue };
+        if gem.kind == "support" {
+            continue;
+        }
+        let wrong_weapon = matches!((weapon_of(gem), weapon), (Some(w), Some(want)) if w != want);
+        let too_late = gem.crafting_level > 0 && skill_available_from(gem.crafting_level) > end;
+        if wrong_weapon || too_late {
+            let want = weapon.or(weapon_of(gem));
+            let swap = want.and_then(|w| similar_attack(data, gem, w, end)).filter(|g| g.id != gem.id);
+            if let Some(swap) = swap {
+                let why = if wrong_weapon {
+                    format!(
+                        "Lifeline: {} is a {} skill; this build uses a {}.",
+                        gem.name,
+                        weapon_of(gem).unwrap_or("different weapon"),
+                        weapon.unwrap_or("different weapon")
+                    )
+                } else {
+                    format!(
+                        "Lifeline: {} usually can't be cut until about level {}.",
+                        gem.name,
+                        skill_available_from(gem.crafting_level)
+                    )
+                };
+                skill.id.clone_from(&swap.id);
+                note(skill, why);
+            }
+        }
+        let cl = data.gem_by_id(&skill.id).map_or(0, |g| g.crafting_level);
+        let from = skill_available_from(cl).max(start);
+        if from > start {
+            skill.level_interval = Some(LevelInterval::Range([from, 100]));
+        }
+    }
+    // Nothing usable at the stage's first levels: a low-level attack covers them.
+    let first = skills
+        .iter()
+        .filter(|s| data.gem_by_id(&s.id).is_some_and(|g| g.kind != "support"))
+        .map(|s| match s.level_interval {
+            Some(LevelInterval::Range([from, _])) | Some(LevelInterval::From(from)) => from,
+            None => start,
+        })
+        .min()
+        .unwrap_or(start);
+    if first > start {
+        let like = skills.iter().find_map(|s| data.gem_by_id(&s.id).filter(|g| weapon_of(g).is_some()));
+        let cover = match (weapon, like) {
+            (Some(w), Some(like)) => similar_attack(data, like, w, start),
+            (Some(w), None) => data
+                .gems()
+                .iter()
+                .filter(|g| weapon_of(g) == Some(w) && g.crafting_level == 1)
+                .min_by_key(|g| g.name.clone()),
+            _ => None,
+        };
+        if let Some(cover) = cover.filter(|c| !skills.iter().any(|s| s.id == c.id)) {
+            skills.insert(
+                0,
+                SkillRef {
+                    id: cover.id.clone(),
+                    level_interval: Some(LevelInterval::Range([start, first - 1])),
+                    additional_text: Some(format!("Lifeline: use this until level {first}.")),
+                    support_skills: Vec::new(),
+                    extra: Default::default(),
+                },
+            );
+        }
+    }
 }
 
 /// Makes every skill's supports usable at `stage`: unique across skills,
@@ -125,6 +299,24 @@ pub fn complete(skills: &mut [SkillRef], data: &GameData, stage: Stage) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn weapon_kinds_in_both_spellings() {
+        assert_eq!(weapon_kind("Spear"), Some("Spear"));
+        assert_eq!(weapon_kind("Spears"), Some("Spear"));
+        assert_eq!(weapon_kind("Warstaff"), Some("Quarterstaff"));
+        assert_eq!(weapon_kind("One Hand Mace"), Some("Mace"));
+        assert_eq!(weapon_kind("Boots"), None);
+    }
+
+    #[test]
+    fn skill_gem_availability() {
+        assert_eq!(skill_available_from(1), 1);
+        assert_eq!(skill_available_from(7), 12);
+        assert_eq!(skill_available_from(11), 42);
+        assert_eq!(skill_available_from(12), 42);
+        assert_eq!(skill_available_from(0), 1);
+    }
 
     #[test]
     fn families_and_stage_limits() {
