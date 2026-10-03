@@ -99,6 +99,23 @@ pub fn classify_title(title: &str, tree_version: &str) -> Option<StageHint> {
 /// world_areas): Act 1 1–15, Act 2 16–31 (town 32), Act 3 33–45, Act 4
 /// 46–53, Interludes 54–64, endgame 65+. Character level tracks area level
 /// closely during the campaign, so this maps an estimated level to a stage.
+/// Character level at the end of each stage at a safe hardcore pace:
+/// Act 1 16–18, Act 2 30–32, Act 3 46–48 (owner, from play, 2026-10-03),
+/// Act 4 56–58 and Interludes 63–65 (speedrun guides for 0.5.5 end the acts
+/// at 14 / 29 / 42 / 52 / 59; careful hardcore play runs 3–5 levels over),
+/// maps from 65. `POE2_0_5_ACTS` holds monster area levels where each act
+/// begins, which is not what a character reaches.
+pub fn stage_end_levels(stage: Stage) -> (u32, u32) {
+    match stage {
+        Stage::Act(1) => (16, 18),
+        Stage::Act(2) => (30, 32),
+        Stage::Act(3) => (46, 48),
+        Stage::Act(_) => (56, 58),
+        Stage::Interludes => (63, 65),
+        Stage::Endgame => (65, 100),
+    }
+}
+
 pub fn stage_for_level(level: u32) -> Stage {
     match level {
         0..=15 => Stage::Act(1),

@@ -132,6 +132,15 @@ pub fn run_named(app: &AppHandle, name: &str) -> Result<(), String> {
         }
         // HUD buttons: a click puts the mouse on the HUD, not on an item, so
         // these work from what the player copied with the game's Ctrl+C.
+        // Just bring the app window up (no chat focus).
+        "open_app" => {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+            return Ok(());
+        }
         "gear_watch_toggle" => {
             let on = crate::gear::watch_left(&app.state::<AppState>()) == 0;
             crate::gear::set_watch(app, on);

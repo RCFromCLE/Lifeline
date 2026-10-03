@@ -473,11 +473,11 @@ $("btn-paste-item").addEventListener("click", async () => {
 function renderImport(v) {
   const rows = v.stages.map(s => `<tr class="${s.chosen ? "chosen" : ""}">
       <td>${escapeHtml(s.title || "(untitled)")}</td><td><span class="stage-tag">${escapeHtml(s.stage)}</span></td>
-      <td>${s.main_points}</td><td>${s.ascendancy_points}</td><td>${s.estimated_level}</td></tr>`).join("");
+      <td>${s.main_points}</td><td>${s.ascendancy_points}</td><td>${s.level_to >= 100 ? `${s.level_from}+` : `${s.level_from}–${s.level_to}`}</td></tr>`).join("");
   $("import-result").innerHTML = `
     <h2 style="margin-top:14px">${escapeHtml(v.ascendancy || v.class_name || "Build")} · level ${v.level ?? "?"}</h2>
     ${v.warning ? `<div class="status err">${escapeHtml(v.warning)}</div>` : ""}
-    <table><thead><tr><th>Spec</th><th>Stage</th><th>Passives</th><th>Asc.</th><th>≈ Lvl</th></tr></thead><tbody>${rows}</tbody></table>
+    <table><thead><tr><th>Tree</th><th>Stage</th><th>Passives</th><th>Ascendancy pts</th><th>Ends at level</th></tr></thead><tbody>${rows}</tbody></table>
     <p class="hint" style="margin-top:8px">★ = written for that stage</p>
     <div class="import-actions">
       <button id="btn-write" class="primary">Send to game planner</button>

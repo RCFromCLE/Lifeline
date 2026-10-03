@@ -357,11 +357,11 @@ function renderCurrent(v) {
   f.textContent = `Following: ${v.name}`;
   f.classList.remove("hidden");
   const asc = v.ascendancy || "", cls = v.class_name || classOf(asc).cls;
-  const chosen = v.stages.filter(s => s.chosen).sort((a, b) => a.estimated_level - b.estimated_level);
+  const chosen = v.stages.filter(s => s.chosen).sort((a, b) => a.level_from - b.level_from);
   $("cur-card").innerHTML = `<div class="d-head">${portrait(cls, asc, 104)}<div class="grow">
       <div class="state">${esc(v.source)}</div><h1>${esc(v.name)}</h1>
       <div class="sub2">${esc(cls)}${asc ? " · " + esc(asc) : ""} · ${chosen.length} stages</div>
-      <div class="cur-stages">${chosen.map(s => `<button class="cstage" data-stage="${esc(s.stage)}" title="Show this stage on the tree">${esc(s.stage)} <small>≈ level ${s.estimated_level}</small></button>`).join("")}</div></div></div>
+      <div class="cur-stages">${chosen.map(s => `<button class="cstage" data-stage="${esc(s.stage)}" title="Show this stage on the tree">${esc(s.stage)} <small>${s.level_to >= 100 ? `level ${s.level_from}+` : `level ${s.level_from}–${s.level_to}`}</small></button>`).join("")}</div></div></div>
     <div class="d-actions">
       <button class="primary" id="cur-check">Check my build with AI</button>
       <button id="cur-write" title="Write this build's stages into the game's Build Planner">Send to game planner</button>

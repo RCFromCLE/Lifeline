@@ -28,6 +28,9 @@ pub struct SpecStage {
     pub main_points: u32,
     pub ascendancy_points: u32,
     pub estimated_level: u32,
+    /// Level a character reaches by the end of this stage (hardcore pace).
+    pub level_from: u32,
+    pub level_to: u32,
     /// The spec chosen to represent its stage when writing planner files.
     pub chosen: bool,
 }
@@ -59,6 +62,7 @@ pub fn plan_stages(build: &PobBuild, tree: Option<&PassiveTree>) -> Vec<SpecStag
             let ws = (spec.weapon_set1.len() as u32, spec.weapon_set2.len() as u32);
             let level = estimate_level(&POE2_0_5_ACTS, main, 0, ws);
             let stage = resolve_stage(classify_title(&spec.title, &spec.tree_version), level);
+            let (level_from, level_to) = lifeline_pob::stage_end_levels(stage);
             SpecStage {
                 spec_index: i,
                 title: spec.title.clone(),
@@ -67,6 +71,8 @@ pub fn plan_stages(build: &PobBuild, tree: Option<&PassiveTree>) -> Vec<SpecStag
                 main_points: main,
                 ascendancy_points: asc,
                 estimated_level: level,
+                level_from,
+                level_to,
                 chosen: false,
             }
         })

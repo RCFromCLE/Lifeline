@@ -80,20 +80,22 @@ pub struct StageBudget {
     pub ascendancy_points: u32,
 }
 
-/// Level and points at the end of `stage`. Main points: about one level
-/// over the stage's last quest area, plus the quest points earned by then
-/// (PoB2 `QuestRewards.lua`, `POE2_0_5_ACTS`). Ascendancy: 2 per ascension —
+/// Level and points at the end of `stage`. Main points: one per level past 1
+/// at the hardcore end-of-stage level (`stage_end_levels`, the middle of its
+/// range), plus the quest points earned by then (PoB2 `QuestRewards.lua`,
+/// `POE2_0_5_ACTS`). Ascendancy: 2 per ascension —
 /// 1st in Act 2 (Sekhemas), 2nd in Act 3 (Trial of Chaos), 3rd/4th need
 /// level 60+/75+ trials, i.e. endgame (PoB2 `ascMax = 8`; maxroll Trials of
 /// Ascendancy, 0.5.3).
 pub fn stage_budget(stage: Stage, endgame_level: u32) -> Option<StageBudget> {
+    let middle = |s: Stage| {
+        let (low, high) = lifeline_pob::stage_end_levels(s);
+        (low + high) / 2
+    };
     let (row, level, ascendancy_points) = match stage {
-        Stage::Act(n @ 1..=4) => {
-            let row = POE2_0_5_ACTS[n as usize];
-            (row, row.area_level + 1, [0, 2, 4, 4][n as usize - 1])
-        }
+        Stage::Act(n @ 1..=4) => (POE2_0_5_ACTS[n as usize], middle(stage), [0, 2, 4, 4][n as usize - 1]),
         Stage::Act(_) => return None,
-        Stage::Interludes => (POE2_0_5_ACTS[5], POE2_0_5_ACTS[5].area_level + 1, 4),
+        Stage::Interludes => (POE2_0_5_ACTS[5], middle(stage), 4),
         Stage::Endgame => (POE2_0_5_ACTS[6], endgame_level.clamp(65, 100), 8),
     };
     Some(StageBudget {
@@ -465,12 +467,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn budgets_follow_pob_quest_data() {
+    fn budgets_follow_hardcore_levels_and_quest_points() {
         let b = |s| stage_budget(s, 90).unwrap();
-        assert_eq!(b(Stage::Act(1)), StageBudget { level: 13, points: 16, ascendancy_points: 0 });
-        assert_eq!(b(Stage::Act(2)).ascendancy_points, 2);
-        assert_eq!(b(Stage::Act(3)).points, 44 + 12);
-        assert_eq!(b(Stage::Interludes), StageBudget { level: 65, points: 86, ascendancy_points: 4 });
+        // Act 1 ends around level 17: 16 levels of points + 4 quest points.
+        assert_eq!(b(Stage::Act(1)), StageBudget { level: 17, points: 20, ascendancy_points: 0 });
+        assert_eq!(b(Stage::Act(2)), StageBudget { level: 31, points: 30 + 8, ascendancy_points: 2 });
+        assert_eq!(b(Stage::Act(3)).points, 46 + 12);
+        assert_eq!(b(Stage::Act(4)).level, 57);
+        assert_eq!(b(Stage::Interludes), StageBudget { level: 64, points: 63 + 22, ascendancy_points: 4 });
         assert_eq!(b(Stage::Endgame), StageBudget { level: 90, points: 89 + 24, ascendancy_points: 8 });
         assert!(stage_budget(Stage::Act(5), 90).is_none());
     }
