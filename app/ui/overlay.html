@@ -68,6 +68,16 @@
       background: #2b2113; border: 1px solid #8a6430; border-radius: 6px; color: #f3d08a; font-weight: 600; font-size: 13px; }
     .open-app:hover { background: #3a2c17; border-color: #f0c878; }
     .open-app svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linejoin: round; }
+    /* What a sound meant, for 3 seconds under the bar. */
+    .cue-pop { display: flex; align-items: center; gap: 8px; width: max-content; max-width: 360px; padding: 6px 12px 6px 9px;
+      background: rgba(14, 11, 9, 0.92); border: 1px solid rgba(214, 167, 86, 0.45); border-left: 4px solid #f0c878; border-radius: 8px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55); animation: cue-in .18s ease-out; }
+    .cue-pop .ct { font-weight: 700; color: #f3d08a; white-space: nowrap; }
+    .cue-pop .cd { color: #ece2d0; }
+    .cue-pop.death { border-left-color: #ff6b5c; } .cue-pop.death .ct { color: #ff9c8f; }
+    .cue-pop.penalty, .cue-pop.boss_area { border-left-color: #e8743a; }
+    .cue-pop.level_up, .cue-pop.new_act { border-left-color: #86c46e; }
+    @keyframes cue-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -92,6 +102,7 @@
       <button class="ic full" data-action="toggle_overlay" id="hide-btn" title="Hide the HUD (your HUD on/off hotkey brings it back)">
         <svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A9.8 9.8 0 0 1 12 5c6 0 9.5 7 9.5 7a16 16 0 0 1-3.3 4.2M6.3 6.3C3.9 8 2.5 12 2.5 12s3.5 7 9.5 7a9.4 9.4 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button>
     </div>
+    <div class="cue-pop hidden" id="cue-pop"><span class="ct" id="cue-title"></span><span class="cd" id="cue-detail"></span></div>
     <div class="panel hit hidden" id="panel">
       <div class="phead">
         <div class="ptitle" id="ptitle"></div>
@@ -235,6 +246,16 @@
     });
     listen("skills-status", ({ payload }) => el("rot-btn").classList.toggle("busy", !!payload.busy));
     listen("gear-watch", ({ payload }) => el("gear-btn").classList.toggle("on", payload.seconds > 0));
+    // Every sound shows what it meant for 3 seconds.
+    let cueTimer = null;
+    listen("sound-cue", ({ payload: c }) => {
+      const pop = el("cue-pop");
+      pop.className = `cue-pop ${c.cue}`;
+      el("cue-title").textContent = c.title;
+      el("cue-detail").textContent = c.detail || "";
+      clearTimeout(cueTimer);
+      cueTimer = setTimeout(() => pop.classList.add("hidden"), 3000);
+    });
     // Short messages (gear recorded, copy failed…) show on the HUD for a few seconds.
     let noticeTimer = null;
     listen("notice", ({ payload }) => {

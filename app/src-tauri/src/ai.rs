@@ -329,7 +329,7 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
         state.save_conversations();
         emit(&app, conv_id, json!({"type": "done", "text": text, "error": error}));
         if origin == Origin::Hotkey {
-            crate::sound::play(&app, crate::sound::Cue::Ready);
+            crate::sound::play_with(&app, crate::sound::Cue::Ready, if error { "Answer failed" } else { "Answer ready" });
         }
         let _ = app.emit("conversations", conversation_list(&state));
     });

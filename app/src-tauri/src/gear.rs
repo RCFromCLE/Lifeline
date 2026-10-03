@@ -25,7 +25,7 @@ pub fn record(app: &AppHandle, item: &str) -> String {
     };
     state.save_equipped();
     let _ = app.emit("equipped", state.equipped.lock().unwrap().clone());
-    crate::sound::play(app, crate::sound::Cue::Ready);
+    crate::sound::play_with(app, crate::sound::Cue::Ready, &format!("Gear recorded: {slot}"));
     let name: Vec<&str> = item.lines().skip(2).take(2).filter(|l| !l.starts_with("--")).collect();
     crate::debug_log(&state, &format!("gear: recorded {slot}"));
     format!("✓ Recorded {slot}: {}", name.join(" · "))

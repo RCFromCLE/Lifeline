@@ -6,7 +6,7 @@
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Mutex, OnceLock};
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 use crate::state::AppState;
 
@@ -29,6 +29,18 @@ impl Cue {
             Cue::Penalty => "penalty",
             Cue::Death => "death",
             Cue::Ready => "ready",
+        }
+    }
+
+    /// What the HUD pop-up says the sound was.
+    pub fn title(self) -> &'static str {
+        match self {
+            Cue::LevelUp => "Level up",
+            Cue::NewAct => "New act",
+            Cue::BossArea => "Boss area",
+            Cue::Penalty => "Resistance penalty",
+            Cue::Death => "Death",
+            Cue::Ready => "Ready",
         }
     }
 
@@ -148,8 +160,17 @@ fn sender() -> &'static Mutex<Sender<(Cue, f32)>> {
     })
 }
 
-/// Plays `cue` if sounds are on and this cue is enabled (Settings).
+/// Plays `cue` if sounds are on and this cue is enabled (Settings), with
+/// the HUD showing just its name.
+#[allow(dead_code)]
 pub fn play(app: &tauri::AppHandle, cue: Cue) {
+    play_with(app, cue, "");
+}
+
+/// Plays `cue` and shows what it means on the HUD for a few seconds
+/// (`detail`, e.g. "Level 14", says what happened), so a sound is never a
+/// mystery. Nothing shows when the sound is off.
+pub fn play_with(app: &tauri::AppHandle, cue: Cue, detail: &str) {
     let state = app.state::<AppState>();
     let (on, volume) = {
         let s = state.settings.lock().unwrap();
@@ -164,6 +185,7 @@ pub fn play(app: &tauri::AppHandle, cue: Cue) {
     };
     if on {
         let _ = sender().lock().unwrap().send((cue, volume.clamp(0.0, 1.0)));
+        let _ = app.emit("sound-cue", serde_json::json!({"cue": cue.name(), "title": cue.title(), "detail": detail}));
     }
 }
 

@@ -314,7 +314,7 @@ pub fn generate(app: AppHandle, archetype_id: String, prefs: Preferences) -> Res
             (Err(e), _) => json!({"ok": false, "error": e}),
         };
         state.build_busy.store(false, Ordering::SeqCst);
-        crate::sound::play(&app, crate::sound::Cue::Ready);
+        crate::sound::play_with(&app, crate::sound::Cue::Ready, if outcome["ok"].as_bool() == Some(true) { "Build ready in My builds" } else { "Build failed" });
         let _ = app.emit("build-done", outcome);
         let _ = app.emit("library", library(&state));
     });

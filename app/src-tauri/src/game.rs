@@ -131,32 +131,37 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
 }
 
 /// Sound cues for what just changed (live play only, never the backfill).
-fn cues(state: &AppState, before: &Character, after: &Character, e: &LogEvent) -> Vec<crate::sound::Cue> {
+/// Sound cues for what just happened, each with the words the HUD shows.
+fn cues(state: &AppState, before: &Character, after: &Character, e: &LogEvent) -> Vec<(crate::sound::Cue, String)> {
     use crate::sound::Cue;
     let mut out = Vec::new();
     if after.deaths > before.deaths && before.name == after.name {
-        out.push(Cue::Death);
+        out.push((Cue::Death, format!("Slain in {}", after.zone)));
     }
     if after.level > before.level && before.name == after.name {
-        out.push(Cue::LevelUp);
+        out.push((Cue::LevelUp, format!("Level {}: spend your passive point", after.level)));
     }
     if let EventKind::AreaGenerated { area_id, .. } = &e.kind {
         if let (Some(a), Some(b)) = (after.act, before.act) {
             if a > b {
-                out.push(Cue::NewAct);
+                out.push((Cue::NewAct, format!("Act {a} begins")));
             }
         }
         if let (Some(a), Some(b)) = (after.res_penalty, before.res_penalty) {
             if a < b {
-                out.push(Cue::Penalty);
+                out.push((Cue::Penalty, format!("Fire, cold and lightning {a}% here: check your resistances")));
             }
         }
-        let boss_area = after.area_id != before.area_id
-            && state.game.lock().unwrap().as_ref().is_some_and(|d| {
-                d.areas.iter().any(|x| &x.id == area_id && !x.is_town && !x.bosses.is_empty())
+        if after.area_id != before.area_id {
+            let bosses = state.game.lock().unwrap().as_ref().and_then(|d| {
+                d.areas
+                    .iter()
+                    .find(|x| &x.id == area_id && !x.is_town && !x.bosses.is_empty())
+                    .map(|x| x.bosses.join(", "))
             });
-        if boss_area {
-            out.push(Cue::BossArea);
+            if let Some(bosses) = bosses {
+                out.push((Cue::BossArea, format!("Boss area: {bosses}")));
+            }
         }
     }
     out
@@ -200,8 +205,8 @@ pub fn spawn_log_watcher(app: AppHandle) {
                     let note = apply(&mut state.character.lock().unwrap(), &event);
                     if backfilled {
                         let after = state.character.lock().unwrap().clone();
-                        for cue in cues(&state, &before, &after, &event) {
-                            crate::sound::play(&app, cue);
+                        for (cue, detail) in cues(&state, &before, &after, &event) {
+                            crate::sound::play_with(&app, cue, &detail);
                         }
                     }
                     let new_act = state.character.lock().unwrap().act;

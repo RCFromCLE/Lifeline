@@ -61,7 +61,8 @@ pub fn run(app: AppHandle) {
             }
         }
         state.rating_busy.store(false, Ordering::SeqCst);
-        crate::sound::play(&app, crate::sound::Cue::Ready);
+        let grade = state.rating.lock().unwrap().as_ref().and_then(|r| r["grade"].as_str().map(str::to_owned));
+        crate::sound::play_with(&app, crate::sound::Cue::Ready, &grade.map_or("Rating finished".into(), |g| format!("Rating ready: {g}")));
         state.save_rating();
         let _ = app.emit("rating", snapshot(&state));
     });
@@ -244,7 +245,7 @@ pub fn rerun_upgrade(app: AppHandle, index: usize, focus: Focus, any_price: bool
         let _ = app.emit("rating-status", json!({"busy": false, "text": ""}));
         state.save_rating();
         let _ = app.emit("rating", snapshot(&state));
-        crate::sound::play(&app, crate::sound::Cue::Ready);
+        crate::sound::play_with(&app, crate::sound::Cue::Ready, "New market picks ready");
     });
     Ok(())
 }

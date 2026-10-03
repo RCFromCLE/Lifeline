@@ -18,6 +18,7 @@ mod market;
 mod mcp;
 mod rating;
 mod setup;
+mod single;
 mod skills;
 mod sound;
 mod state;
@@ -742,13 +743,18 @@ fn migrate_old_data(data_dir: &std::path::Path) {
 }
 
 fn main() {
+    // Only one Lifeline: this launch closes any other running copy.
+    let closed_copies = single::close_other_copies();
     tauri::Builder::default()
         .plugin(hotkeys::plugin())
-        .setup(|app| {
+        .setup(move |app| {
             let data_dir = app.path().app_data_dir()?;
             migrate_old_data(&data_dir);
             std::fs::create_dir_all(&data_dir)?;
             app.manage(AppState::new(data_dir));
+            if closed_copies > 0 {
+                debug_log(&app.state::<AppState>(), &format!("closed {closed_copies} other running Lifeline copies"));
+            }
 
             let handle = app.handle().clone();
             let hotkeys = app.state::<AppState>().settings.lock().unwrap().hotkeys.clone();
