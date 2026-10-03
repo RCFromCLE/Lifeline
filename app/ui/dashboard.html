@@ -32,14 +32,8 @@
 
     <section class="dcol d-passives">
       <h2>Passives <small id="d-pcount"></small></h2>
-      <div class="tree-view" id="tree-view" tabindex="0" aria-label="Passive tree: drag to pan, scroll or plus/minus to zoom">
-        <svg id="tree-svg" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="tree-tip hidden" id="tree-tip"></div>
-        <div class="tree-zoom"><button id="tz-in" title="Zoom in">+</button><button id="tz-out" title="Zoom out">−</button><button id="tz-fit" title="Fit the plan">⤢</button></div>
-        <div class="tree-legend"><span class="lg plan"></span>Planned <span class="lg taken"></span>Taken <span class="lg earlier"></span>Earlier stage <span class="lg off"></span>Off-plan <b style="color:#e58a6e">S</b><b style="color:#8fd17a">D</b><b style="color:#79b2e8">I</b> Attribute pick</div>
-      </div>
       <div class="p-lists">
-        <div class="p-col"><h3>Take next</h3><ol id="d-next" class="d-next"></ol></div>
+        <div class="p-col"><h3>Take next</h3><ol id="d-next" class="d-next"></ol><div class="hint" id="d-next-more"></div></div>
         <div class="p-col"><h3>Taken so far</h3><div id="d-taken" class="d-taken"></div></div>
         <div class="p-col"><h3>Ascendancy</h3><ul id="d-asc" class="d-asc"></ul></div>
       </div>
@@ -52,7 +46,7 @@
   </main>
 
   <script src="common.js"></script>
+  <div class="d-tip hidden" id="d-tip"></div>
   <script src="dashboard.js"></script>
-  <script src="tree.js"></script>
 </body>
 </html>

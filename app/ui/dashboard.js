@@ -1,11 +1,13 @@
 // Playthrough dashboard (second screen): skills and their supports, the
-// passives taken and still to take, and the live game log. tree.js draws the
-// tree; this page feeds it (TREE, TPLAN) and renders everything around it.
+// next passives to take and those taken, and the live game log. Plain text:
+// no tree drawing, no chips; hover a notable or keystone to see what it does.
 const $ = id => document.getElementById(id);
 const esc = s => escapeHtml(s ?? "");
 
 let FOLLOWING = null;      // the followed build's name (null = none)
-let FITTED_STAGE = null;   // stage the tree was last framed for
+let TREE = null, TREE_POS = null;  // tree layout: node kinds and names
+let TPLAN = null;                  // the followed build's plan for this stage
+const NEXT_SHOWN = 8;              // the very next passives
 
 // ---- header ----
 function renderHeader(c) {
@@ -46,13 +48,12 @@ function renderSkills(a, coach) {
     const sups = s.supports.length
       ? s.supports.map(x => {
         const why = whyFor(cs, x.name);
-        return `<li>${gemDot(x.attr)}<span class="sn">${esc(x.name)}</span>${why ? `<span class="sw">${esc(why)}</span>` : ""}</li>`;
+        return `<li><span class="sn">${esc(x.name)}</span>${why ? `<span class="sw">${esc(why)}</span>` : ""}</li>`;
       }).join("")
       : `<li class="empty">No supports planned</li>`;
-    const border = (gemStyle(s.attr).match(/--gem:[^;]+/) || [""])[0];
-    return `<div class="sk" style="${border}">
-      <div class="sk-top">${gemDot(s.attr)}<span class="sk-name">${esc(s.name)}</span>
-        ${cs?.button ? `<span class="btnchip">${esc(cs.button)}</span>` : ""}
+    return `<div class="sk">
+      <div class="sk-top"><span class="sk-name">${esc(s.name)}</span>
+        ${cs?.button ? `<span class="sk-key">${esc(cs.button)}</span>` : ""}
         <span class="sk-count">${s.supports.length} support${s.supports.length === 1 ? "" : "s"}</span></div>
       ${cs?.role ? `<div class="sk-role">${esc(cs.role)}</div>` : ""}
       <ol class="sk-sups">${sups}</ol>
@@ -77,11 +78,10 @@ function renderPassives(a) {
   $("d-pcount").textContent = `${TPLAN.allocated.length} taken · ${TPLAN.planned.length} planned for ${TPLAN.stage}${off.size ? ` · ${off.size} off-plan` : ""}`;
 
   const next = TPLAN.next;
-  const ATTR_COLOR = { str: "#e58a6e", dex: "#8fd17a", int: "#79b2e8" };
   $("d-next").innerHTML = next.length
-    ? next.slice(0, 18).map(n => `<li class="${n.notable ? "notable" : ""}">${n.attr ? `<span class="ac" style="color:${ATTR_COLOR[n.attr]}">${n.attr[0].toUpperCase()}</span>` : ""}${esc(n.name)}</li>`).join("")
-      + (next.length > 18 ? `<li class="hint" style="list-style:none">+${next.length - 18} more</li>` : "")
+    ? next.slice(0, NEXT_SHOWN).map(n => `<li class="${n.notable ? "notable" : ""}" ${n.notable || n.keystone ? `data-tip="${n.skill}"` : ""}>${esc(n.name)}</li>`).join("")
     : `<li style="list-style:none" class="hint">Every planned passive for this stage is taken.</li>`;
+  $("d-next-more").textContent = next.length > NEXT_SHOWN ? `Then ${next.length - NEXT_SHOWN} more for ${TPLAN.stage}.` : "";
 
   // Notables and keystones one by one; small passives grouped by name.
   const big = [], small = new Map();
@@ -89,7 +89,7 @@ function renderPassives(a) {
     const pos = TREE_POS?.get(s);
     const kind = pos?.[2];
     const name = kind === 5 ? "Attribute" : pos?.[3] || TPLAN.details[s]?.name || "Passive";
-    if (kind === 1 || kind === 2) big.push({ name, keystone: kind === 2, off: off.has(s) });
+    if (kind === 1 || kind === 2) big.push({ name, keystone: kind === 2, off: off.has(s), skill: s });
     else {
       const key = `${name}|${off.has(s)}`;
       const e = small.get(key) || { name, off: off.has(s), n: 0 };
@@ -98,11 +98,11 @@ function renderPassives(a) {
     }
   }
   big.sort((x, y) => (y.keystone - x.keystone) || x.name.localeCompare(y.name));
-  const chips = [
-    ...big.map(b => `<span class="pt big ${b.keystone ? "ks" : ""} ${b.off ? "off" : ""}">${esc(b.name)}</span>`),
-    ...[...small.values()].sort((x, y) => y.n - x.n).map(e => `<span class="pt ${e.off ? "off" : ""}">${esc(e.name)}${e.n > 1 ? `<span class="x">×${e.n}</span>` : ""}</span>`),
-  ];
-  $("d-taken").innerHTML = chips.join("") || `<p class="hint">${TPLAN.allocated_seen ? "None yet." : "Nothing seen in the game log yet. Allocate a point in game and it shows here."}</p>`;
+  const bigLines = big.map(b => `<div class="tk big ${b.keystone ? "ks" : ""} ${b.off ? "off" : ""}" data-tip="${b.skill}">${esc(b.name)}${b.off ? ` <span class="tk-off">off-plan</span>` : ""}</div>`);
+  const smallLine = [...small.values()].sort((x, y) => y.n - x.n)
+    .map(e => `<span class="${e.off ? "tk-offtext" : ""}">${esc(e.name)}${e.n > 1 ? ` ×${e.n}` : ""}</span>`).join(" · ");
+  $("d-taken").innerHTML = (bigLines.join("") + (smallLine ? `<div class="tk small">${smallLine}</div>` : ""))
+    || `<p class="hint">${TPLAN.allocated_seen ? "None yet." : "Nothing seen in the game log yet. Allocate a point in game and it shows here."}</p>`;
   $("d-asc").innerHTML = TPLAN.ascendancy.map(x => `<li class="${x.taken ? "done" : ""}">${x.taken ? "✓ " : ""}${esc(x.name)}</li>`).join("") || `<li>—</li>`;
 }
 
@@ -133,11 +133,6 @@ async function refresh() {
       a.note = String(e);
     }
   }
-  $("tree-view").classList.toggle("hidden", !TPLAN);
-  if (TPLAN) {
-    drawTree();
-    if (FITTED_STAGE !== TPLAN.stage) { fitTree(); FITTED_STAGE = TPLAN.stage; }
-  }
   renderSkills(a, coach);
   renderPassives(a);
   renderHeader(await invoke("snapshot").then(s => s.character).catch(() => null));
@@ -167,10 +162,22 @@ document.addEventListener("keydown", ev => {
   if (ev.key === "F11") { ev.preventDefault(); toggleFullscreen().catch(() => {}); }
 });
 
-let resizeTimer = null;
-window.addEventListener("resize", () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { if (TPLAN) fitTree(); }, 200);
+// ---- hover a notable or keystone: what it does ----
+function nodeStats(skill) {
+  const d = TPLAN?.details?.[skill];
+  const pos = TREE_POS?.get(Number(skill));
+  return { name: d?.name || pos?.[3] || "Passive", stats: d?.stats || [] };
+}
+document.addEventListener("mouseover", ev => {
+  const host = ev.target.closest("[data-tip]");
+  const tip = $("d-tip");
+  if (!host) { tip.classList.add("hidden"); return; }
+  const { name, stats } = nodeStats(host.dataset.tip);
+  tip.innerHTML = `<b>${esc(name)}</b>${stats.length ? stats.map(s => `<div>${esc(s)}</div>`).join("") : `<div class="hint">No details</div>`}`;
+  const r = host.getBoundingClientRect();
+  tip.style.left = `${Math.min(r.left, window.innerWidth - 340)}px`;
+  tip.style.top = `${r.bottom + 6}px`;
+  tip.classList.remove("hidden");
 });
 
 listen("character", ({ payload }) => { renderHeader(payload); scheduleRefresh(3000); });
@@ -180,11 +187,11 @@ listen("feed", ({ payload }) => {
   while (ul.children.length > 200) ul.lastChild.remove();
 });
 listen("feed-all", ({ payload }) => renderFeed(payload));
-listen("imported", () => { FITTED_STAGE = null; scheduleRefresh(); });
+listen("imported", () => scheduleRefresh());
 listen("skills", () => scheduleRefresh());
 listen("equipped", () => scheduleRefresh());
 
-// tree.js loads after this file; start once every script has run.
+// Start once the page has loaded.
 document.addEventListener("DOMContentLoaded", async () => {
   const snap = await invoke("snapshot");
   FOLLOWING = snap.imported?.name || null;

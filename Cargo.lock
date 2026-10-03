@@ -2018,7 +2018,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-ai"
-version = "0.5.13"
+version = "0.5.14"
 dependencies = [
  "serde",
  "serde_json",
@@ -2028,7 +2028,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-app"
-version = "0.5.13"
+version = "0.5.14"
 dependencies = [
  "arboard",
  "lifeline-ai",
@@ -2050,7 +2050,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-data"
-version = "0.5.13"
+version = "0.5.14"
 dependencies = [
  "regex",
  "serde",
@@ -2059,7 +2059,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-gamefiles"
-version = "0.5.13"
+version = "0.5.14"
 dependencies = [
  "dirs 6.0.0",
  "regex",
@@ -2070,7 +2070,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-model"
-version = "0.5.13"
+version = "0.5.14"
 dependencies = [
  "lifeline-data",
  "lifeline-gamefiles",
@@ -2082,7 +2082,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-pob"
-version = "0.5.13"
+version = "0.5.14"
 dependencies = [
  "base64 0.22.1",
  "flate2",
@@ -2093,7 +2093,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-trade"
-version = "0.5.13"
+version = "0.5.14"
 dependencies = [
  "lifeline-ai",
  "regex",
