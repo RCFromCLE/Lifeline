@@ -44,3 +44,10 @@
 .res-pill .rp-sep { color: var(--muted); }
 .res-pill .rp.fire { color: #ff8a6a; } .res-pill .rp.cold { color: #8fc3ff; } .res-pill .rp.lightning { color: #ffe066; } .res-pill .rp.chaos { color: #d58cff; }
 .res-pill .rp.phys { color: #d9cbb3; }
+
+/* Click a modifier on a market card to sort by it (market.js) */
+.mcard .poe-item .pl.mod, .mcard .poe-item .pl.prop, .mcard .poe-item .pl.rune { cursor: pointer; border-radius: 3px; }
+.mcard .poe-item .pl.mod:hover, .mcard .poe-item .pl.prop:hover, .mcard .poe-item .pl.rune:hover { background: rgba(217, 169, 87, 0.14); }
+.sort-note { margin: 4px 0 8px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sort-note b { color: var(--gold-2); }
+.sort-note .sort-clear { padding: 2px 8px; font-size: 13px; }

@@ -170,6 +170,53 @@
   }
   new MutationObserver(decorateUpgrades).observe($("r-recs"), { childList: true });
 
+  // ---- Click a modifier on a market card: sort those listings by it ----
+  // "+24 to maximum Energy Shield" → key "+# to maximum Energy Shield";
+  // each card's value for that key (an "Adds 5 to 9" range counts as its
+  // average), highest first; cards without it go last.
+  const lineText = el => [...el.childNodes].filter(n => !(n.classList && n.classList.contains("tier"))).map(n => n.textContent).join("").trim();
+  const modKey = text => text.replace(/\s*\((augmented|implicit|rune|enchant|crafted|fire|cold|lightning|chaos)\)/g, "").replace(/\d+(?:\.\d+)?/g, "#").trim();
+  function modValue(text) {
+    const nums = (text.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    if (!nums.length) return null;
+    return / to \d/.test(text) && nums.length >= 2 ? (nums[0] + nums[1]) / 2 : nums[0];
+  }
+  function valueFor(card, key) {
+    for (const l of card.querySelectorAll(".poe-item .pl")) {
+      const t = lineText(l);
+      if (modKey(t) === key) return modValue(t);
+    }
+    return null;
+  }
+  document.addEventListener("click", ev => {
+    const line = ev.target.closest(".mcard .poe-item .pl.mod, .mcard .poe-item .pl.prop, .mcard .poe-item .pl.rune");
+    if (!line) return;
+    const grid = line.closest(".market-grid");
+    const wrap = grid?.closest(".market");
+    if (!grid || !wrap) return;
+    const text = lineText(line), key = modKey(text);
+    if (!/#/.test(key)) return;
+    const cards = [...grid.querySelectorAll(".mcard")];
+    if (!wrap.dataset.order) cards.forEach((c, i) => { c.dataset.i = i; });
+    wrap.dataset.order = "1";
+    cards.map(c => ({ c, v: valueFor(c, key) }))
+      .sort((a, b) => (b.v ?? -Infinity) - (a.v ?? -Infinity))
+      .forEach(({ c }) => { c.classList.remove("hidden"); grid.appendChild(c); });
+    wrap.querySelector(".market-more")?.remove();
+    let note = wrap.querySelector(".sort-note");
+    if (!note) {
+      note = document.createElement("div");
+      note.className = "sort-note";
+      wrap.insertBefore(note, grid);
+    }
+    const shown = cards.filter(c => valueFor(c, key) != null).length;
+    note.innerHTML = `Sorted by <b>${escapeHtml(key)}</b>, highest first (${shown} of ${cards.length} have it) <button class="ghost sort-clear" title="Back to the original order">✕</button>`;
+    note.querySelector(".sort-clear").addEventListener("click", () => {
+      [...grid.querySelectorAll(".mcard")].sort((a, b) => a.dataset.i - b.dataset.i).forEach(c => grid.appendChild(c));
+      note.remove();
+    });
+  });
+
   // The dashboard's Market button brings this window up on the Market tab.
   listen("show-tab", ({ payload }) => document.querySelector(`.tab[data-tab="${payload}"]`)?.click());
   decorateUpgrades();
