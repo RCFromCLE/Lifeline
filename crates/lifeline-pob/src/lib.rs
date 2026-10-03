@@ -7,7 +7,7 @@ pub mod stages;
 
 pub use code::{decode, encode, resolve, BuildSource};
 pub use model::{parse_xml, Gem, ItemSet, PobBuild, SkillGroup, SkillSet, SlotItem, TreeSpec};
-pub use stages::{classify_title, estimate_level, resolve_stage, stage_end_levels, ActProgress, Stage, StageHint, POE2_0_5_ACTS};
+pub use stages::{classify_title, estimate_level, resolve_stage, stage_end_levels, stage_level_span, ActProgress, Stage, StageHint, POE2_0_5_ACTS};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

@@ -477,7 +477,7 @@ function renderImport(v) {
   $("import-result").innerHTML = `
     <h2 style="margin-top:14px">${escapeHtml(v.ascendancy || v.class_name || "Build")} · level ${v.level ?? "?"}</h2>
     ${v.warning ? `<div class="status err">${escapeHtml(v.warning)}</div>` : ""}
-    <table><thead><tr><th>Tree</th><th>Stage</th><th>Passives</th><th>Ascendancy pts</th><th>Ends at level</th></tr></thead><tbody>${rows}</tbody></table>
+    <table><thead><tr><th>Tree</th><th>Stage</th><th>Passives</th><th>Ascendancy pts</th><th>Levels</th></tr></thead><tbody>${rows}</tbody></table>
     <p class="hint" style="margin-top:8px">★ = written for that stage</p>
     <div class="import-actions">
       <button id="btn-write" class="primary">Send to game planner</button>

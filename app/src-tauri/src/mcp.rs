@@ -195,7 +195,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 "name": i.name,
                 "class": i.build.class_name, "ascendancy": i.build.ascend_class_name,
                 "current_stage": lifeline_model::stage_label(stage),
-                "stages": i.stages.iter().filter(|s| s.chosen).map(|s| json!({"stage": s.stage, "spec": s.title, "ends_around_level": format!("{}-{}", s.level_from, s.level_to), "passives": s.main_points})).collect::<Vec<_>>(),
+                "stages": i.stages.iter().filter(|s| s.chosen).map(|s| json!({"stage": s.stage, "spec": s.title, "levels": format!("{}-{}", s.level_from, s.level_to), "passives": s.main_points})).collect::<Vec<_>>(),
                 "current_stage_skills": skills
             }))
         }

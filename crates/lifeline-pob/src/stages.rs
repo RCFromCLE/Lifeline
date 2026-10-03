@@ -116,6 +116,24 @@ pub fn stage_end_levels(stage: Stage) -> (u32, u32) {
     }
 }
 
+/// The levels a character plays a stage at: from about where the stage
+/// before ends (middle of its range) to the top of this stage's end range.
+/// Act 1 1–18, Act 2 17–32, Act 3 31–48, Act 4 47–58, Interludes 57–65,
+/// maps from 65.
+pub fn stage_level_span(stage: Stage) -> (u32, u32) {
+    let middle = |s: Stage| {
+        let (low, high) = stage_end_levels(s);
+        (low + high) / 2
+    };
+    let start = match stage {
+        Stage::Act(1) => 1,
+        Stage::Act(n) if n <= 4 => middle(Stage::Act(n - 1)),
+        Stage::Act(_) | Stage::Interludes => middle(Stage::Act(4)),
+        Stage::Endgame => 65,
+    };
+    (start, stage_end_levels(stage).1)
+}
+
 pub fn stage_for_level(level: u32) -> Stage {
     match level {
         0..=15 => Stage::Act(1),
@@ -248,6 +266,16 @@ mod tests {
         // 33 + 1 - 4 quest points - 4 shared weapon-set points = 26 (Act 2).
         assert_eq!(estimate_level(&POE2_0_5_ACTS, 33, 0, (4, 6)), 26);
         assert!(estimate_level(&POE2_0_5_ACTS, 50, 0, (4, 6)) < estimate_level(&POE2_0_5_ACTS, 50, 0, (0, 0)));
+    }
+
+    #[test]
+    fn stage_spans_start_where_the_last_stage_ends() {
+        assert_eq!(stage_level_span(Stage::Act(1)), (1, 18));
+        assert_eq!(stage_level_span(Stage::Act(2)), (17, 32));
+        assert_eq!(stage_level_span(Stage::Act(3)), (31, 48));
+        assert_eq!(stage_level_span(Stage::Act(4)), (47, 58));
+        assert_eq!(stage_level_span(Stage::Interludes), (57, 65));
+        assert_eq!(stage_level_span(Stage::Endgame), (65, 100));
     }
 
     #[test]
