@@ -66,3 +66,16 @@
   tests.querySelectorAll("input[data-pop]").forEach(i => i.addEventListener("change", ev => save(ev, "popup", i.dataset.pop)));
   $("hud-notices").addEventListener("change", ev => save(ev, "hud_notices", null));
 })();
+
+// ---- Settings → About: the version you have and the latest release ----
+(() => {
+  const LATEST = "https://github.com/RCFromCLE/Lifeline/releases/latest";
+  const version = $("app-version");
+  if (version) {
+    Promise.resolve(window.__TAURI__?.app?.getVersion?.())
+      .then(v => { version.textContent = v ? `v${v}` : "(version unknown)"; })
+      .catch(() => { version.textContent = "(version unknown)"; });
+  }
+  $("btn-releases")?.addEventListener("click", () =>
+    invoke("open_url", { url: LATEST }).catch(e => toast(`Couldn't open the browser: ${e}`, "err")));
+})();
