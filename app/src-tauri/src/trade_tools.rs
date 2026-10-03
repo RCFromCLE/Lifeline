@@ -160,15 +160,41 @@ pub fn rate_in_chat(app: &AppHandle, search_id: &str, listing_ids: &[String]) ->
         return Err("Search first.".into());
     }
     let state = app.state::<AppState>();
+    // The AI can't open a past search, so it gets every listing in full.
+    let listings: Vec<String> = {
+        let data = state.listing_data.lock().unwrap();
+        listing_ids
+            .iter()
+            .filter_map(|id| data.get(id))
+            .map(|l| {
+                format!(
+                    "- listing_id {}: {}{} | {} | item level {} | {} | {}\n  {}",
+                    l.id,
+                    l.name,
+                    if l.name.is_empty() || l.name == l.base { String::new() } else { format!(" ({})", l.base) },
+                    l.price.as_deref().unwrap_or("no price"),
+                    l.item_level.map_or("?".into(), |v| v.to_string()),
+                    l.requires.as_deref().map_or("no requirements".into(), |r| format!("requires {r}")),
+                    if l.corrupted { "corrupted" } else { "not corrupted" },
+                    l.mods.join("; "),
+                )
+            })
+            .collect()
+    };
+    if listings.is_empty() {
+        return Err("Those results are from an earlier session. Search again, then rate.".into());
+    }
     let id = state.new_conversation("Market check", false);
     state.save_conversations();
     let prompt = format!(
-        "Rate these trade listings for my build and current stage (search_id {search_id}, listing_ids {}). Compare each \
-         with what I wear in that slot (equipped_items) or my plan, then call rate_listings with all of them. Name the \
-         best pick in one sentence.",
-        listing_ids.join(", ")
+        "Rate these {} trade listings for my build and current stage (search_id {search_id}). Compare each with what I \
+         wear in that slot (equipped_items) or my plan, hardcore first, then call rate_listings once with all of them \
+         (listing_id, delta_pct, verdict). Name the best pick and why in one sentence.\n\nListings:\n{}",
+        listings.len(),
+        listings.join("\n")
     );
-    crate::ai::ask(app, Some(id), prompt, "Market check", crate::ai::Origin::Chat);
+    let display = format!("Rate these {} market results for my build.", listings.len());
+    crate::ai::ask_as(app, Some(id), prompt, display, "Market check", crate::ai::Origin::Chat);
     Ok(id)
 }
 

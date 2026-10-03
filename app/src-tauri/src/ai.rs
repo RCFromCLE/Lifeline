@@ -199,6 +199,13 @@ pub fn shown(question: &str) -> &str {
 }
 
 pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, origin: Origin) {
+    let display = shown(&question).to_owned();
+    ask_as(app, conv, question, display, label, origin);
+}
+
+/// Like [`ask`], with the words the chat shows for the question (`display`)
+/// separate from what the AI is sent (`question`, e.g. full listing details).
+pub fn ask_as(app: &AppHandle, conv: Option<u64>, question: String, display: String, label: &str, origin: Origin) {
     let state = app.state::<AppState>();
     let conv_id = match (origin, conv) {
         (Origin::Chat, Some(id)) => id,
@@ -230,7 +237,7 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
         c.messages.push(Message {
             role: "user".into(),
             label: label.into(),
-            text: shown(&question).to_owned(),
+            text: display.clone(),
             error: false,
         });
     }
@@ -241,7 +248,7 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
     emit(
         app,
         conv_id,
-        json!({"type": "start", "label": label, "question": shown(&question), "hotkey": origin == Origin::Hotkey}),
+        json!({"type": "start", "label": label, "question": display, "hotkey": origin == Origin::Hotkey}),
     );
 
     let app = app.clone();
