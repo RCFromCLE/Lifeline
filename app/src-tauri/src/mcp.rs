@@ -177,13 +177,14 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             Ok(v)
         }
         n if n == tools::BUILD_PLAN => {
+            let data = crate::gamedata::load(&state).ok();
             let imported = state.imported.lock().unwrap();
             let Some(i) = imported.as_ref() else {
                 return Ok(json!("No build yet. Point the player to the Builds tab: the Showcase guides them to a researched hardcore build and creates it (or Import for a Path of Building link)."));
             };
             let c = state.character.lock().unwrap().clone();
             let stage = crate::ai::current_stage(c.act, c.area_level);
-            let skills: Vec<Value> = lifeline_model::skills_for_stage(&i.build, stage)
+            let skills: Vec<Value> = lifeline_model::usable_skills(&i.build, stage, data.as_deref())
                 .iter()
                 .map(|s| {
                     json!({"skill": crate::gamedata::gem_display(&state, &s.id),

@@ -35,6 +35,9 @@ pub struct Gem {
     pub description: Option<String>,
     pub skill_types: Vec<String>,
     pub is_lineage: bool,
+    /// Supports: the Uncut Support Gem level needed to cut it (1–5 in the
+    /// data; 0 = can't be cut, e.g. lineage).
+    pub crafting_level: u64,
     pub recommended_supports: Vec<String>,
     /// Supports: skill-type rules (reverse-Polish with AND/OR/NOT) from the
     /// game data; a support works on a skill when `allowed` matches its types
@@ -249,6 +252,7 @@ impl GameData {
                 description,
                 skill_types: types,
                 is_lineage: g["is_lineage"].as_bool().unwrap_or(false),
+                crafting_level: g["crafting_level"].as_u64().unwrap_or(0),
                 recommended_supports: strings(&g["recommended_supports"])
                     .iter()
                     .filter_map(|s| names.get(s).cloned())

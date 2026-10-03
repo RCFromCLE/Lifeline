@@ -112,7 +112,7 @@ pub fn alignment(state: &AppState) -> Value {
         .collect();
 
     // Skills planned for this stage (names), to compare with what's socketed.
-    let skills: Vec<Value> = lifeline_model::skills_for_stage(&imported.build, current.stage_key)
+    let skills: Vec<Value> = lifeline_model::usable_skills(&imported.build, current.stage_key, data.as_deref())
         .iter()
         .map(|s| {
             json!({

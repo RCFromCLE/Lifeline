@@ -7,6 +7,7 @@ pub mod attributes;
 pub mod catalog;
 pub mod design;
 pub mod planner;
+pub mod supports;
 
 pub use catalog::{rank, Archetype, Preferences, Ranked, Ratings};
 pub use design::{realize, stage_budget, BuildDesign, DesignReport, Realized};
@@ -166,6 +167,16 @@ fn planner_skills(set: &SkillSet) -> Vec<SkillRef> {
 }
 
 /// Skills (with supports) the build uses at `stage`.
+/// A stage's skills with supports the player can actually use then (unique,
+/// cuttable, filling the stage's sockets); see [`supports::complete`].
+pub fn usable_skills(build: &PobBuild, stage: Stage, data: Option<&lifeline_data::GameData>) -> Vec<SkillRef> {
+    let mut skills = skills_for_stage(build, stage);
+    if let Some(data) = data {
+        supports::complete(&mut skills, data, stage);
+    }
+    skills
+}
+
 /// The item set a stage uses (same choice as the Build Planner files).
 pub fn items_for_stage(build: &PobBuild, stage: Stage) -> Option<&ItemSet> {
     pick_set(&build.item_sets, |s| s.title.as_str(), stage)

@@ -262,6 +262,7 @@ pub fn follow_planner(state: &AppState, files: &[String]) -> Result<ImportView, 
 /// Writes one `.build` per chosen stage into the game's BuildPlanner folder.
 pub fn write_stages(state: &AppState) -> Result<Vec<String>, String> {
     let tree = load_tree(state)?;
+    let data = crate::gamedata::load(state).ok();
     let guard = state.imported.lock().unwrap();
     let imported = guard.as_ref().ok_or("Import a build first.")?;
     let dir = paths::user_dir()
@@ -270,7 +271,11 @@ pub fn write_stages(state: &AppState) -> Result<Vec<String>, String> {
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let mut written = Vec::new();
     for stage in imported.stages.iter().filter(|s| s.chosen) {
-        let planner = to_planner_build(&imported.build, stage, &tree, &imported.name, imported.link.as_deref());
+        let mut planner = to_planner_build(&imported.build, stage, &tree, &imported.name, imported.link.as_deref());
+        // Supports the player can use at this stage: unique, cuttable, every socket filled.
+        if let Some(data) = data.as_deref() {
+            lifeline_model::supports::complete(&mut planner.skills, data, stage.stage_key);
+        }
         let path = build_planner::write(&dir, &planner).map_err(|e| e.to_string())?;
         written.push(
             path.file_name()
