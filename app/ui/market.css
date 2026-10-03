@@ -37,3 +37,10 @@
 
 /* Settings → About */
 .about-version { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 6px 0 12px; }
+
+/* Header: resistances that matter in this zone (resists.js) */
+.res-pill { display: inline-flex; gap: 6px; align-items: baseline; }
+.res-pill .rp-label { color: var(--muted); font-size: 0.85em; }
+.res-pill .rp-sep { color: var(--muted); }
+.res-pill .rp.fire { color: #ff8a6a; } .res-pill .rp.cold { color: #8fc3ff; } .res-pill .rp.lightning { color: #ffe066; } .res-pill .rp.chaos { color: #d58cff; }
+.res-pill .rp.phys { color: #d9cbb3; }

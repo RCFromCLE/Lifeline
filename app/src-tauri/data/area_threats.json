@@ -1,0 +1,858 @@
+{
+ "G1_1": {
+  "boss": "The Bloated Miller",
+  "resists": [],
+  "why": "Bloated Miller: physical slashes and shockwave slam; no elemental threat.",
+  "confidence": "high",
+  "source": "https://game8.co/games/Path-of-Exile-2/archives/486805"
+ },
+ "G1_2": {
+  "boss": "Beira of the Rotten Pack",
+  "resists": [
+   "cold"
+  ],
+  "why": "Beira: physical lunges plus ice shard volleys and ice spikes.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-1-boss-guide"
+ },
+ "G1_3": {
+  "boss": "The Devourer",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Devourer: physical bursts from below and green poison vomit (chaos).",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-1-boss-guide"
+ },
+ "G1_4": {
+  "boss": "The Brambleghast",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Brambleghast: physical vine slams; chasing orbs deal chaos.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/The_Brambleghast"
+ },
+ "G1_5": {
+  "boss": "The Rust King",
+  "resists": [
+   "lightning"
+  ],
+  "why": "Rust King: physical swipes and shards; lightning beam and lightning nova.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/The_Rust_King"
+ },
+ "G1_6": {
+  "boss": "The Rotten Druid",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Rotten Druid: physical rock smash and pods; central chaos goop pool.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/The_Rotten_Druid"
+ },
+ "G1_7": {
+  "boss": "Lachlann of Endless Lament",
+  "resists": [
+   "cold"
+  ],
+  "why": "Lachlann: physical slams with cold storms; chilled cold ground.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Lachlann_of_Endless_Lament"
+ },
+ "G1_8": {
+  "boss": "Draven, the Eternal Praetor",
+  "resists": [
+   "fire"
+  ],
+  "why": "Draven: physical cleaves; Blazing Lance and cleave orbs deal fire.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Draven%2C_the_Eternal_Praetor"
+ },
+ "G1_9": {
+  "boss": "Asinia, the Praetor's Consort",
+  "resists": [
+   "fire"
+  ],
+  "why": "Asinia: physical bone blasts; spirit mortars and ghostflame burn deal fire.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Asinia%2C_the_Praetors_Consort"
+ },
+ "G1_10": {
+  "boss": "The Rotten Druid",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Rotten Druid: physical rock smash and pods; central chaos goop pool.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Root_Hollow"
+ },
+ "G1_11": {
+  "boss": "The Crowbell",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Crowbell: all physical leap and bell slams; venomous crabs add poison.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/The_Crowbell"
+ },
+ "G1_12": {
+  "boss": "The King in the Mists",
+  "resists": [
+   "chaos"
+  ],
+  "why": "King in the Mists: vine slams and spore bombs convert to chaos; bleed.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/The_King_in_the_Mists"
+ },
+ "G1_13_1": {
+  "boss": null,
+  "resists": [],
+  "why": "Werewolves, mercenaries and scarecrows; mostly physical melee.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Ogham_Farmlands"
+ },
+ "G1_13_2": {
+  "boss": "The Executioner",
+  "resists": [
+   "fire"
+  ],
+  "why": "Executioner: heavy physical slams; big slams and guillotine erupt fire.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/The_Executioner"
+ },
+ "G1_14": {
+  "boss": null,
+  "resists": [
+   "fire"
+  ],
+  "why": "Iron Thaumaturgists cast fireballs and flamethrowers; rest is physical.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Iron_Thaumaturgist"
+ },
+ "G1_15": {
+  "boss": "Candlemass, the Living Rite; Count Geonor",
+  "resists": [
+   "cold",
+   "fire"
+  ],
+  "why": "Candlemass: fire breath and candles. Count Geonor: cold thrusts, freeze, bleed.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Count_Geonor"
+ },
+ "G2_1": {
+  "boss": "Rathbreaker",
+  "resists": [
+   "fire"
+  ],
+  "why": "Rathbreaker is pure physical; Brimstone Crabs spray fire.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Rathbreaker"
+ },
+ "G2_2": {
+  "boss": "Balbala, the Traitor",
+  "resists": [
+   "fire",
+   "chaos"
+  ],
+  "why": "Balbala: physical blades, fire runes and clone blasts, poison daggers.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Balbala%2C_the_Traitor"
+ },
+ "G2_3": {
+  "boss": "Jamanra, the Risen King",
+  "resists": [
+   "lightning"
+  ],
+  "why": "Jamanra: physical sword slams converted heavily to lightning.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Jamanra%2C_the_Risen_King"
+ },
+ "G2_3a": {
+  "boss": null,
+  "resists": [],
+  "why": "Faridun soldiers and ants hit physical; no boss here.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/The_Halani_Gates"
+ },
+ "G2_3s": {
+  "boss": null,
+  "resists": [],
+  "why": "Faridun soldiers hit physical; no boss here.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/The_Halani_Gates"
+ },
+ "G2_4_1": {
+  "boss": "Kabala, Constrictor Queen",
+  "resists": [
+   "lightning"
+  ],
+  "why": "Kabala: physical with a Vulnerability curse; scarabs add lightning.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Kabala%2C_Constrictor_Queen"
+ },
+ "G2_4_2": {
+  "boss": null,
+  "resists": [
+   "fire",
+   "lightning"
+  ],
+  "why": "Risen Magi cast fire; beetles hit with lightning sunders.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Risen_Magi"
+ },
+ "G2_4_3": {
+  "boss": "Azarian, the Forsaken Son",
+  "resists": [
+   "fire"
+  ],
+  "why": "Azarian: fire novas, cyclone, flame walls and burning ground.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Azarian%2C_the_Forsaken_Son"
+ },
+ "G2_5_1": {
+  "boss": null,
+  "resists": [
+   "lightning",
+   "fire"
+  ],
+  "why": "Lost-men Necromancers and Zealots cast lightning and fire.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Lost-men_Necromancer"
+ },
+ "G2_5_2": {
+  "boss": "Iktab, the Deathlord and Ekbab, Ancient Steed",
+  "resists": [
+   "lightning",
+   "fire"
+  ],
+  "why": "Iktab: lightning and shocked ground, fire comets; Ekbab is physical.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Iktab%2C_the_Deathlord"
+ },
+ "G2_6": {
+  "boss": null,
+  "resists": [],
+  "why": "Golems, liches and lurkers hit mostly physical.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Valley_of_the_Titans"
+ },
+ "G2_7": {
+  "boss": "Zalmarath, the Colossus",
+  "resists": [
+   "fire",
+   "lightning"
+  ],
+  "why": "Zalmarath: fire beams and fissures, fire-lightning projectiles, big physical sweeps.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Zalmarath%2C_the_Colossus"
+ },
+ "G2_8": {
+  "boss": null,
+  "resists": [
+   "chaos",
+   "fire"
+  ],
+  "why": "Vultures spew poison gas and burst corpses into fire.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Regurgitating_Vulture"
+ },
+ "G2_8a": {
+  "boss": null,
+  "resists": [
+   "chaos",
+   "fire"
+  ],
+  "why": "Vultures spew poison gas and burst corpses into fire.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Regurgitating_Vulture"
+ },
+ "G2_9_1": {
+  "boss": null,
+  "resists": [
+   "fire"
+  ],
+  "why": "Risen Tale-woman rolls magma and fire orbs; rest is physical.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Risen_Tale-woman"
+ },
+ "G2_9_2": {
+  "boss": "Tor Gul, the Defiler",
+  "resists": [
+   "fire",
+   "chaos"
+  ],
+  "why": "Tor Gul: fire breath, blasts and geysers, caustic chaos ground.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Tor_Gul%2C_the_Defiler"
+ },
+ "G2_10_1": {
+  "boss": null,
+  "resists": [],
+  "why": "Plague Harvesters, corpses and miners hit physical.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Mawdun_Quarry"
+ },
+ "G2_10_2": {
+  "boss": "Rudja, the Dread Engineer",
+  "resists": [
+   "fire",
+   "chaos"
+  ],
+  "why": "Rudja: flamethrowers and fire grenades, chaos poison gas.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Rudja%2C_the_Dread_Engineer"
+ },
+ "G2_11": {
+  "boss": null,
+  "resists": [
+   "lightning"
+  ],
+  "why": "Plague Nymphs fire lightning rails; Harvesters hit hard physical.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Plague_Nymph"
+ },
+ "G2_12": {
+  "boss": "Jamanra, the Abomination",
+  "resists": [
+   "lightning",
+   "fire"
+  ],
+  "why": "Jamanra: lightning beacons and sandnados, glass weapon slams.",
+  "confidence": "high",
+  "source": "https://poe2db.tw/us/Jamanra%2C_the_Abomination"
+ },
+ "G2_13": {
+  "boss": "Rattlecage, the Earthbreaker",
+  "resists": [
+   "fire"
+  ],
+  "why": "Rattlecage: fire pulses, volcanoes and death explosion.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Rattlecage%2C_the_Earthbreaker"
+ },
+ "G3_1": {
+  "boss": "Rootdredge",
+  "resists": [
+   "fire",
+   "chaos"
+  ],
+  "why": "Rootdredge hits hard with physical slams and fiery volatile orbs; swamp trash adds some poison.",
+  "confidence": "high",
+  "source": "https://maxroll.gg/poe2/getting-started/act-3-boss-guide"
+ },
+ "G3_2_1": {
+  "boss": null,
+  "resists": [
+   "chaos"
+  ],
+  "why": "Bane Saplings poison you; antlions and the Brood Queen swarm with physical hits.",
+  "confidence": "medium",
+  "source": "https://poe2spectrewiki.com/bane-sapling-details/"
+ },
+ "G3_2_2": {
+  "boss": null,
+  "resists": [
+   "chaos"
+  ],
+  "why": "Mostly physical Azak tribe packs; River Drakes leave poison ground.",
+  "confidence": "low",
+  "source": "https://poe2spectrewiki.com/river-drake-details/"
+ },
+ "G3_3": {
+  "boss": "Mighty Silverfist",
+  "resists": [],
+  "why": "Pure physical: Silverfist's slams can one-shot, dodge sideways.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G3_4": {
+  "boss": null,
+  "resists": [
+   "chaos"
+  ],
+  "why": "Poison zone: Slitherspitters and snake shamblers stack heavy poison.",
+  "confidence": "high",
+  "source": "https://poe2spectrewiki.com/slitherspitter-details/"
+ },
+ "G3_5": {
+  "boss": "Xyclucian, the Chimera",
+  "resists": [
+   "fire",
+   "lightning",
+   "cold"
+  ],
+  "why": "Chimera mixes fire breath, lightning orbs, frost walls and a poison cone.",
+  "confidence": "medium",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G3_6_1": {
+  "boss": "Blackjaw, the Remnant",
+  "resists": [
+   "fire"
+  ],
+  "why": "Blackjaw slams for physical and sweeps fire; flame frenzy hurts.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G3_6_2": {
+  "boss": "Zicoatl, Warden of the Core",
+  "resists": [
+   "lightning"
+  ],
+  "why": "Zicoatl floods the arena with lightning walls, beams and grids.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G3_7": {
+  "boss": "Ignagduk, the Bog Witch",
+  "resists": [
+   "fire",
+   "chaos"
+  ],
+  "why": "Bog Witch goes from bone spikes to firewalls and flamethrower; bog trash poisons.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G3_8": {
+  "boss": null,
+  "resists": [
+   "cold",
+   "chaos"
+  ],
+  "why": "River Hags cast deadly cold vortexes; drakes leave poison ground.",
+  "confidence": "medium",
+  "source": "https://poe2spectrewiki.com/river-hag-details/"
+ },
+ "G3_9": {
+  "boss": "Mektul, the Forgemaster",
+  "resists": [
+   "fire"
+  ],
+  "why": "Mektul's molten slams and lava waves are fire; the arena floods with lava.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G3_10": {
+  "boss": "The Trialmaster",
+  "resists": [
+   "lightning",
+   "fire",
+   "cold"
+  ],
+  "why": "Heavy physical hits plus elemental bosses; lightning rune room mods are common.",
+  "confidence": "medium",
+  "source": "https://maxroll.gg/poe2/bosses/the-trialmaster-boss-guide"
+ },
+ "G3_10_Airlock": {
+  "boss": null,
+  "resists": [
+   "lightning"
+  ],
+  "why": "Trial entrance; watch for lightning rune modifiers in the trial.",
+  "confidence": "low",
+  "source": "https://domistae.github.io/poe2-leveling/poe2_act3_guide.html"
+ },
+ "G3_11": {
+  "boss": "The Queen of Filth",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Queen slams for physical and leaves chaos cursed ground and fungal blasts.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G3_12": {
+  "boss": "Ketzuli, High Priest of the Sun",
+  "resists": [
+   "fire"
+  ],
+  "why": "All fire: sun orbs, gamma ray beam, and burning sunlight indoors.",
+  "confidence": "high",
+  "source": "https://maxroll.gg/poe2/getting-started/act-3-boss-guide"
+ },
+ "G3_14": {
+  "boss": "Viper Napuatzi",
+  "resists": [
+   "lightning",
+   "chaos",
+   "fire"
+  ],
+  "why": "Hardest Act 3 fight: lightning spears, poison slams and meteor showers.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G3_15": {
+  "boss": null,
+  "resists": [],
+  "why": "Vaal guards and overseers mostly deal physical damage.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Library_of_Kamasa"
+ },
+ "G3_16": {
+  "boss": null,
+  "resists": [
+   "fire",
+   "chaos",
+   "cold"
+  ],
+  "why": "Blood Priests ignite, Chaotic Zealots poison, Gelid Zealots chill; Goliaths hit hard.",
+  "confidence": "medium",
+  "source": "https://poe2spectrewiki.com/blood-priest-details/"
+ },
+ "G3_17": {
+  "boss": "Doryani, Royal Thaumaturge",
+  "resists": [
+   "lightning",
+   "fire",
+   "cold"
+  ],
+  "why": "Doryani uses lightning tendrils and fire shots, then a mech with huge physical fist slams.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-3-boss-guide"
+ },
+ "G4_1_1": {
+  "boss": "Blind Beast",
+  "resists": [
+   "lightning"
+  ],
+  "why": "Blind Beast hits hard physically; its fissures deal lightning.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-4-boss-guide"
+ },
+ "G4_1_2": {
+  "boss": "Krutog, Lord of Kin",
+  "resists": [
+   "lightning"
+  ],
+  "why": "Krutog slams physical; his vomit pools deal lightning over time.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-4-boss-guide"
+ },
+ "G4_2_1": {
+  "boss": null,
+  "resists": [],
+  "why": "Pirates and drowned mobs; damage types unverified, mostly physical.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Kedge_Bay"
+ },
+ "G4_2_2": {
+  "boss": "Captain Hartlin",
+  "resists": [
+   "cold",
+   "fire"
+  ],
+  "why": "Hartlin is mostly physical, with cold and some fire.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-4-boss-guide"
+ },
+ "G4_3_1": {
+  "boss": "The Great White One",
+  "resists": [],
+  "why": "Pure physical boss; armour and life matter, not resists.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-4-boss-guide"
+ },
+ "G4_3_2": {
+  "boss": "Diamora, Song of Death",
+  "resists": [
+   "cold"
+  ],
+  "why": "Diamora's geysers and screech deal cold; rest is physical.",
+  "confidence": "high",
+  "source": "https://maxroll.gg/poe2/getting-started/act-4-boss-guide"
+ },
+ "G4_4_1": {
+  "boss": null,
+  "resists": [
+   "fire",
+   "cold"
+  ],
+  "why": "Wildlife mobs; optional fire and cold tests here.",
+  "confidence": "low",
+  "source": "https://domistae.github.io/poe2-leveling/poe2_act4_guide.html"
+ },
+ "G4_4_2": {
+  "boss": "Yama the White",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Yama's Soulrend projectiles apply chaos damage over time.",
+  "confidence": "high",
+  "source": "https://maxroll.gg/poe2/getting-started/act-4-boss-guide"
+ },
+ "G4_4_3": {
+  "boss": null,
+  "resists": [],
+  "why": "Story stop after Yama; little or no combat.",
+  "confidence": "low",
+  "source": "https://domistae.github.io/poe2-leveling/poe2_act4_guide.html"
+ },
+ "G4_5_1": {
+  "boss": "Forael, the Soulkeeper",
+  "resists": [],
+  "why": "Undead prison mobs; damage types unverified, mostly physical.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Abandoned_Prison"
+ },
+ "G4_5_2": {
+  "boss": "The Prisoner",
+  "resists": [
+   "cold"
+  ],
+  "why": "Prisoner's frost attacks ramp up from phase 2; rest is physical.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-4-boss-guide"
+ },
+ "G4_7": {
+  "boss": "Scourge of the Skies",
+  "resists": [],
+  "why": "Pure physical boss; armour and life matter, not resists.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-4-boss-guide"
+ },
+ "G4_8a": {
+  "boss": null,
+  "resists": [],
+  "why": "Peaceful version of Arastas; no combat.",
+  "confidence": "medium",
+  "source": "https://poe2db.tw/us/Arastas"
+ },
+ "G4_8b": {
+  "boss": "Torvian, Hand of the Saviour",
+  "resists": [
+   "fire"
+  ],
+  "why": "Torvian's phase 2 beams and explosions deal fire.",
+  "confidence": "high",
+  "source": "https://maxroll.gg/poe2/getting-started/act-4-boss-guide"
+ },
+ "G4_9_": {
+  "boss": null,
+  "resists": [],
+  "why": "Infested sea creatures; damage types unverified.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Isle_of_Decay"
+ },
+ "G4_10": {
+  "boss": "Benedictus, First Herald of Utopia",
+  "resists": [
+   "lightning",
+   "fire"
+  ],
+  "why": "Benedictus mixes physical with lightning and fire.",
+  "confidence": "high",
+  "source": "https://maxroll.gg/poe2/getting-started/act-4-boss-guide"
+ },
+ "G4_11_1a": {
+  "boss": null,
+  "resists": [
+   "fire"
+  ],
+  "why": "Blood-fevered Karui; arsonists suggest fire. Harano can appear.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Ngakanu"
+ },
+ "G4_11_1b": {
+  "boss": null,
+  "resists": [
+   "fire"
+  ],
+  "why": "Blood-fevered Karui; arsonists suggest fire. Mad Butcher can appear.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Ngakanu"
+ },
+ "G4_11_2": {
+  "boss": "Tavakai, the Chieftain",
+  "resists": [
+   "fire",
+   "cold",
+   "lightning"
+  ],
+  "why": "Tavakai uses fire, cold and lightning plus physical; cap all.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/act-4-boss-guide"
+ },
+ "G4_13": {
+  "boss": null,
+  "resists": [],
+  "why": "Expedition-style zone; random mods, damage varies.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Plunders_Point"
+ },
+ "G4_14": {
+  "boss": null,
+  "resists": [],
+  "why": "No verified monster data for this zone.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Brinerot_Cove"
+ },
+ "P1_1": {
+  "boss": "Isolde and Heldra",
+  "resists": [
+   "cold",
+   "fire"
+  ],
+  "why": "Isolde casts cold, Heldra casts fire; kill Isolde first.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/ogham-interlude-boss-guide"
+ },
+ "P1_2": {
+  "boss": "Siora, Blade of the Mists",
+  "resists": [
+   "lightning",
+   "chaos"
+  ],
+  "why": "Siora deals lightning; her darkness mist adds chaos.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/ogham-interlude-boss-guide"
+ },
+ "P1_3": {
+  "boss": null,
+  "resists": [],
+  "why": "Treants and Nameless horrors; damage types unverified.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/The_Blackwood"
+ },
+ "P1_4": {
+  "boss": "Sigbert and Godwin",
+  "resists": [
+   "fire",
+   "cold"
+  ],
+  "why": "Twin sentinels mix physical with fire and cold.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/ogham-interlude-boss-guide"
+ },
+ "P1_5": {
+  "boss": "Oswin, the Dread Warden",
+  "resists": [
+   "cold"
+  ],
+  "why": "Oswin is physical and cold; dodge the bell explosion.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/ogham-interlude-boss-guide"
+ },
+ "P1_6": {
+  "boss": "Thane Wulfric and Lady Elswyth",
+  "resists": [
+   "chaos",
+   "fire"
+  ],
+  "why": "Elswyth's chaos storm and fire pillar; Wulfric is physical.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/ogham-interlude-boss-guide"
+ },
+ "P2_1": {
+  "boss": "Akthi and Anundr",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Physical hits plus poison chaos sprays.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/vastiri-interlude-boss-guide"
+ },
+ "P2_2": {
+  "boss": null,
+  "resists": [
+   "chaos"
+  ],
+  "why": "Plague mobs; expect poison and chaos.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Pools_of_Khatal"
+ },
+ "P2_3": {
+  "boss": "Elzarah, the Cobra Lord",
+  "resists": [
+   "fire",
+   "chaos",
+   "lightning"
+  ],
+  "why": "Elzarah's eruptions add fire; guides disagree on chaos vs lightning.",
+  "confidence": "medium",
+  "source": "https://www.poe-vault.com/poe2/guides/vastiri-interlude-boss-guide"
+ },
+ "P2_5": {
+  "boss": "Vornas, the Fell Flame",
+  "resists": [
+   "fire"
+  ],
+  "why": "Vornas deals physical and fire; hastes at about 60% life.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/vastiri-interlude-boss-guide"
+ },
+ "P2_6": {
+  "boss": null,
+  "resists": [],
+  "why": "Undead and Lost-men cultists; damage types unverified.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Qimah"
+ },
+ "P2_7": {
+  "boss": "Azmadi, the Faridun Prince",
+  "resists": [],
+  "why": "Pure physical boss; stack armour and life.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/vastiri-interlude-boss-guide"
+ },
+ "P3_1": {
+  "boss": null,
+  "resists": [],
+  "why": "Fungal undead, spiders and wasps; damage types unverified.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Ashen_Forest"
+ },
+ "P3_2": {
+  "boss": "Lythara, the Wayward Spear",
+  "resists": [
+   "chaos"
+  ],
+  "why": "Lythara is physical and chaos; wisp buffs can add any element.",
+  "confidence": "medium",
+  "source": "https://www.poe-vault.com/poe2/guides/kriar-interlude-boss-guide"
+ },
+ "P3_3": {
+  "boss": "Rakkar, the Frozen Talon",
+  "resists": [
+   "cold"
+  ],
+  "why": "Rakkar's ice spikes and chilled ground deal cold.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/kriar-interlude-boss-guide"
+ },
+ "P3_4": {
+  "boss": "The Abominable Yeti",
+  "resists": [
+   "cold"
+  ],
+  "why": "Yeti is physical and cold; watch the sunder slam.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/kriar-interlude-boss-guide"
+ },
+ "P3_5": {
+  "boss": null,
+  "resists": [],
+  "why": "Vaal skeletons and apes; damage types unverified.",
+  "confidence": "low",
+  "source": "https://poe2db.tw/us/Kriar_Peaks"
+ },
+ "P3_6": {
+  "boss": "Stormgore, the Guardian",
+  "resists": [
+   "lightning"
+  ],
+  "why": "Stormgore's plasma jet and rend deal lightning.",
+  "confidence": "high",
+  "source": "https://www.poe-vault.com/poe2/guides/kriar-interlude-boss-guide"
+ },
+ "P3_7": {
+  "boss": "Zolin and Zelina",
+  "resists": [
+   "lightning",
+   "fire"
+  ],
+  "why": "Blood twins hit physical; Zolin's arcs are lightning. Kill Zelina first.",
+  "confidence": "medium",
+  "source": "https://www.poe-vault.com/poe2/guides/kriar-interlude-boss-guide"
+ }
+}

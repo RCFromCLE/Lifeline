@@ -15,6 +15,10 @@ pub struct Character {
     pub level: u32,
     pub zone: String,
     pub area_id: String,
+    /// The last campaign zone (not a town, hideout or trial): what the
+    /// "resistances that matter here" advice is about.
+    #[serde(default)]
+    pub zone_area: String,
     pub area_level: u32,
     pub act: Option<u8>,
     /// Elemental resistance penalty where the character is (PLAN.md §3.5).

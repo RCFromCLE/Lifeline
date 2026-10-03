@@ -78,6 +78,9 @@
     .cue-pop.penalty, .cue-pop.boss_area { border-left-color: #e8743a; }
     .cue-pop.level_up, .cue-pop.new_act { border-left-color: #86c46e; }
     @keyframes cue-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    .res .el { margin-right: 4px; }
+    .res .el.fire { color: #ff8a6a; } .res .el.cold { color: #8fc3ff; } .res .el.lightning { color: #ffe066; }
+    .res .el.chaos { color: #d58cff; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -88,7 +91,7 @@
       <button class="open-app" data-action="open_app" title="Open Lifeline">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>Open</button>
       <button class="grade g-none" id="grade" title="Rate build">?</button>
-      <span class="res full" id="pen" title="Resistance penalty here">–</span>
+      <span class="res full" id="pen" title="Resistances: what you have / what you need here">–</span>
       <span class="deaths full hidden" id="deaths"></span>
       <span class="sep full"></span>
       <button class="ic full" data-action="item_check_clipboard" title="Check the item you copied (Ctrl+C in game)">
@@ -179,11 +182,21 @@
 
     function render(h) {
       const c = h.character;
-      const pen = c.res_penalty;
-      el("pen").className = `res full ${penaltyClass(pen)}`;
+      // The resistances that matter in this zone (researched), most important first.
       nextPenalty = h.next_penalty;
-      el("pen").innerHTML = (pen === null || pen === undefined ? "–" : `${pen}%`) + (nextPenalty ? `<span class="up">▲</span>` : "");
-      el("pen").title = `Resistance penalty here${nextPenalty ? ` · next: ${nextPenalty}` : ""}`;
+      const r = h.resists || {};
+      const f = r.focus || {};
+      const NAMES = { fire: "Fire", cold: "Cold", lightning: "Light", chaos: "Chaos" };
+      const focus = (f.resists || []).filter(k => NAMES[k]);
+      el("pen").className = "res full";
+      el("pen").innerHTML = focus.length
+        ? focus.map(k => `<span class="el ${k}">${NAMES[k]}</span>`).join("")
+        : f.physical ? `<span class="el">Physical</span>` : (r.need != null ? `Cap ${r.need}%` : "Res –");
+      el("pen").title = `${r.zone || "This zone"}${f.boss ? ` (boss: ${f.boss})` : ""}: ${f.why || "no data"}`
+        + (r.need != null ? `
+Capped at 75% here needs ${r.need}% (${r.penalty}% penalty).` : "")
+        + (nextPenalty ? `
+Next: ${nextPenalty}` : "");
       el("deaths").textContent = `☠${c.deaths}`;
       el("deaths").classList.toggle("hidden", !c.deaths);
       document.body.classList.toggle("unlocked", !!h.unlocked);

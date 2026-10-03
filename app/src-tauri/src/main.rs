@@ -19,6 +19,7 @@ mod market;
 mod mcp;
 mod notify_settings;
 mod rating;
+mod resists;
 mod setup;
 mod single;
 mod skills;
@@ -158,6 +159,12 @@ fn set_trade_on_travel(state: tauri::State<'_, AppState>, show: bool) -> Result<
     let mut s = state.settings.lock().unwrap();
     s.show_trade_on_travel = show;
     s.save(&state.data_dir)
+}
+
+/// The resistances that matter in the current zone (plus cap and gear totals).
+#[tauri::command]
+fn resistances(state: tauri::State<'_, AppState>) -> serde_json::Value {
+    resists::summary(&state)
 }
 
 /// HUD pop-up and message switches (Settings → Sounds & notifications).
@@ -491,6 +498,7 @@ fn hud_now(state: &AppState) -> serde_json::Value {
     serde_json::json!({
         "character": c,
         "next_penalty": next_penalty,
+        "resists": resists::summary(state),
         "plan": plan,
         "equipped_slots": state.equipped.lock().unwrap().len(),
         "rating": state.rating.lock().unwrap().clone(),
@@ -892,6 +900,7 @@ fn main() {
             rate_market_chat,
             set_trade_on_travel,
             notification_settings,
+            resistances,
             set_notification,
             clipboard_item,
             tree_plan,

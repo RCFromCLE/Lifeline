@@ -57,6 +57,7 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
                 *c = Character {
                     zone: c.zone.clone(),
                     area_id: c.area_id.clone(),
+                    zone_area: c.zone_area.clone(),
                     area_level: c.area_level,
                     act: c.act,
                     res_penalty: c.res_penalty,
@@ -74,6 +75,9 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
             area_id, area_level, ..
         } => {
             c.area_id = area_id.clone();
+            if !is_side_area(area_id) && !area_id.to_ascii_lowercase().contains("town") {
+                c.zone_area = area_id.clone();
+            }
             c.area_level = *area_level;
             // Hideouts and trials aren't on the campaign map: stay in the act
             // the character was in, so the plan doesn't jump to Interludes.
@@ -82,7 +86,12 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
                 None if is_side_area(area_id) => {}
                 None => c.act = None,
             }
-            c.res_penalty = res_penalty(area_id, *area_level);
+            // A hideout or trial keeps the penalty of the act you're in.
+            match res_penalty(area_id, *area_level) {
+                Some(p) => c.res_penalty = Some(p),
+                None if is_side_area(area_id) => {}
+                None => c.res_penalty = None,
+            }
             None
         }
         EventKind::SceneEntered { name } => {
@@ -149,7 +158,7 @@ fn cues(state: &AppState, before: &Character, after: &Character, e: &LogEvent) -
         }
         if let (Some(a), Some(b)) = (after.res_penalty, before.res_penalty) {
             if a < b {
-                out.push((Cue::Penalty, format!("Fire, cold and lightning {a}% here: check your resistances")));
+                out.push((Cue::Penalty, format!("Resistances now need {}% each to stay capped ({a}% penalty)", crate::resists::CAP - a)));
             }
         }
         if after.area_id != before.area_id {

@@ -80,6 +80,17 @@ fn context(state: &AppState) -> String {
     if let Some(p) = c.res_penalty {
         lines.push(format!("Elemental resistance penalty in this area: {p}%"));
     }
+    // What the HUD shows: the resistances that matter in this zone (researched).
+    let r = crate::resists::summary(state);
+    let focus: Vec<&str> = r["focus"]["resists"].as_array().into_iter().flatten().filter_map(|v| v.as_str()).collect();
+    if !focus.is_empty() || r["focus"]["physical"] == true {
+        lines.push(format!(
+            "Resistances that matter most in {}: {} ({})",
+            r["zone"].as_str().unwrap_or("this zone"),
+            if focus.is_empty() { "physical defences, no elemental threat".into() } else { focus.join(", ") },
+            r["focus"]["why"].as_str().unwrap_or_default()
+        ));
+    }
     lines.push(format!("Deaths this character: {}", c.deaths));
     if !c.buffs.is_empty() {
         lines.push(format!("Permanent buffs collected: {}", c.buffs.join("; ")));
