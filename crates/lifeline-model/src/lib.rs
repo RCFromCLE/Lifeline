@@ -160,6 +160,11 @@ fn planner_skills(set: &SkillSet) -> Vec<SkillRef> {
 }
 
 /// Skills (with supports) the build uses at `stage`.
+/// The item set a stage uses (same choice as the Build Planner files).
+pub fn items_for_stage(build: &PobBuild, stage: Stage) -> Option<&ItemSet> {
+    pick_set(&build.item_sets, |s| s.title.as_str(), stage)
+}
+
 pub fn skills_for_stage(build: &PobBuild, stage: Stage) -> Vec<SkillRef> {
     pick_set(&build.skill_sets, |s| s.title.as_str(), stage)
         .map(planner_skills)

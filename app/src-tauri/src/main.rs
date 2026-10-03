@@ -10,6 +10,7 @@ mod ai;
 mod alignment;
 mod builds;
 mod game;
+mod gear;
 mod gamedata;
 mod hotkeys;
 mod input;
@@ -48,7 +49,7 @@ fn snapshot(state: tauri::State<'_, AppState>) -> Snapshot {
         settings: state.settings.lock().unwrap().clone(),
         imported: state.imported.lock().unwrap().as_ref().map(|i| builds::view(i, None)),
         planner_files: builds::planner_files(),
-        hotkey_errors: Vec::new(),
+        hotkey_errors: state.startup_problems.lock().unwrap().clone(),
         conversations: ai::conversation_list(&state),
     }
 }
@@ -59,6 +60,7 @@ async fn import_build(app: AppHandle, input: String) -> Result<builds::ImportVie
         let state = app.state::<AppState>();
         let view = builds::import(&state, &input)?;
         set_active_saved(&state, None);
+        let _ = app.emit("imported", &view);
         Ok(view)
     })
         .await
@@ -98,6 +100,24 @@ async fn follow_planner(app: AppHandle, files: Vec<String>) -> Result<builds::Im
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// The item on the clipboard (copied in game with Ctrl+C), if there is one.
+#[tauri::command]
+fn clipboard_item() -> Option<String> {
+    let text = arboard::Clipboard::new().and_then(|mut c| c.get_text()).ok()?;
+    input::is_item_text(&text).then_some(text)
+}
+
+/// Ctrl+C mode for recording gear: on (ten minutes) or off. Returns seconds left.
+#[tauri::command]
+fn gear_watch(app: AppHandle, on: bool) -> u64 {
+    gear::set_watch(&app, on)
+}
+
+#[tauri::command]
+fn gear_watch_left(state: tauri::State<'_, AppState>) -> u64 {
+    gear::watch_left(&state)
 }
 
 /// The whole passive tree's layout (drawn once, then cached by the page).
@@ -183,9 +203,7 @@ async fn class_art(app: AppHandle) -> serde_json::Value {
 }
 
 fn set_active_saved(state: &AppState, id: Option<u64>) {
-    let mut s = state.settings.lock().unwrap();
-    s.active_saved = id;
-    let _ = s.save(&state.data_dir);
+    state.set_active_saved(id);
 }
 
 /// The My builds entry currently followed (if any).
@@ -356,9 +374,11 @@ fn equipped(state: tauri::State<'_, AppState>) -> std::collections::BTreeMap<Str
 }
 
 #[tauri::command]
-fn forget_equipped(state: tauri::State<'_, AppState>, slot: String) {
+fn forget_equipped(app: AppHandle, slot: String) {
+    let state = app.state::<AppState>();
     state.equipped.lock().unwrap().remove(&slot);
     state.save_equipped();
+    let _ = app.emit("equipped", state.equipped.lock().unwrap().clone());
 }
 
 #[tauri::command]
@@ -368,7 +388,13 @@ fn move_overlay(app: AppHandle) {
 
 /// Everything the HUD shows besides the streamed answer.
 #[tauri::command]
-fn hud(state: tauri::State<'_, AppState>) -> serde_json::Value {
+async fn hud(app: AppHandle) -> serde_json::Value {
+    tauri::async_runtime::spawn_blocking(move || hud_now(&app.state::<AppState>()))
+        .await
+        .unwrap_or_default()
+}
+
+fn hud_now(state: &AppState) -> serde_json::Value {
     let c = state.character.lock().unwrap().clone();
     let next_penalty = match (c.act, c.area_level) {
         (Some(1), _) => Some("Act 2: −10%"),
@@ -385,7 +411,12 @@ fn hud(state: tauri::State<'_, AppState>) -> serde_json::Value {
         state.tree.lock().unwrap().clone(),
     ) {
         let stage = ai::current_stage(c.act, c.area_level);
-        if let Some(s) = imported.stages.iter().find(|s| s.chosen && s.stage_key == stage) {
+        let chosen = || imported.stages.iter().filter(|s| s.chosen);
+        let pick = chosen()
+            .find(|s| s.stage_key == stage)
+            .or_else(|| chosen().filter(|s| s.stage_key <= stage).max_by_key(|s| s.stage_key))
+            .or_else(|| chosen().next());
+        if let Some(s) = pick {
             let spec = &imported.build.specs[s.spec_index];
             let planned: Vec<&lifeline_data::TreeNode> = spec
                 .nodes
@@ -445,7 +476,10 @@ fn overlay_action(app: AppHandle, action: String) -> Result<(), String> {
 /// Brings the main window up on the in-game (hotkey) conversation.
 #[tauri::command]
 fn open_in_game_chat(app: AppHandle) {
-    let id = app.state::<AppState>().in_game_conversation();
+    let state = app.state::<AppState>();
+    let id = state.in_game_conversation();
+    state.save_conversations();
+    let _ = app.emit("conversations", ai::conversation_list(&state));
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.unminimize();
         let _ = w.show();
@@ -570,6 +604,10 @@ fn save_settings(app: AppHandle, mut settings: Settings) -> Result<Vec<String>, 
         settings.overlay_pos = current.overlay_pos;
         settings.overlay_visible = current.overlay_visible;
         settings.active_saved = current.active_saved;
+        // Owned by the Rating screen and the welcome, not the Settings form.
+        settings.rating_budget.clone_from(&current.rating_budget);
+        settings.auto_rate_on_act = current.auto_rate_on_act;
+        settings.onboarded = settings.onboarded || current.onboarded;
     }
     settings.save(&state.data_dir)?;
     let failed = hotkeys::register(&app, &settings.hotkeys);
@@ -678,11 +716,22 @@ fn main() {
             let hotkeys = app.state::<AppState>().settings.lock().unwrap().hotkeys.clone();
             let failed = hotkeys::register(&handle, &hotkeys);
             if !failed.is_empty() {
-                eprintln!("hotkeys not registered: {failed:?}");
+                debug_log(&app.state::<AppState>(), &format!("hotkeys not registered: {failed:?}"));
             }
+            *app.state::<AppState>().startup_problems.lock().unwrap() = failed
+                .iter()
+                .map(|f| format!("Hotkey {f} couldn't be used (another app may own it). Pick another in Settings."))
+                .collect();
             match mcp::start(handle.clone()) {
                 Ok(server) => *app.state::<AppState>().mcp.lock().unwrap() = Some(server),
-                Err(e) => eprintln!("tool server not started: {e}"),
+                Err(e) => {
+                    debug_log(&app.state::<AppState>(), &format!("tool server not started: {e}"));
+                    app.state::<AppState>()
+                        .startup_problems
+                        .lock()
+                        .unwrap()
+                        .push(format!("The AI's game-data link didn't start ({e}). Restart Lifeline."));
+                }
             }
             create_overlay(&handle)?;
             spawn_overlay_hit_test(handle.clone());
@@ -741,6 +790,9 @@ fn main() {
             build_alignment,
             build_check_chat,
             tree_layout,
+            gear_watch,
+            gear_watch_left,
+            clipboard_item,
             tree_plan,
             active_saved,
             check_update,

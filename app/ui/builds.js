@@ -144,11 +144,19 @@ function openModal(html) {
   $("modal-body").innerHTML = html;
   $("build-modal").classList.remove("hidden");
   $("modal-body").querySelectorAll(".link[data-url]").forEach(l =>
-    l.addEventListener("click", () => invoke("open_url", { url: l.dataset.url }).catch(e => toast(e))));
+    l.addEventListener("click", () => invoke("open_url", { url: l.dataset.url }).catch(e => toast(e, "err"))));
+  // Start at the top (name and portrait), not at the buttons at the bottom.
+  MODAL_RETURN = document.activeElement;
+  $("build-modal").querySelector(".modal-box").scrollTop = 0;
   const first = $("modal-body").querySelector("button.primary") || $("modal-x");
-  first.focus();
+  first.focus({ preventScroll: true });
 }
-function closeModal() { $("build-modal").classList.add("hidden"); }
+let MODAL_RETURN = null;
+function closeModal() {
+  if ($("build-modal").classList.contains("hidden")) return;
+  $("build-modal").classList.add("hidden");
+  MODAL_RETURN?.focus?.({ preventScroll: true });
+}
 $("modal-x").addEventListener("click", closeModal);
 $("build-modal").addEventListener("click", ev => { if (ev.target === $("build-modal")) closeModal(); });
 document.addEventListener("keydown", ev => { if (ev.key === "Escape") closeModal(); });
@@ -202,7 +210,7 @@ function openBuild(a) {
 async function generate(a) {
   try {
     await invoke("generate_build", { id: a.id, prefs: prefs() });
-  } catch (e) { toast(e); return; }
+  } catch (e) { toast(e, "err"); return; }
   openModal(`<div class="d-head">${portrait(a.class, a.ascendancy, 96)}<div><h1>${esc(a.name)}</h1>
       <div class="sub2">Designing Act 1 → Endgame. This takes a few minutes; you can close this and keep playing.</div></div></div>
       <ul class="steps" id="gen-steps"></ul>`);
@@ -243,7 +251,7 @@ function openSaved(e) {
     ${full ? `<div class="d-sec" style="margin-top:14px"><h3>Your build</h3><p style="margin:0">${esc(e.summary || e.design.summary)}</p></div>
       ${e.risks?.length ? list("Watch out for", e.risks) : ""}${reportTable(e.report)}` : ""}
     <div class="d-actions">
-      ${full ? `<button class="primary" id="d-write">Use it + write to Build Planner</button><button id="d-use">Use it</button>`
+      ${full ? `<button class="primary" id="d-write">Follow + send to game planner</button><button id="d-use">Follow</button>`
              : `<button class="primary" id="d-gen">Create full build</button>`}
       <button class="ghost" id="d-del">Delete</button>
     </div>`);
@@ -331,6 +339,8 @@ function openShowcase() {
 
 (async () => {
   try { ART = await invoke("class_art"); } catch (_) { ART = {}; }
+  // The Current card may have drawn before the art arrived.
+  if (CURRENT) renderCurrent(CURRENT);
   LIB = await invoke("library");
   await refreshActiveSaved();
   await loadShowcase();
@@ -347,14 +357,14 @@ function renderCurrent(v) {
   f.textContent = `Following: ${v.name}`;
   f.classList.remove("hidden");
   const asc = v.ascendancy || "", cls = v.class_name || classOf(asc).cls;
-  const chosen = v.stages.filter(s => s.chosen);
+  const chosen = v.stages.filter(s => s.chosen).sort((a, b) => a.estimated_level - b.estimated_level);
   $("cur-card").innerHTML = `<div class="d-head">${portrait(cls, asc, 104)}<div class="grow">
       <div class="state">${esc(v.source)}</div><h1>${esc(v.name)}</h1>
       <div class="sub2">${esc(cls)}${asc ? " · " + esc(asc) : ""} · ${chosen.length} stages</div>
-      <div class="cur-stages">${chosen.map(s => `<span class="cstage" data-stage="${esc(s.stage)}">${esc(s.stage)} <small>≈${s.estimated_level}</small></span>`).join("")}</div></div></div>
+      <div class="cur-stages">${chosen.map(s => `<button class="cstage" data-stage="${esc(s.stage)}" title="Show this stage on the tree">${esc(s.stage)} <small>≈ level ${s.estimated_level}</small></button>`).join("")}</div></div></div>
     <div class="d-actions">
       <button class="primary" id="cur-check">Check my build with AI</button>
-      <button id="cur-write" title="Write this build's stages into the game's Build Planner">Save to Build Planner</button>
+      <button id="cur-write" title="Write this build's stages into the game's Build Planner">Send to game planner</button>
       <button class="ghost" id="cur-change">Change build</button>
     </div>`;
   $("cur-check").addEventListener("click", async () => {
@@ -378,22 +388,46 @@ function renderCurrent(v) {
   refreshAlignment();
 }
 
-// What Lifeline knows you wear. The game doesn't log gear, so each piece is
-// recorded with one key press while pointing at it in game.
+// What Lifeline knows you wear. The game doesn't share gear, so each piece
+// comes from its copied text: the Record gear hotkey, or Ctrl+C mode (copy
+// with the game's own Ctrl+C while Lifeline listens).
+let GEAR_WATCH = 0;
 function wornChecklist(worn) {
   const key = settings?.hotkeys?.record_equipped || "Alt+Shift+E";
   const done = worn.filter(w => w.recorded).length;
+  const watching = GEAR_WATCH > 0;
   return `<div class="d-sec worn" style="margin-top:12px">
     <h3>Your gear <span class="hint">${done} of ${worn.length} recorded</span></h3>
     <div class="worn-grid">${worn.map(w => `<div class="worn-slot ${w.recorded ? "ok" : ""}"><span class="ws">${esc(w.slot)}</span>
-      <span class="wi">${w.recorded ? "✓ " + esc(w.recorded) : "—"}</span></div>`).join("")}</div>
-    ${done < worn.length ? `<ol class="worn-steps">
-      <li>In game, open your inventory (<b>I</b>).</li>
-      <li>Point the mouse at a worn item and press <kbd>${esc(key)}</kbd>. It ticks off here.</li>
-      <li>Do each slot once; again whenever you swap an item.</li></ol>
-      <div class="hint">The game doesn't share your gear with other apps, so this is the only way Lifeline sees it. Playing on a controller? Map a spare button to ${esc(key)} in Steam's controller settings for the game.</div>` : `<div class="hint">All slots recorded. Press ${esc(key)} on a new item whenever you swap.</div>`}
+      <span class="wi" title="${esc(w.recorded || "")}">${w.recorded ? "✓ " + esc(w.recorded) : "—"}</span></div>`).join("")}</div>
+    <div class="worn-how">
+      <div class="worn-way">
+        <b>Record my gear</b> <span class="hint">easiest</span>
+        <div>Turn it on, then in game open your inventory (<kbd>I</kbd>), point at each worn item and press <kbd>Ctrl+C</kbd>. Each one ticks off here.</div>
+        <button class="${watching ? "" : "primary"}" id="gear-watch">${watching ? `Stop recording (on until ${new Date(Date.now() + GEAR_WATCH * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})` : "Record my gear"}</button>
+      </div>
+      <div class="worn-way">
+        <b>Hotkey</b>
+        <div>Point at a worn item in game and press <kbd>${esc(key)}</kbd>.</div>
+      </div>
+    </div>
+    <div class="hint">Record again whenever you swap an item. On a controller, map a spare button to Ctrl+C in Steam's controller settings for the game.</div>
   </div>`;
 }
+function wireWorn() {
+  $("gear-watch")?.addEventListener("click", async () => {
+    GEAR_WATCH = await invoke("gear_watch", { on: GEAR_WATCH === 0 });
+    renderGearHow();
+    toast(GEAR_WATCH ? "Recording for 10 minutes. In game, point at each worn item and press Ctrl+C." : "Stopped recording gear.", GEAR_WATCH ? "ok" : "info");
+    refreshAlignment();
+  });
+}
+listen("gear-watch", ({ payload }) => {
+  const was = GEAR_WATCH;
+  GEAR_WATCH = payload.seconds;
+  if (!!was !== !!GEAR_WATCH && CURRENT) refreshAlignment();
+});
+(async () => { try { GEAR_WATCH = await invoke("gear_watch_left"); } catch (_) { GEAR_WATCH = 0; } renderGearHow(); })();
 
 let alignTimer = null;
 function refreshAlignment() {
@@ -423,6 +457,7 @@ function refreshAlignment() {
       ${wornChecklist(a.worn || [])}
       <div class="d-sec" style="margin-top:12px"><h3>Gear goals</h3><table class="gear-align"><thead><tr><th>Slot</th><th>Goal</th><th>You</th></tr></thead><tbody>${gear || `<tr><td colspan="3" class="hint">This build has no gear goals.</td></tr>`}</tbody></table>
 </div>`;
+    wireWorn();
     if (typeof refreshTree === "function") refreshTree();
   }, 250);
 }

@@ -145,6 +145,16 @@ pub fn confirm(app: &AppHandle, action_id: u64) -> Result<String, String> {
             .ok_or("That action is gone.")?;
         actions.remove(pos)
     };
+    let result = run_confirmed(app, &action);
+    // A failed action (planner folder locked, trade site down…) can be retried.
+    if result.is_err() {
+        state.actions.lock().unwrap().push(action);
+    }
+    result
+}
+
+fn run_confirmed(app: &AppHandle, action: &crate::state::PendingAction) -> Result<String, String> {
+    let state = app.state::<AppState>();
     let league = state.settings.lock().unwrap().league.clone();
     match action.kind.as_str() {
         "travel" => {

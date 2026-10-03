@@ -66,8 +66,14 @@ pub fn steam_library_paths(vdf: &str) -> Vec<PathBuf> {
         .collect()
 }
 
+/// The log the game is writing to: of every Client.txt found (an old
+/// Steam install can leave one behind), the most recently written.
 pub fn find_client_log() -> Option<PathBuf> {
-    client_log_candidates().into_iter().find(|p| p.is_file())
+    client_log_candidates()
+        .into_iter()
+        .filter_map(|p| std::fs::metadata(&p).ok().filter(|m| m.is_file()).map(|m| (m.modified().ok(), p)))
+        .max_by_key(|(modified, _)| *modified)
+        .map(|(_, p)| p)
 }
 
 #[cfg(test)]

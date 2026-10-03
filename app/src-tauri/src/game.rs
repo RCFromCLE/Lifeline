@@ -29,6 +29,14 @@ pub fn res_penalty(area_id: &str, area_level: u32) -> Option<i32> {
     }
 }
 
+/// Hideouts, trials and other side areas the player visits mid-campaign.
+fn is_side_area(area_id: &str) -> bool {
+    let id = area_id.to_ascii_lowercase();
+    ["hideout", "trial", "sanctum", "ultimatum", "chaos", "labyrinth", "menagerie", "tutorial"]
+        .iter()
+        .any(|k| id.contains(k))
+}
+
 /// Applies one event; returns a feed line when it's worth showing.
 fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
     let mine = c.name.clone();
@@ -40,12 +48,20 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
             level,
         } => {
             if !is_mine(character) {
+                // Switching characters: keep each one's allocated passives.
+                let mut others = std::mem::take(&mut c.others);
+                if let Some(old) = c.name.take() {
+                    others.insert(old, std::mem::take(&mut c.allocated));
+                }
+                let allocated = others.remove(character).unwrap_or_default();
                 *c = Character {
                     zone: c.zone.clone(),
                     area_id: c.area_id.clone(),
                     area_level: c.area_level,
                     act: c.act,
                     res_penalty: c.res_penalty,
+                    allocated,
+                    others,
                     ..Character::default()
                 };
                 c.name = Some(character.clone());
@@ -59,7 +75,13 @@ fn apply(c: &mut Character, e: &LogEvent) -> Option<(String, String)> {
         } => {
             c.area_id = area_id.clone();
             c.area_level = *area_level;
-            c.act = client_log::campaign_act(area_id);
+            // Hideouts and trials aren't on the campaign map: stay in the act
+            // the character was in, so the plan doesn't jump to Interludes.
+            match client_log::campaign_act(area_id) {
+                Some(act) => c.act = Some(act),
+                None if is_side_area(area_id) => {}
+                None => c.act = None,
+            }
             c.res_penalty = res_penalty(area_id, *area_level);
             None
         }
@@ -186,7 +208,7 @@ pub fn spawn_log_watcher(app: AppHandle) {
                     // Re-rate once per new act while playing (not during backfill).
                     if backfilled
                         && new_act.is_some()
-                        && new_act != last_rated_act
+                        && new_act > last_rated_act
                         && state.settings.lock().unwrap().auto_rate_on_act
                     {
                         last_rated_act = new_act;
@@ -229,4 +251,36 @@ pub fn spawn_log_watcher(app: AppHandle) {
             std::thread::sleep(Duration::from_millis(400));
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ev(kind: EventKind) -> LogEvent {
+        LogEvent { timestamp: String::new(), kind }
+    }
+
+    fn area(id: &str, level: u32) -> LogEvent {
+        ev(EventKind::AreaGenerated { area_id: id.into(), area_level: level, seed: 1 })
+    }
+
+    #[test]
+    fn hideouts_keep_the_act_and_alts_keep_their_passives() {
+        let mut c = Character::default();
+        apply(&mut c, &area("G2_3", 20));
+        assert_eq!(c.act, Some(2));
+        apply(&mut c, &area("HideoutFelled", 20));
+        assert_eq!(c.act, Some(2), "a hideout isn't the Interludes");
+        apply(&mut c, &area("MapUberBoss", 75));
+        assert_eq!(c.act, None);
+
+        let level = |name: &str, level: u32| ev(EventKind::LevelUp { character: name.into(), class: "Huntress".into(), level });
+        apply(&mut c, &level("Main", 20));
+        apply(&mut c, &ev(EventKind::PassiveAllocated { id: "evasion11".into(), name: "Evasion".into() }));
+        apply(&mut c, &level("Alt", 2));
+        assert!(c.allocated.is_empty());
+        apply(&mut c, &level("Main", 21));
+        assert!(c.allocated.contains("evasion11"), "back on the main, its passives are restored");
+    }
 }

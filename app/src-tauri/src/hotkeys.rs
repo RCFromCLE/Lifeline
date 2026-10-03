@@ -130,6 +130,30 @@ pub fn run_named(app: &AppHandle, name: &str) -> Result<(), String> {
             crate::skills::run(app.clone());
             return Ok(());
         }
+        // HUD buttons: a click puts the mouse on the HUD, not on an item, so
+        // these work from what the player copied with the game's Ctrl+C.
+        "gear_watch_toggle" => {
+            let on = crate::gear::watch_left(&app.state::<AppState>()) == 0;
+            crate::gear::set_watch(app, on);
+            let _ = app.emit(
+                "notice",
+                if on {
+                    "Recording gear: point at each worn item and press Ctrl+C. Click the shield again to stop."
+                } else {
+                    "Stopped recording gear."
+                },
+            );
+            return Ok(());
+        }
+        "item_check_clipboard" => {
+            let text = arboard::Clipboard::new().and_then(|mut c| c.get_text()).unwrap_or_default();
+            if !crate::input::is_item_text(&text) {
+                return Err("Copy an item first: point at it in game and press Ctrl+C, then click this.".into());
+            }
+            let _ = app.emit("item", &text);
+            ai::ask(app, None, ai::item_question(&text), "Item check", Origin::Hotkey);
+            return Ok(());
+        }
         other => return Err(format!("unknown action {other}")),
     };
     run(app, action);
@@ -141,7 +165,9 @@ fn run(app: &AppHandle, action: Action) {
         Action::ItemCheck => {
             let app = app.clone();
             let key = app.state::<AppState>().settings.lock().unwrap().hotkeys.item_check.clone();
-            std::thread::spawn(move || match crate::input::copy_hovered_item(&key) {
+            std::thread::spawn(move || match crate::input::copy_hovered_item(&key, &|m: &str| {
+                crate::debug_log(&app.state::<AppState>(), m)
+            }) {
                 Ok(item) => {
                     let _ = app.emit("item", &item);
                     ai::ask(&app, None, ai::item_question(&item), "Item check", Origin::Hotkey);
@@ -164,28 +190,7 @@ fn run(app: &AppHandle, action: Action) {
             let _ = app.emit("focus-chat", ());
         }
         Action::ToggleOverlay => toggle_overlay(app),
-        Action::RecordEquipped => {
-            let app = app.clone();
-            let key = app.state::<AppState>().settings.lock().unwrap().hotkeys.record_equipped.clone();
-            std::thread::spawn(move || {
-                let message = match crate::input::copy_hovered_item(&key) {
-                    Ok(item) => {
-                        let name: Vec<&str> = item.lines().skip(2).take(2).collect();
-                        let state = app.state::<AppState>();
-                        let slot = crate::state::record_equipped(&mut state.equipped.lock().unwrap(), &item);
-                        state.save_equipped();
-                        let _ = app.emit("equipped", state.equipped.lock().unwrap().clone());
-                        crate::sound::play(&app, crate::sound::Cue::Ready);
-                        format!("✓ Recorded {slot}: {}", name.join(" "))
-                    }
-                    Err(e) => e,
-                };
-                let _ = app.emit("notice", &message);
-                if let Some(w) = app.get_webview_window("overlay") {
-                    let _ = w.show();
-                }
-            });
-        }
+        Action::RecordEquipped => crate::gear::record_hovered(app),
         Action::MoveOverlay => toggle_move_mode(app),
     }
 }

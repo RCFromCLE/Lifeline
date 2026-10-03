@@ -183,7 +183,6 @@ pub struct AttrSummary {
 pub fn stage_needs(
     tree: &PassiveTree,
     build: &PobBuild,
-    spec_index: usize,
     stage: lifeline_pob::Stage,
     data: Option<&GameData>,
 ) -> Needs {
@@ -204,8 +203,7 @@ pub fn stage_needs(
             }
         }
     }
-    let title = build.specs.get(spec_index).map(|s| s.title.as_str()).unwrap_or_default();
-    let set = build.item_sets.iter().find(|s| s.title == title).or(build.item_sets.first());
+    let set = crate::items_for_stage(build, stage);
     for slot in set.map(|s| s.slots.as_slice()).unwrap_or_default() {
         if slot.slot.contains("Swap") || slot.slot.starts_with("Flask") || slot.slot.starts_with("Charm") {
             continue;

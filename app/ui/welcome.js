@@ -65,7 +65,7 @@
         <p class="wl-note">Install and sign-in open a window you can watch. This page updates on its own when each step is done.</p>`;
       body.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", async () => {
         try { await invoke("setup_action", { action: b.dataset.act }); b.textContent = "Opened…"; b.disabled = true; }
-        catch (e) { toast(e); }
+        catch (e) { toast(e, "err"); }
       }));
     } else if (W.step === 2) {
       body.innerHTML = `<h1 id="wl-title">Your game</h1>
@@ -84,6 +84,7 @@
       body.innerHTML = `<h1 id="wl-title">How it works</h1>
         <div class="wl-grid">
           <div><h3>HUD</h3><p>A small bar over the game, only while PoE2 is in front. Shows your grade (click to rate), resistance penalty, check item, what next, rotation and record gear. Drag the logo to move it.</p></div>
+          <div><h3>Your gear</h3><p>The game doesn't share what you wear, so record it once: Play → Your gear → <b>Record my gear</b>, then in game point at each worn item and press <kbd>Ctrl+C</kbd>. Ratings and checks use it.</p></div>
           <div><h3>Hotkeys</h3><p><kbd>${esc(k.item_check)}</kbd> check the hovered item · <kbd>${esc(k.what_next)}</kbd> what next · <kbd>${esc(k.record_equipped)}</kbd> record worn gear · <kbd>${esc(k.toggle_overlay)}</kbd> HUD on/off. Change them in Settings.</p></div>
           <div><h3>Builds</h3><p>Builds → Showcase: pick class, ascendancy and what matters. <b>Create full build</b> plans every stage, and one click writes it into the game's Build Planner.</p></div>
           <div><h3>Rating and Skills</h3><p>A strict F to S+ grade for where you are, plus skills, supports and rotations for your controls.</p></div>
@@ -104,7 +105,7 @@
       const s = await invoke("finish_setup", { league: W.league, input: W.input || "keyboard" });
       settings = s;
       if (typeof fillSettings === "function") fillSettings(s);
-    } catch (e) { toast(e); }
+    } catch (e) { toast(e, "err"); }
     close();
   }
 
@@ -127,7 +128,12 @@
   function close() {
     clearInterval(W.poll);
     $("welcome").classList.add("hidden");
-    if (W.status && !W.status.onboarded) invoke("finish_setup", { league: W.league, input: W.input || "keyboard" }).catch(() => {});
+    if (W.status && !W.status.onboarded) {
+      invoke("finish_setup", { league: W.league, input: W.input || "keyboard" })
+        .then(() => invoke("snapshot"))
+        .then(snap => { settings = snap.settings; fillSettings(snap.settings); })
+        .catch(e => toast(`Couldn't save the welcome answers: ${e}`, "err"));
+    }
     refresh();
   }
 
@@ -143,7 +149,7 @@
   document.addEventListener("keydown", ev => {
     if ($("welcome").classList.contains("hidden")) return;
     if (ev.key === "Escape") { ev.preventDefault(); close(); }
-    else if (ev.key === "ArrowRight" || (ev.key === "Enter" && ev.target.tagName !== "INPUT" && ev.target.tagName !== "BUTTON")) { ev.preventDefault(); go(W.step + 1); }
+    else if ((ev.key === "ArrowRight" && ev.target.tagName !== "INPUT") || (ev.key === "Enter" && ev.target.tagName !== "INPUT" && ev.target.tagName !== "BUTTON")) { ev.preventDefault(); go(W.step + 1); }
     else if (ev.key === "ArrowLeft" && ev.target.tagName !== "INPUT") { ev.preventDefault(); go(W.step - 1); }
   });
 

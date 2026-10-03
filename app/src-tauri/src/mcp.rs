@@ -319,7 +319,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                     });
                 }
             }
-            if conv >= crate::rating::MARKET_SCOPE_BASE {
+            if (crate::rating::MARKET_SCOPE_BASE..crate::rating::MARKET_SCOPE_BASE + crate::rating::MARKET_PICKS as u64).contains(&conv) {
                 let index = (conv - crate::rating::MARKET_SCOPE_BASE) as usize;
                 state.rating_cards.lock().unwrap().insert(index, payload.clone());
                 state.save_rating();
@@ -396,6 +396,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 report
             } else {
                 let (report, view) = crate::builds::create(&state, &design)?;
+                state.set_active_saved(None);
                 let _ = app.emit("imported", &view);
                 report
             };

@@ -34,6 +34,8 @@ fn item_title(text: &str) -> String {
 }
 
 pub fn alignment(state: &AppState) -> Value {
+    // Load (maybe download) game data before taking the build lock.
+    let data = crate::gamedata::load(state).ok();
     let guard = state.imported.lock().unwrap();
     let Some(imported) = guard.as_ref() else {
         return json!({"build": null, "note": "No build is being followed yet. Pick one in Builds."});
@@ -81,8 +83,7 @@ pub fn alignment(state: &AppState) -> Value {
         .collect();
     let start = imported.build.class_name.as_deref().and_then(|cl| tree.class_start(cl));
     let order = lifeline_model::attributes::allocation_order(&tree, start, &main_planned);
-    let data = crate::gamedata::load(state).ok();
-    let needs = lifeline_model::attributes::stage_needs(&tree, &imported.build, current.spec_index, current.stage_key, data.as_deref());
+    let needs = lifeline_model::attributes::stage_needs(&tree, &imported.build, current.stage_key, data.as_deref());
     let picks = lifeline_model::attributes::plan(&tree, &order, &needs).choices;
     let id_of = |n: u32| planned.iter().find(|(m, _)| *m == n).map(|(_, id)| id.clone()).unwrap_or_default();
     let missing: Vec<(bool, String)> = order
@@ -123,12 +124,7 @@ pub fn alignment(state: &AppState) -> Value {
 
     // Gear goals vs recorded items.
     let equipped = state.equipped.lock().unwrap().clone();
-    let item_set = imported
-        .build
-        .item_sets
-        .iter()
-        .find(|s| s.title == spec.title)
-        .or(imported.build.item_sets.first());
+    let item_set = lifeline_model::items_for_stage(&imported.build, current.stage_key);
     let gear: Vec<Value> = item_set
         .map(|set| {
             set.slots
@@ -143,7 +139,7 @@ pub fn alignment(state: &AppState) -> Value {
                         .find_map(|cl| equipped.get(*cl))
                         .or_else(|| {
                             (s.slot == "Weapon 1")
-                                .then(|| equipped.iter().find(|(k, _)| !["Helmets", "Body Armours", "Gloves", "Boots", "Amulets", "Rings", crate::state::SECOND_RING, "Belts", "Shields", "Bucklers", "Quivers", "Foci"].contains(&k.as_str())).map(|(_, v)| v))
+                                .then(|| equipped.iter().find(|(k, _)| crate::state::WEAPON_CLASSES.contains(&k.as_str())).map(|(_, v)| v))
                                 .flatten()
                         })
                         .map(|t| item_title(t));
@@ -154,12 +150,11 @@ pub fn alignment(state: &AppState) -> Value {
         .unwrap_or_default();
 
     // Every worn slot, recorded or not (the "Record your gear" checklist).
-    const NOT_WEAPONS: [&str; 12] = ["Helmets", "Body Armours", "Gloves", "Boots", "Amulets", "Rings", crate::state::SECOND_RING, "Belts", "Shields", "Bucklers", "Quivers", "Foci"];
     let worn: Vec<Value> = ["Weapon 1", "Weapon 2", "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Belt"]
         .iter()
         .map(|slot| {
             let item = if *slot == "Weapon 1" {
-                equipped.iter().find(|(k, _)| !NOT_WEAPONS.contains(&k.as_str())).map(|(_, v)| v)
+                equipped.iter().find(|(k, _)| crate::state::WEAPON_CLASSES.contains(&k.as_str())).map(|(_, v)| v)
             } else {
                 classes_for(slot).iter().find_map(|cl| equipped.get(*cl))
             };

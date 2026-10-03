@@ -97,9 +97,11 @@ function treeTip(ev) {
   const status = s === TPLAN?.start ? "Class start" : TPLAN?.off_plan.includes(s) ? "Taken · not in the plan"
     : TPLAN?.allocated.includes(s) ? "Taken" : d ? "Planned" : "";
   tip.innerHTML = `<b>${esc(name)}</b>${status ? `<div class="st">${status}</div>` : ""}${(d?.stats || []).map(x => `<div>${esc(x)}</div>`).join("")}`;
+  // Positions inside the page are in its own (zoomed, Text size) units.
   const box = $("tree-view").getBoundingClientRect();
-  tip.style.left = `${Math.min(ev.clientX - box.left + 14, box.width - 260)}px`;
-  tip.style.top = `${ev.clientY - box.top + 14}px`;
+  const z = parseFloat(document.documentElement.style.zoom) || 1;
+  tip.style.left = `${Math.min((ev.clientX - box.left) / z + 14, box.width / z - 260)}px`;
+  tip.style.top = `${(ev.clientY - box.top) / z + 14}px`;
   tip.classList.remove("hidden");
 }
 

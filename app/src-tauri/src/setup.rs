@@ -129,7 +129,8 @@ pub fn open_url(url: &str) -> Result<(), String> {
 /// A newer release on GitHub, if any: (version, page). Quietly None when
 /// offline or the repository isn't public.
 pub fn update_available() -> Option<Value> {
-    let mut resp = ureq::get("https://api.github.com/repos/RCFromCLE/Lifeline/releases/latest")
+    let mut resp = crate::builds::web()
+        .get("https://api.github.com/repos/RCFromCLE/Lifeline/releases/latest")
         .header("User-Agent", "Lifeline update check")
         .header("Accept", "application/vnd.github+json")
         .call()

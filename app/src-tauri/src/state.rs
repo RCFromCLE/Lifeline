@@ -25,6 +25,9 @@ pub struct Character {
     /// Passive ids allocated this character (from the log).
     #[serde(skip)]
     pub allocated: std::collections::HashSet<String>,
+    /// Other characters' allocations, kept while you switch between them.
+    #[serde(skip)]
+    pub others: std::collections::HashMap<String, std::collections::HashSet<String>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,9 +101,16 @@ pub struct Settings {
     /// The first-run welcome (Claude Code setup, game, tour) is done.
     #[serde(default)]
     pub onboarded: bool,
+    /// App text size: "auto" (by window size), "normal", "large", "xlarge".
+    #[serde(default = "default_text_size")]
+    pub text_size: String,
     /// The My builds entry being followed, if the current build came from there.
     #[serde(default)]
     pub active_saved: Option<u64>,
+}
+
+fn default_text_size() -> String {
+    "auto".into()
 }
 
 fn default_input() -> String {
@@ -155,6 +165,7 @@ impl Default for Settings {
             volume: default_volume(),
             sound_cues: default_cues(),
             input: default_input(),
+            text_size: default_text_size(),
             onboarded: false,
             active_saved: None,
             overlay_on_hotkey: true,
@@ -164,15 +175,12 @@ impl Default for Settings {
 
 impl Settings {
     pub fn load(dir: &Path) -> Self {
-        std::fs::read_to_string(dir.join("settings.json"))
-            .ok()
-            .and_then(|t| serde_json::from_str(&t).ok())
-            .unwrap_or_default()
+        read_json(&dir.join("settings.json")).unwrap_or_default()
     }
 
     pub fn save(&self, dir: &Path) -> Result<(), String> {
         let text = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
-        std::fs::write(dir.join("settings.json"), text).map_err(|e| e.to_string())
+        write_atomic(&dir.join("settings.json"), &text).map_err(|e| e.to_string())
     }
 }
 
@@ -225,23 +233,56 @@ pub fn item_class(item: &str) -> String {
 /// Second ring slot key (the first is "Rings").
 pub const SECOND_RING: &str = "Rings (2)";
 
+/// Item classes a character wears (everything else — flasks, charms,
+/// gems, currency, jewels — isn't gear for a slot).
+pub const ARMOUR_CLASSES: [&str; 7] = ["Helmets", "Body Armours", "Gloves", "Boots", "Amulets", "Rings", "Belts"];
+pub const OFFHAND_CLASSES: [&str; 4] = ["Shields", "Bucklers", "Quivers", "Foci"];
+pub const WEAPON_CLASSES: [&str; 18] = [
+    "Bows", "Crossbows", "Spears", "Quarterstaves", "One Hand Maces", "Two Hand Maces", "Wands", "Staves", "Sceptres",
+    "Talismans", "Flails", "Daggers", "Claws", "One Hand Swords", "Two Hand Swords", "One Hand Axes", "Two Hand Axes",
+    "Warstaves",
+];
+
+pub fn is_worn_class(class: &str) -> bool {
+    ARMOUR_CLASSES.contains(&class) || OFFHAND_CLASSES.contains(&class) || WEAPON_CLASSES.contains(&class) || class == SECOND_RING
+}
+
+/// Name and base of a copied item, ignoring how it was copied (Ctrl+C or
+/// the advanced Ctrl+Alt+C with its extra "{ … }" lines).
+fn item_identity(item: &str) -> String {
+    let lines: Vec<&str> = item
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('{') && !l.starts_with("--------"))
+        .collect();
+    let start = lines.iter().position(|l| l.starts_with("Rarity:")).map_or(0, |i| i + 1);
+    lines.iter().skip(start).take(2).copied().collect::<Vec<_>>().join("|")
+}
+
 /// Stores a copied item as worn, keyed by item class. Rings fill two slots:
 /// a new ring goes in "Rings" and the one there moves to "Rings (2)", so the
-/// two most recent different rings are kept. Returns the slot name.
-pub fn record_equipped(equipped: &mut std::collections::BTreeMap<String, String>, item: &str) -> String {
+/// two most recent different rings are kept. Returns the slot name, or why
+/// the item isn't gear.
+pub fn record_equipped(equipped: &mut std::collections::BTreeMap<String, String>, item: &str) -> Result<String, String> {
     let class = item_class(item);
+    if !is_worn_class(&class) {
+        return Err(format!("That's not worn gear ({class}). Copy a weapon, armour piece, ring, amulet or belt."));
+    }
     if class == "Rings" {
-        if equipped.get("Rings").map(String::as_str) == Some(item) || equipped.get(SECOND_RING).map(String::as_str) == Some(item) {
-            return "ring (already recorded)".into();
+        let same = |slot: &str| equipped.get(slot).is_some_and(|t| item_identity(t) == item_identity(item));
+        if same("Rings") || same(SECOND_RING) {
+            let slot = if same("Rings") { "Rings" } else { SECOND_RING };
+            equipped.insert(slot.into(), item.to_owned());
+            return Ok("ring (updated)".into());
         }
         if let Some(old) = equipped.insert("Rings".into(), item.to_owned()) {
             equipped.insert(SECOND_RING.into(), old);
-            return "Ring 1 (previous ring is now Ring 2)".into();
+            return Ok("Ring 1 (previous ring is now Ring 2)".into());
         }
-        return "Ring 1".into();
+        return Ok("Ring 1".into());
     }
     equipped.insert(class.clone(), item.to_owned());
-    class
+    Ok(class)
 }
 
 fn load_equipped(dir: &Path) -> std::collections::BTreeMap<String, String> {
@@ -251,18 +292,55 @@ fn load_equipped(dir: &Path) -> std::collections::BTreeMap<String, String> {
         .unwrap_or_default()
 }
 
+/// Writes through a temporary file, so a crash mid-write never leaves a
+/// half-written file behind.
+pub fn write_atomic(path: &Path, text: &str) -> std::io::Result<()> {
+    static LOCK: Mutex<()> = Mutex::new(());
+    let _guard = LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let tmp = path.with_extension("tmp");
+    std::fs::write(&tmp, text)?;
+    std::fs::rename(&tmp, path)
+}
+
+/// Reads a JSON file. One that exists but can't be read is kept as
+/// `name.bad` (not silently overwritten with defaults later).
+pub fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> {
+    let text = std::fs::read_to_string(path).ok()?;
+    match serde_json::from_str(&text) {
+        Ok(v) => Some(v),
+        Err(_) => {
+            let _ = std::fs::copy(path, path.with_extension("bad"));
+            None
+        }
+    }
+}
+
 fn load_conversations(dir: &Path) -> Vec<Conversation> {
-    std::fs::read_to_string(dir.join(CONVERSATIONS_FILE))
-        .ok()
-        .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default()
+    let mut convs: Vec<Conversation> = read_json(&dir.join(CONVERSATIONS_FILE)).unwrap_or_default();
+    // Older chats stored a button's full instructions as the question.
+    for m in convs.iter_mut().flat_map(|c| c.messages.iter_mut()) {
+        if m.role == "user" {
+            let short = crate::ai::shown(&m.text);
+            if short.len() != m.text.len() {
+                m.text = short.to_owned();
+            }
+        }
+    }
+    convs
 }
 
 impl AppState {
+    /// Which My builds entry is being followed (None for any other source).
+    pub fn set_active_saved(&self, id: Option<u64>) {
+        let mut s = self.settings.lock().unwrap();
+        s.active_saved = id;
+        let _ = s.save(&self.data_dir);
+    }
+
     pub fn save_conversations(&self) {
         let convs = self.conversations.lock().unwrap().clone();
         if let Ok(text) = serde_json::to_string_pretty(&convs) {
-            let _ = std::fs::write(self.data_dir.join(CONVERSATIONS_FILE), text);
+            let _ = write_atomic(&self.data_dir.join(CONVERSATIONS_FILE), &text);
         }
     }
 
@@ -271,19 +349,19 @@ impl AppState {
             "rating": self.rating.lock().unwrap().clone(),
             "cards": self.rating_cards.lock().unwrap().clone(),
         });
-        let _ = std::fs::write(self.data_dir.join(RATING_FILE), v.to_string());
+        let _ = write_atomic(&self.data_dir.join(RATING_FILE), &v.to_string());
     }
 
     pub fn save_skills(&self) {
         if let Some(p) = self.skills_plan.lock().unwrap().as_ref() {
-            let _ = std::fs::write(self.data_dir.join(SKILLS_FILE), p.to_string());
+            let _ = write_atomic(&self.data_dir.join(SKILLS_FILE), &p.to_string());
         }
     }
 
     pub fn save_equipped(&self) {
         let e = self.equipped.lock().unwrap().clone();
         if let Ok(text) = serde_json::to_string_pretty(&e) {
-            let _ = std::fs::write(self.data_dir.join(EQUIPPED_FILE), text);
+            let _ = write_atomic(&self.data_dir.join(EQUIPPED_FILE), &text);
         }
     }
 
@@ -344,6 +422,11 @@ pub struct AppState {
     /// A Travel pressed while the trade window wasn't on pathofexile.com
     /// (still loading, or the player signing in): (listing id, search id).
     pub pending_travel: Mutex<Option<(String, String)>>,
+    /// Ctrl+C mode: record items copied in game until this time.
+    pub gear_watch_until: Mutex<Option<std::time::Instant>>,
+    pub gear_watch_running: std::sync::atomic::AtomicBool,
+    /// Problems found at startup, shown once in the app.
+    pub startup_problems: Mutex<Vec<String>>,
     /// Item text the player recorded as equipped, by item class ("Boots").
     pub equipped: Mutex<std::collections::BTreeMap<String, String>>,
     pub overlay_unlocked: std::sync::atomic::AtomicBool,
@@ -383,6 +466,9 @@ impl AppState {
             listings: Mutex::new(Default::default()),
             listing_data: Mutex::new(Default::default()),
             pending_travel: Mutex::new(None),
+            gear_watch_until: Mutex::new(None),
+            gear_watch_running: std::sync::atomic::AtomicBool::new(false),
+            startup_problems: Mutex::new(Vec::new()),
             equipped: Mutex::new(load_equipped(&data_dir)),
             overlay_unlocked: std::sync::atomic::AtomicBool::new(false),
             rating: Mutex::new(
@@ -412,20 +498,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn two_rings_are_kept() {
+    fn two_rings_are_kept_and_only_gear_is_recorded() {
         let mut worn = std::collections::BTreeMap::new();
-        let ring = |n: &str| format!("Item Class: Rings
-Rarity: Rare
-{n}
-Ruby Ring");
-        assert_eq!(record_equipped(&mut worn, &ring("Blood Loop")), "Ring 1");
-        record_equipped(&mut worn, &ring("Storm Band"));
+        let ring = |n: &str| format!("Item Class: Rings\nRarity: Rare\n{n}\nRuby Ring");
+        assert_eq!(record_equipped(&mut worn, &ring("Blood Loop")).unwrap(), "Ring 1");
+        record_equipped(&mut worn, &ring("Storm Band")).unwrap();
         assert!(worn["Rings"].contains("Storm Band") && worn[SECOND_RING].contains("Blood Loop"));
-        record_equipped(&mut worn, &ring("Storm Band"));
-        assert!(worn[SECOND_RING].contains("Blood Loop"), "re-recording the same ring changes nothing");
-        assert_eq!(record_equipped(&mut worn, "Item Class: Boots
-Rarity: Rare
-Gale Stride
-Leather Shoes"), "Boots");
+        // The same ring copied with Ctrl+Alt+C (extra "{ }" lines) is the same ring.
+        let advanced = format!("{}\n{{ Prefix Modifier }}\n+20 to maximum Life", ring("Storm Band"));
+        record_equipped(&mut worn, &advanced).unwrap();
+        assert!(worn[SECOND_RING].contains("Blood Loop"), "re-recording the same ring keeps the other");
+        let boots = "Item Class: Boots\nRarity: Rare\nGale Stride\nLeather Shoes";
+        assert_eq!(record_equipped(&mut worn, boots).unwrap(), "Boots");
+        assert!(record_equipped(&mut worn, "Item Class: Life Flasks\nRarity: Magic\nLesser Life Flask").is_err());
+        assert!(record_equipped(&mut worn, "Item Class: Stackable Currency\nRarity: Currency\nExalted Orb").is_err());
+        assert_eq!(worn.len(), 3);
     }
 }

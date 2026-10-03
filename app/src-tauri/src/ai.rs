@@ -172,6 +172,32 @@ fn emit(app: &AppHandle, conv: u64, mut payload: serde_json::Value) {
 }
 
 /// Asks in conversation `conv` (or the in-game thread for hotkeys / `None`).
+/// Plain words for what the AI is doing (tool ids aren't for players).
+fn friendly_tool(name: &str) -> &'static str {
+    let short = name.rsplit("__").next().unwrap_or(name);
+    match short {
+        "trade_search" | "trade_find_stat" | "rate_listings" => "searching the market…",
+        "price" => "checking prices…",
+        "build_plan" | "build_alignment" | "design_build" => "reading your build…",
+        "character_state" | "equipped_items" => "checking your character…",
+        "propose_action" => "preparing a button…",
+        s if s.starts_with("gem") || s.starts_with("support") || s.contains("passive") || s.contains("game_data") || s.contains("area") || s.contains("unique") || s.contains("base") || s.contains("mod") => "looking up game data…",
+        "WebSearch" | "WebFetch" => "checking the web…",
+        _ => "thinking…",
+    }
+}
+
+/// What the chat shows for a button's built-in question (the AI still gets
+/// the full instructions).
+pub fn shown(question: &str) -> &str {
+    match question {
+        q if q == BUILD_CHECK => "How well do I line up with my build?",
+        q if q == WHAT_NEXT => "What should I do next?",
+        q if q == CREATE_BUILD => "Create a full build for me.",
+        q => q,
+    }
+}
+
 pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, origin: Origin) {
     let state = app.state::<AppState>();
     let conv_id = match (origin, conv) {
@@ -189,11 +215,12 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
             return;
         };
         if c.busy {
-            emit(
-                app,
-                conv_id,
-                json!({"type": "error", "text": "Still answering. Start a new chat to ask in parallel."}),
-            );
+            let text = if origin == Origin::Hotkey {
+                "Still answering your last hotkey. Try again in a moment."
+            } else {
+                "Still answering. Wait a moment, or press + New to ask in another chat."
+            };
+            emit(app, conv_id, json!({"type": "error", "text": text}));
             return;
         }
         c.busy = true;
@@ -203,7 +230,7 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
         c.messages.push(Message {
             role: "user".into(),
             label: label.into(),
-            text: question.clone(),
+            text: shown(&question).to_owned(),
             error: false,
         });
     }
@@ -214,7 +241,7 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
     emit(
         app,
         conv_id,
-        json!({"type": "start", "label": label, "question": question, "hotkey": origin == Origin::Hotkey}),
+        json!({"type": "start", "label": label, "question": shown(&question), "hotkey": origin == Origin::Hotkey}),
     );
 
     let app = app.clone();
@@ -234,13 +261,13 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
             .iter()
             .find(|c| c.id == conv_id)
             .and_then(|c| c.session.clone());
-        let result = companion(&state, conv_id).and_then(|cli| {
-            cli.run_turn(&prompt, resume.as_deref(), |event| match event {
+        let run = |resume: Option<&str>| companion(&state, conv_id).and_then(|cli| {
+            cli.run_turn(&prompt, resume, |event| match event {
                 CliEvent::TextDelta(text) => emit(&app, conv_id, json!({"type": "delta", "text": text})),
                 CliEvent::Assistant { tool_uses, .. } => {
                     for t in tool_uses {
                         let agent = t.input.get("subagent_type").and_then(|v| v.as_str());
-                        let what = agent.map_or(t.name.clone(), |a| format!("consulting {a}"));
+                        let what = agent.map_or_else(|| friendly_tool(&t.name).to_owned(), |a| format!("asking the {}", a.replace('-', " ")));
                         emit(&app, conv_id, json!({"type": "tool", "text": what}));
                     }
                 }
@@ -261,9 +288,24 @@ pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, or
             })
             .map_err(|e| e.to_string())
         });
+        let mut result = run(resume.as_deref());
+        // Claude Code deletes old sessions (about 30 days); start fresh then.
+        let expired = |r: &Result<lifeline_ai::TurnOutcome, String>| match r {
+            Ok(o) => o.result.is_error && o.result.result.as_deref().is_some_and(|t| t.contains("No conversation found")),
+            Err(e) => e.contains("No conversation found"),
+        };
+        if resume.is_some() && expired(&result) {
+            result = run(None);
+        }
         let (text, error, session) = match result {
             Ok(outcome) => (
-                outcome.result.result.clone().unwrap_or_default(),
+                outcome.result.result.clone().filter(|t| !t.trim().is_empty()).unwrap_or_else(|| {
+                    if outcome.result.is_error {
+                        format!("Claude stopped before answering ({}). Try again.", outcome.result.subtype.replace('_', " "))
+                    } else {
+                        "(no answer)".into()
+                    }
+                }),
                 outcome.result.is_error,
                 outcome.session_id,
             ),
@@ -303,7 +345,7 @@ pub fn conversation_list(state: &AppState) -> serde_json::Value {
 }
 pub fn item_question(item: &str) -> String {
     format!(
-        "Item check — I copied this item in game (Ctrl+Alt+C):\n```\n{item}\n```\n\
+        "Item check — I copied this item in game:\n```\n{item}\n```\n\
          Equip, keep or sell for my current stage? Delegate to the gear-appraiser. \
          Verdict first, then the one or two numbers that decide it."
     )

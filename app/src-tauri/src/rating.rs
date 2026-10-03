@@ -14,7 +14,7 @@ use crate::state::AppState;
 /// MCP scopes for rating runs (conversation ids are small numbers).
 pub const RATING_SCOPE: u64 = 900_000;
 pub const MARKET_SCOPE_BASE: u64 = 900_100;
-const MARKET_PICKS: usize = 3;
+pub const MARKET_PICKS: usize = 3;
 
 pub fn snapshot(state: &AppState) -> Value {
     let settings = state.settings.lock().unwrap().clone();
@@ -79,7 +79,7 @@ fn rate(app: &AppHandle, state: &AppState) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     let mut rating = parse_rating(&result.result).ok_or("the rater didn't return a rating")?;
     // Hard limits: what can't be checked can't be good.
-    let slots = state.equipped.lock().unwrap().len();
+    let slots = state.equipped.lock().unwrap().keys().filter(|k| crate::state::is_worn_class(k)).count();
     if slots == 0 {
         lifeline_ai::cap_grade(&mut rating, "D+", "no gear recorded, so nothing about it can be verified.");
     } else if slots < 5 {

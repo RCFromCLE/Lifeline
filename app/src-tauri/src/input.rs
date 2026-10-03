@@ -1,13 +1,15 @@
-//! The only game input the app sends: one Ctrl+Alt+C on a user hotkey press,
-//! and only while Path of Exile 2 is the foreground window (PLAN.md §2, §9.4).
+//! The only game input the app sends: the game's own "copy item" shortcut
+//! (Ctrl+Alt+C, or Ctrl+C if that brings nothing back) on a user hotkey
+//! press, and only while Path of Exile 2 is the foreground window
+//! (PLAN.md §2, §9.4).
 
 use std::time::{Duration, Instant};
 
 #[cfg(windows)]
 mod win {
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        GetAsyncKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP,
-        VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+        GetAsyncKeyState, MapVirtualKeyW, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
+        KEYEVENTF_SCANCODE, MAPVK_VK_TO_VSC, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
     };
     use windows::Win32::UI::WindowsAndMessaging::{GetClassNameW, GetForegroundWindow, GetWindowTextW};
 
@@ -60,14 +62,21 @@ mod win {
             .any(|vk| unsafe { GetAsyncKeyState(vk.0 as i32) } < 0)
     }
 
+    /// A key event carrying the hardware scan code: games that read raw
+    /// input ignore events with only a virtual-key code.
     fn key(vk: VIRTUAL_KEY, up: bool) -> INPUT {
+        let scan = unsafe { MapVirtualKeyW(u32::from(vk.0), MAPVK_VK_TO_VSC) } as u16;
+        let mut flags = KEYEVENTF_SCANCODE;
+        if up {
+            flags |= KEYEVENTF_KEYUP;
+        }
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: INPUT_0 {
                 ki: KEYBDINPUT {
                     wVk: vk,
-                    wScan: 0,
-                    dwFlags: if up { KEYEVENTF_KEYUP } else { KEYBD_EVENT_FLAGS(0) },
+                    wScan: scan,
+                    dwFlags: flags,
                     time: 0,
                     dwExtraInfo: 0,
                 },
@@ -75,24 +84,57 @@ mod win {
         }
     }
 
-    pub fn send_ctrl_alt_c() {
+    /// Ctrl+C, or Ctrl+Alt+C with `alt`. Returns how many events Windows took.
+    pub fn send_copy(alt: bool) -> u32 {
         let c = VIRTUAL_KEY(b'C' as u16);
-        let inputs = [
-            key(VK_CONTROL, false),
-            key(VK_MENU, false),
-            key(c, false),
-            key(c, true),
-            key(VK_MENU, true),
-            key(VK_CONTROL, true),
-        ];
+        let mut inputs = vec![key(VK_CONTROL, false)];
+        if alt {
+            inputs.push(key(VK_MENU, false));
+        }
+        inputs.extend([key(c, false), key(c, true)]);
+        if alt {
+            inputs.push(key(VK_MENU, true));
+        }
+        inputs.push(key(VK_CONTROL, true));
+        unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) }
+    }
+
+    /// Whether the game runs as administrator (Windows then drops key
+    /// presses from normal apps like this one). None if unknown.
+    pub fn game_elevated() -> Option<bool> {
+        use windows::Win32::Foundation::{CloseHandle, HANDLE};
+        use windows::Win32::Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY};
+        use windows::Win32::System::Threading::{OpenProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION};
+        use windows::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId;
         unsafe {
-            SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
+            let hwnd = GetForegroundWindow();
+            let mut pid = 0u32;
+            GetWindowThreadProcessId(hwnd, Some(&mut pid));
+            let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+            let mut token = HANDLE::default();
+            // An elevated process's token can't be opened from a normal app.
+            let result = if OpenProcessToken(process, TOKEN_QUERY, &mut token).is_ok() {
+                let mut info = TOKEN_ELEVATION::default();
+                let mut len = 0u32;
+                let ok = GetTokenInformation(
+                    token,
+                    TokenElevation,
+                    Some(std::ptr::from_mut(&mut info).cast()),
+                    std::mem::size_of::<TOKEN_ELEVATION>() as u32,
+                    &mut len,
+                )
+                .is_ok();
+                let _ = CloseHandle(token);
+                ok.then_some(info.TokenIsElevated != 0)
+            } else {
+                Some(true)
+            };
+            let _ = CloseHandle(process);
+            result
         }
     }
 }
 
-/// Copies the item under the cursor/controller selection from PoE2 and
-/// returns its text, restoring whatever was on the clipboard before.
 /// Which kind of window has focus; the HUD only shows over the game or this app.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Foreground {
@@ -116,6 +158,14 @@ pub fn foreground() -> Foreground {
     Foreground::Game
 }
 
+/// Whether Path of Exile 2 is the window in front.
+pub fn game_in_front() -> bool {
+    #[cfg(windows)]
+    return win::foreground_is_poe();
+    #[cfg(not(windows))]
+    false
+}
+
 /// True while the left mouse button is held (keeps the HUD clickable mid-drag).
 pub fn left_button_down() -> bool {
     #[cfg(windows)]
@@ -124,42 +174,92 @@ pub fn left_button_down() -> bool {
     false
 }
 
-/// `hotkey` names the key the player pressed, for the error message.
+/// Until when Lifeline itself is using the clipboard (copying an item and
+/// putting the old text back), so Ctrl+C mode ignores those changes.
+static OWN_COPY_UNTIL: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
+
+pub fn copying_now() -> bool {
+    OWN_COPY_UNTIL.lock().unwrap().is_some_and(|t| Instant::now() < t)
+}
+
+fn mark_own_copy(for_ms: u64) {
+    *OWN_COPY_UNTIL.lock().unwrap() = Some(Instant::now() + Duration::from_millis(for_ms));
+}
+
+/// Whether clipboard text is a copied Path of Exile item.
+pub fn is_item_text(text: &str) -> bool {
+    text.starts_with("Item Class:") || (text.starts_with("Rarity:") && text.contains("--------"))
+}
+
+/// Waits up to `ms` for item text to land on the clipboard.
 #[cfg(windows)]
-pub fn copy_hovered_item(hotkey: &str) -> Result<String, String> {
+fn wait_for_item(clipboard: &mut arboard::Clipboard, ms: u64) -> Option<String> {
+    let deadline = Instant::now() + Duration::from_millis(ms);
+    while Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(25));
+        if let Ok(text) = clipboard.get_text() {
+            if is_item_text(&text) {
+                return Some(text);
+            }
+        }
+    }
+    None
+}
+
+/// Copies the item under the cursor and returns its text, restoring the
+/// clipboard. `hotkey` names the key the player pressed (for messages);
+/// `log` records each step in debug.log so a failure can be diagnosed.
+#[cfg(windows)]
+pub fn copy_hovered_item(hotkey: &str, log: &dyn Fn(&str)) -> Result<String, String> {
     if !win::foreground_is_poe() {
+        log("copy: game not in front");
         return Err(format!(
-            "Path of Exile 2 isn't the active window. In game, point the mouse at an item, then press {hotkey}."
+            "Path of Exile 2 isn't the active window. In game, point at an item, then press {hotkey}."
         ));
     }
     // The hotkey's own modifiers are still held when it fires; wait for the
-    // player to release them so the game sees exactly Ctrl+Alt+C.
-    let deadline = Instant::now() + Duration::from_millis(1500);
+    // player to release them so the game sees exactly the copy shortcut.
+    let deadline = Instant::now() + Duration::from_millis(2000);
     while win::modifiers_down() && Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(10));
     }
+    if win::modifiers_down() {
+        log("copy: modifiers still held after 2s");
+    }
     let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+    mark_own_copy(5000);
     let previous = clipboard.get_text().ok();
     let _ = clipboard.set_text(String::new());
-    win::send_ctrl_alt_c();
-
-    let mut item = None;
-    for _ in 0..30 {
-        std::thread::sleep(Duration::from_millis(25));
-        if let Ok(text) = clipboard.get_text() {
-            if text.starts_with("Item Class:") {
-                item = Some(text);
-                break;
-            }
-        }
+    let sent = win::send_copy(true);
+    let mut item = wait_for_item(&mut clipboard, 1500);
+    log(&format!("copy: Ctrl+Alt+C sent ({sent} events), item: {}", item.is_some()));
+    if item.is_none() {
+        let sent = win::send_copy(false);
+        item = wait_for_item(&mut clipboard, 1000);
+        log(&format!("copy: Ctrl+C sent ({sent} events), item: {}", item.is_some()));
     }
     if let Some(prev) = previous {
         let _ = clipboard.set_text(prev);
     }
-    item.ok_or_else(|| format!("No item came back. Point at the item in game, then press {hotkey} again."))
+    // Long enough for Ctrl+C mode's next look at the clipboard.
+    mark_own_copy(800);
+    if let Some(item) = item {
+        return Ok(item);
+    }
+    let elevated = win::game_elevated();
+    log(&format!("copy: nothing came back; game elevated: {elevated:?}"));
+    if elevated == Some(true) {
+        return Err("Path of Exile 2 is running as administrator, so Windows blocks Lifeline's key press. \
+                    Use Record my gear (Play tab), or start the game normally."
+            .into());
+    }
+    Err(format!(
+        "No item came back. Open your inventory, point at the item, then press {hotkey}. \
+         Or use Record my gear on the Play tab."
+    ))
 }
 
 #[cfg(not(windows))]
-pub fn copy_hovered_item(_hotkey: &str) -> Result<String, String> {
+pub fn copy_hovered_item(_hotkey: &str, _log: &dyn Fn(&str)) -> Result<String, String> {
     Err("Item copy is only implemented on Windows.".into())
 }

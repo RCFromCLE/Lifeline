@@ -48,9 +48,8 @@
           <div class="quick">
             <button id="btn-next" class="primary">What next</button>
             <button id="btn-paste-item" title="Judge the item text on your clipboard">Check item</button>
-            <button id="btn-create-build-play" title="Pick from researched hardcore builds; the AI designs every stage for the Build Planner">Create build</button>
-            <button id="btn-trade-login" title="Log in to pathofexile.com once so Travel works">Trade login</button>
-            <button id="btn-delete-conv" class="ghost">Delete</button>
+            <button id="btn-create-build-play" title="Pick from researched hardcore builds; the AI designs every stage for the Build Planner">Browse builds</button>
+            <button id="btn-delete-conv" class="ghost">Delete chat</button>
           </div>
           <form id="ask-form" class="ask">
             <textarea id="ask-input" rows="2" placeholder="Ask anything…"></textarea>
@@ -65,9 +64,10 @@
           <h2>Live</h2>
           <ul class="feed" id="feed"></ul>
         </div>
-        <div class="card">
-          <h2>Gear</h2>
+        <div class="card" id="gear-card">
+          <h2>Your gear <small id="gear-count"></small></h2>
           <ul class="gear" id="gear"></ul>
+          <div class="gear-how" id="gear-how"></div>
         </div>
       </div>
     </section>
@@ -78,7 +78,6 @@
           <div class="rating-top">
             <div class="tip">
               <div class="grade big" id="r-grade">?</div>
-              <div class="tiptext" id="r-tip">Not rated yet.</div>
             </div>
             <div class="grow">
               <h2 id="r-title">Rating</h2>
@@ -87,7 +86,7 @@
             </div>
             <div class="r-controls">
               <label>Budget <input id="r-budget" placeholder="10 exalted"></label>
-              <label class="check"><input type="checkbox" id="r-auto"> Auto each act</label>
+              <label class="check"><input type="checkbox" id="r-auto"> Re-rate at each new act</label>
               <button id="r-run" class="primary">Rate</button>
             </div>
           </div>
@@ -96,12 +95,12 @@
           <div class="r-cats" id="r-cats"></div>
         </div>
         <div class="card">
-          <h2>Every piece</h2>
+          <h2>Grade by slot</h2>
           <div id="r-pieces"><p class="hint">Rate to grade each slot, skill and defence.</p></div>
         </div>
         <div class="card">
           <h2>Upgrades</h2>
-          <div id="r-recs" class="r-recs"><p class="hint">None yet.</p></div>
+          <div id="r-recs" class="r-recs"><p class="hint">Press Rate: the upgrades that would raise your grade most show here, with market picks.</p></div>
         </div>
       </div>
     </section>
@@ -112,10 +111,10 @@
           <div class="skills-head">
             <div class="grow">
               <h2>Skills</h2>
-              <div class="r-summary" id="s-summary">No setup yet.</div>
+              <div class="r-summary" id="s-summary">Press Suggest skills &amp; rotations to get your buttons, supports and rotations for where you are.</div>
               <div class="hint" id="s-meta"></div>
             </div>
-            <button id="s-run" class="primary">Suggest</button>
+            <button id="s-run" class="primary">Suggest skills &amp; rotations</button>
           </div>
           <div class="status" id="s-status"></div>
           <div class="s-grid" id="s-skills"></div>
@@ -124,7 +123,7 @@
       <div class="col narrow">
         <div class="card">
           <h2>Rotations</h2>
-          <div id="s-rotations"><p class="hint">None yet.</p></div>
+          <div id="s-rotations"><p class="hint">Rotations for clearing and bosses show here after Suggest.</p></div>
         </div>
       </div>
     </section>
@@ -135,14 +134,14 @@
           <button class="subtab" data-sub="current">Current</button>
           <button class="subtab active" data-sub="showcase">Showcase</button>
           <button class="subtab" data-sub="mine">My builds <span class="count" id="mine-count"></span></button>
-          <button class="subtab" data-sub="planner">In game</button>
+          <button class="subtab" data-sub="planner">Game planner</button>
           <button class="subtab" data-sub="import">Import</button>
         </nav>
 
         <div class="sub" id="sub-current">
-          <div class="card" id="cur-card"><p class="hint">Not following a build yet. Pick one in <b>Showcase</b>, use one from <b>My builds</b>, or <b>Follow</b> one that's already in the game's planner (<b>In game</b>).</p></div>
+          <div class="card" id="cur-card"><p class="hint">Not following a build yet. Pick one in <b>Showcase</b>, use one from <b>My builds</b>, or <b>Follow</b> one that's already in the game's planner (<b>Game planner</b>).</p></div>
           <div class="card hidden" id="align-card">
-            <div class="step-h"><h2>How you line up</h2><span class="hint" id="align-stage"></span><button id="align-refresh" class="ghost" title="Refresh">↻</button></div>
+            <div class="step-h"><h2>Progress vs plan</h2><span class="hint" id="align-stage"></span><button id="align-refresh" class="ghost" title="Refresh">↻</button></div>
             <div id="align-body"></div>
           </div>
           <div class="card hidden" id="tree-card">
@@ -219,19 +218,27 @@
     <section class="view scroll" id="view-settings">
       <div class="col">
         <div class="card">
-          <h2>Hotkeys</h2>
-          <p class="hint">Pick combos the game doesn't use, like <code>Alt+Shift+D</code>.</p>
           <form id="settings-form" class="settings">
-            <label title="Sends one Ctrl+Alt+C to the game; nothing else is ever sent">Item check<input name="item_check"></label>
-            <label>What next<input name="what_next"></label>
-            <label>Open app<input name="ask"></label>
-            <label>HUD on/off<input name="toggle_overlay"></label>
-            <label>Record gear<input name="record_equipped"></label>
-            <label>Move HUD<input name="move_overlay"></label>
-            <label>League<input name="league" list="leagues"></label>
-            <datalist id="leagues"><option value="HC Forbidden Rites"><option value="Forbidden Rites"><option value="Hardcore"><option value="Standard"></datalist>
-            <label>Controls<select name="input"><option value="keyboard">Mouse and keyboard</option><option value="playstation">PlayStation controller</option><option value="xbox">Xbox controller</option></select></label>
+            <h2>General</h2>
+            <div class="set-grid">
+              <label>Text size<select name="text_size"><option value="auto">Auto (bigger on big windows)</option><option value="normal">Normal</option><option value="large">Large</option><option value="xlarge">Extra large</option></select></label>
+              <label>Controls<select name="input"><option value="keyboard">Mouse and keyboard</option><option value="playstation">PlayStation controller</option><option value="xbox">Xbox controller</option></select></label>
+              <label>League<input name="league" list="leagues"></label>
+              <datalist id="leagues"><option value="HC Forbidden Rites"><option value="Forbidden Rites"><option value="Hardcore"><option value="Standard"></datalist>
+            </div>
             <label class="check"><input type="checkbox" name="overlay_on_hotkey"> Show hotkey answers on the HUD</label>
+
+            <h2 class="sub-h">Hotkeys</h2>
+            <p class="hint">They work while the game is in front. Pick combos the game doesn't use, like <kbd>Alt+Shift+D</kbd>.</p>
+            <div class="set-grid keys">
+              <label>Record gear<input name="record_equipped"><small>Point at a worn item in game, press this</small></label>
+              <label>Item check<input name="item_check"><small>Point at any item: is it good for you?</small></label>
+              <label>What next<input name="what_next"><small>The next step for your character</small></label>
+              <label>Open app<input name="ask"><small>Brings Lifeline to the front</small></label>
+              <label>HUD on/off<input name="toggle_overlay"><small>Show or hide the button bar in game</small></label>
+              <label>Move HUD<input name="move_overlay"><small>Unlock the bar to drag it; press again to lock</small></label>
+            </div>
+
             <h2 class="sub-h">Sounds</h2>
             <label class="check"><input type="checkbox" name="sound"> Sound cues while you play</label>
             <label>Volume<input type="range" name="volume" min="0" max="1" step="0.05"></label>
@@ -243,8 +250,7 @@
               <div class="cue"><label class="check"><input type="checkbox" name="cue_death"> Death</label><button type="button" class="ghost" data-cue="death" title="Play">▶</button></div>
               <div class="cue"><label class="check"><input type="checkbox" name="cue_ready"> Answer ready</label><button type="button" class="ghost" data-cue="ready" title="Play">▶</button></div>
             </div>
-            <button type="submit" class="primary">Save</button>
-            <div id="settings-status" class="status"></div>
+            <div class="set-save"><span id="settings-status" class="status">Changes save automatically.</span></div>
           </form>
         </div>
       </div>
@@ -252,7 +258,8 @@
         <div class="card">
           <h2>About</h2>
           <p class="hint">Reads your PoE2 log. Writes only files you approve. Not affiliated with Grinding Gear Games.</p>
-          <div class="quick"><button id="btn-overlay" class="ghost">HUD on/off</button><button id="btn-welcome" class="ghost">Welcome tour</button></div>
+          <div class="quick"><button id="btn-overlay" class="ghost">HUD on/off</button><button id="btn-welcome" class="ghost">Welcome tour</button>
+            <button id="btn-trade-login" class="ghost" title="Log in to pathofexile.com once so Travel to sellers works">Sign in to trade site</button></div>
         </div>
       </div>
     </section>
@@ -273,7 +280,7 @@
         <button class="primary" id="wl-next">Next</button>
       </div>
     </div>
-  </div>  <div id="toast" class="toast"></div>
+  </div>  <div id="toast" class="toast" role="status" aria-live="polite" title="Click to dismiss"></div>
   <script src="common.js"></script>
   <script src="app.js"></script>
   <script src="builds.js"></script>

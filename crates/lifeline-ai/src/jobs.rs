@@ -311,7 +311,7 @@ mod tests {
     use super::*;
 
     fn args(cli: &ClaudeCli) -> Vec<String> {
-        cli.command("x", None)
+        cli.command(None)
             .get_args()
             .map(|a| a.to_string_lossy().into_owned())
             .collect()

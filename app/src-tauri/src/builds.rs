@@ -14,8 +14,22 @@ use crate::state::{AppState, Imported};
 const USER_AGENT: &str = "Lifeline/0.1 (personal PoE2 companion)";
 const TREE_MAX_AGE: Duration = Duration::from_secs(7 * 24 * 3600);
 
+/// A web client that gives up instead of hanging on a stalled connection.
+pub fn web() -> &'static ureq::Agent {
+    static AGENT: std::sync::OnceLock<ureq::Agent> = std::sync::OnceLock::new();
+    AGENT.get_or_init(|| {
+        ureq::Agent::config_builder()
+            .timeout_connect(Some(std::time::Duration::from_secs(15)))
+            .timeout_recv_response(Some(std::time::Duration::from_secs(30)))
+            .timeout_recv_body(Some(std::time::Duration::from_secs(180)))
+            .build()
+            .into()
+    })
+}
+
 pub fn http_get(url: &str) -> Result<String, String> {
-    let mut response = ureq::get(url)
+    let mut response = web()
+        .get(url)
         .header("User-Agent", USER_AGENT)
         .call()
         .map_err(|e| format!("download failed ({url}): {e}"))?;
@@ -139,7 +153,7 @@ const SAVED_BUILD: &str = "build.json";
 
 fn save(state: &AppState, saved: &SavedBuild) {
     if let Ok(text) = serde_json::to_string_pretty(saved) {
-        let _ = std::fs::write(state.data_dir.join(SAVED_BUILD), text);
+        let _ = crate::state::write_atomic(&state.data_dir.join(SAVED_BUILD), &text);
     }
 }
 

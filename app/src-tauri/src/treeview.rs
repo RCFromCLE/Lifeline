@@ -71,10 +71,11 @@ fn attr_name(a: Attr) -> &'static str {
 /// The followed build's plan for `stage` (a label like "Act 2"; default:
 /// the stage the character is in).
 pub fn plan(state: &AppState, stage: Option<&str>) -> Result<Value, String> {
-    let guard = state.imported.lock().unwrap();
-    let imported = guard.as_ref().ok_or("No build is being followed yet.")?;
+    // Load (maybe download) data before taking the build lock.
     let tree = crate::builds::load_tree(state)?;
     let data = crate::gamedata::load(state).ok();
+    let guard = state.imported.lock().unwrap();
+    let imported = guard.as_ref().ok_or("No build is being followed yet.")?;
     let c = state.character.lock().unwrap().clone();
     let mut chosen: Vec<_> = imported.stages.iter().filter(|s| s.chosen).collect();
     chosen.sort_by_key(|s| s.stage_key);
@@ -102,7 +103,7 @@ pub fn plan(state: &AppState, stage: Option<&str>) -> Result<Value, String> {
 
     let start = imported.build.class_name.as_deref().and_then(|cl| tree.class_start(cl));
     let order = attributes::allocation_order(&tree, start, &planned);
-    let needs = attributes::stage_needs(&tree, &imported.build, current.spec_index, current.stage_key, data.as_deref());
+    let needs = attributes::stage_needs(&tree, &imported.build, current.stage_key, data.as_deref());
     let attrs = attributes::plan(&tree, &order, &needs);
 
     let detail = |n: u32| {

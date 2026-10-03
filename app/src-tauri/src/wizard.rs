@@ -140,7 +140,7 @@ pub fn library(state: &AppState) -> Vec<SavedBuild> {
 
 fn save_library(state: &AppState, list: &[SavedBuild]) {
     if let Ok(t) = serde_json::to_string_pretty(list) {
-        let _ = std::fs::write(state.data_dir.join(LIBRARY_FILE), t);
+        let _ = crate::state::write_atomic(&state.data_dir.join(LIBRARY_FILE), &t);
     }
 }
 

@@ -6,20 +6,20 @@
   <style>
     /* A tiny bar of buttons. The window hugs whatever is showing (fit_overlay). */
     html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
-    body { font: 12px/1.35 "Segoe UI", system-ui, sans-serif; color: #ece2d0; }
+    body { font: 14px/1.4 "Segoe UI", system-ui, sans-serif; color: #ece2d0; }
     #root { position: absolute; left: 2px; top: 2px; width: max-content; display: flex; flex-direction: column; gap: 3px; }
     .bar {
-      display: flex; align-items: center; gap: 2px; height: 30px; padding: 0 4px 0 2px; width: max-content;
+      display: flex; align-items: center; gap: 3px; height: 36px; padding: 0 4px 0 2px; width: max-content;
       background: rgba(14, 11, 9, 0.86); border: 1px solid rgba(214, 167, 86, 0.3); border-radius: 9px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     }
     .unlocked .bar { border: 1px dashed #f0c878; cursor: move; }
     @font-face { font-family: "Cinzel"; src: url("fonts/Cinzel.ttf") format("truetype"); font-weight: 400 900; }
-    .knob { width: 22px; height: 22px; margin: 0 2px 0 3px; cursor: move; filter: drop-shadow(0 0 4px rgba(232, 116, 58, 0.45)); }
+    .knob { width: 26px; height: 26px; margin: 0 2px 0 3px; cursor: move; filter: drop-shadow(0 0 4px rgba(232, 116, 58, 0.45)); }
     .knob:hover { filter: drop-shadow(0 0 7px rgba(244, 208, 140, 0.8)); }
     button { font: inherit; color: inherit; cursor: pointer; }
     .grade {
-      border: none; font-family: "Cinzel", Georgia, serif; font-weight: 800; font-size: 14px; min-width: 30px; height: 22px;
+      border: none; font-family: "Cinzel", Georgia, serif; font-weight: 800; font-size: 16px; min-width: 34px; height: 26px;
       padding: 0 5px; border-radius: 6px;
     }
     .grade:hover { outline: 2px solid #f0c878; }
@@ -29,40 +29,41 @@
     .g-A { background: #1f4d1a; color: #a6f59a; } .g-B { background: #2c4a1e; color: #cdeaa0; }
     .g-C { background: #4a4317; color: #f2df7d; } .g-D { background: #5a3414; color: #f8b26a; }
     .g-F { background: #5e1c16; color: #ff8f80; } .g-none { background: #241d16; color: #a8977f; }
-    .res { font-weight: 700; font-size: 11px; padding: 1px 5px; border-radius: 999px; color: #cdbfa8; white-space: nowrap; }
+    .res { font-weight: 700; font-size: 13px; padding: 1px 5px; border-radius: 999px; color: #cdbfa8; white-space: nowrap; }
     .res.warn { color: #f0c878; } .res.bad { color: #ff9585; }
     .res .up { color: #f0c878; margin-left: 2px; }
-    .deaths { font-size: 11px; color: #e9a094; padding: 0 2px; }
+    .deaths { font-size: 13px; color: #e9a094; padding: 0 2px; }
     .sep { width: 1px; height: 16px; background: #3a2e24; margin: 0 2px; }
     .ic {
-      width: 26px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
       background: transparent; border: 1px solid transparent; border-radius: 6px; color: #c8b89c; padding: 0;
     }
     .ic:hover { border-color: #6e5226; color: #f3d08a; background: rgba(110, 82, 38, 0.2); }
     .ic.on { color: #f3d08a; border-color: #8a6430; }
     .ic.busy svg { animation: pulse 1s infinite; }
-    .ic svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .ic svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .compact .full { display: none !important; }
     .panel {
-      width: 0; min-width: 100%; box-sizing: border-box; max-height: 240px; display: flex; flex-direction: column;
+      width: 0; min-width: 100%; box-sizing: border-box; max-height: 320px; display: flex; flex-direction: column;
       background: rgba(14, 11, 9, 0.9); border: 1px solid rgba(214, 167, 86, 0.3); border-radius: 9px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55); padding: 6px 8px 7px;
     }
     .phead { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
-    .ptitle { flex: 1; min-width: 0; font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; color: #8d7d66; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .phead .ic { width: 20px; height: 18px; }
-    .phead .ic svg { width: 12px; height: 12px; }
-    .pbody { overflow-y: auto; min-height: 0; padding-right: 3px; font-size: 12.5px; }
+    .ptitle { flex: 1; min-width: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: #c6b296; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .phead .ic { width: 24px; height: 22px; }
+    .phead .ic svg { width: 14px; height: 14px; }
+    .pbody { overflow-y: auto; min-height: 0; padding-right: 3px; font-size: 14.5px; line-height: 1.45; }
     .pbody::-webkit-scrollbar { width: 5px; } .pbody::-webkit-scrollbar-thumb { background: #6e5226; border-radius: 3px; }
     .pbody ul, .pbody ol { margin: 2px 0; padding-left: 16px; }
     .pbody p { margin: 2px 0; }
-    .pbody pre, .pbody code { display: none; }
-    .status { color: #8fb8e6; font-size: 11.5px; }
+    .pbody pre { display: none; }
+    .pbody code { display: inline; background: none; padding: 0; font: inherit; color: #f3d08a; }
+    .status { color: #8fb8e6; font-size: 13px; }
     .err { color: #ff9c8f; }
     .tabs { display: flex; gap: 3px; }
-    .tab { font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px; color: #8d7d66; background: transparent; border: 1px solid #2a221b; border-radius: 5px; padding: 0 6px; }
+    .tab { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #c6b296; background: transparent; border: 1px solid #2a221b; border-radius: 5px; padding: 0 6px; }
     .tab.on { color: #f3d08a; border-color: #8a6430; }
-    .mini { font-size: 11.5px; color: #f3d08a; background: #2b2113; border: 1px solid #8a6430; border-radius: 6px; padding: 1px 8px; margin-top: 4px; }
+    .mini { font-size: 13px; color: #f3d08a; background: #2b2113; border: 1px solid #8a6430; border-radius: 6px; padding: 1px 8px; margin-top: 4px; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -74,18 +75,18 @@
       <span class="res full" id="pen" title="Resistance penalty here">–</span>
       <span class="deaths full hidden" id="deaths"></span>
       <span class="sep full"></span>
-      <button class="ic full" data-action="item_check" title="Check item">
+      <button class="ic full" data-action="item_check_clipboard" title="Check the item you copied (Ctrl+C in game)">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>
       <button class="ic full" data-action="what_next" title="What next">
         <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       <button class="ic full" id="rot-btn" title="Rotation">
         <svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button>
-      <button class="ic full" data-action="record_equipped" title="Record gear">
+      <button class="ic full" data-action="gear_watch_toggle" id="gear-btn" title="Record gear: turn on, then Ctrl+C each worn item">
         <svg viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.4 3 7.4 7 9 4-1.6 7-4.6 7-9V6z"/></svg></button>
       <button class="ic full" data-action="ask" title="Open app">
         <svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></button>
-      <button class="ic full" data-action="toggle_overlay" title="Hide">
-        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <button class="ic full" data-action="toggle_overlay" id="hide-btn" title="Hide the HUD (your HUD on/off hotkey brings it back)">
+        <svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A9.8 9.8 0 0 1 12 5c6 0 9.5 7 9.5 7a16 16 0 0 1-3.3 4.2M6.3 6.3C3.9 8 2.5 12 2.5 12s3.5 7 9.5 7a9.4 9.4 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button>
     </div>
     <div class="panel hit hidden" id="panel">
       <div class="phead">
@@ -229,6 +230,18 @@
       if (mode === "rotation") renderPanel();
     });
     listen("skills-status", ({ payload }) => el("rot-btn").classList.toggle("busy", !!payload.busy));
+    listen("gear-watch", ({ payload }) => el("gear-btn").classList.toggle("on", payload.seconds > 0));
+    // Short messages (gear recorded, copy failed…) show on the HUD for a few seconds.
+    let noticeTimer = null;
+    listen("notice", ({ payload }) => {
+      const text = String(payload);
+      const bad = /couldn|failed|isn't|no item|blocks|copy an item/i.test(text);
+      answer = { ...answer, label: text.startsWith("✓") ? "Done" : "Lifeline", status: "", html: escapeHtml(text), error: bad };
+      mode = "answer"; renderPanel();
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => { if (mode === "answer" && answer.html === escapeHtml(text)) { mode = null; renderPanel(); } }, bad ? 9000 : 3500);
+    });
+    invoke("gear_watch_left").then(s => el("gear-btn").classList.toggle("on", s > 0)).catch(() => {});
 
     invoke("hud").then(h => {
       render(h);

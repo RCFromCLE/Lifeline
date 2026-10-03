@@ -29,8 +29,12 @@ pub const SYSTEM_PROMPT: &str = include_str!("../prompts/companion.md");
 #[derive(Debug, Clone)]
 pub struct ClaudeCli {
     /// `claude` on PATH, or an absolute path. Prefer the native installer's
-    /// `claude.exe`: npm's `claude.cmd` shim needs batch-file argument quoting.
+    /// `claude.exe`. For an npm install this is `node` with Claude Code's
+    /// `cli.js` in `program_args`: the `claude.cmd` shim runs through cmd.exe,
+    /// which can't carry the multi-line system prompt.
     pub program: PathBuf,
+    /// Arguments placed before everything else (the npm `cli.js`).
+    pub program_args: Vec<PathBuf>,
     /// App-owned directory so no project `CLAUDE.md`/settings leak in.
     pub working_dir: PathBuf,
     /// Model id or alias; defaults to [`agents::MODEL`] (Opus 5.5). `None`
@@ -68,7 +72,8 @@ pub struct ClaudeCli {
 impl ClaudeCli {
     pub fn new(working_dir: PathBuf) -> Self {
         Self {
-            program: default_program(),
+            program: launcher().0,
+            program_args: launcher().1,
             working_dir,
             model: Some(agents::MODEL.to_owned()),
             system_prompt: SYSTEM_PROMPT.to_owned(),
@@ -102,13 +107,14 @@ impl ClaudeCli {
         cli
     }
 
-    /// Builds one headless turn. The prompt goes right after `-p` because
-    /// list-valued flags such as `--allowedTools` would otherwise swallow it.
-    pub fn command(&self, prompt: &str, resume_session: Option<&str>) -> Command {
+    /// Builds one headless turn. The prompt itself is written to stdin by
+    /// [`run_turn`](Self::run_turn): command lines have a length limit and
+    /// can't always carry line breaks.
+    pub fn command(&self, resume_session: Option<&str>) -> Command {
         let mut cmd = Command::new(&self.program);
-        cmd.current_dir(&self.working_dir)
+        cmd.args(&self.program_args)
+            .current_dir(&self.working_dir)
             .arg("-p")
-            .arg(guard_leading_dash(prompt))
             .args([
                 "--output-format",
                 "stream-json",
@@ -158,7 +164,7 @@ impl ClaudeCli {
         // An API key in the environment outranks the subscription login, so
         // drop it: this mode must bill the user's Claude plan, not the API.
         cmd.env_remove("ANTHROPIC_API_KEY").env_remove("ANTHROPIC_AUTH_TOKEN");
-        cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+        cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -176,7 +182,12 @@ impl ClaudeCli {
         resume_session: Option<&str>,
         mut on_event: impl FnMut(&CliEvent),
     ) -> Result<TurnOutcome, AiError> {
-        let mut child = self.command(prompt, resume_session).spawn().map_err(AiError::Spawn)?;
+        let mut child = self.command(resume_session).spawn().map_err(AiError::Spawn)?;
+        // The prompt goes in on stdin; closing it marks the end of the prompt.
+        if let Some(mut stdin) = child.stdin.take() {
+            use std::io::Write;
+            stdin.write_all(prompt.as_bytes()).map_err(AiError::Io)?;
+        }
         let stdout = child.stdout.take().expect("stdout is piped");
         let mut stderr = child.stderr.take().expect("stderr is piped");
         // Drain stderr concurrently so a chatty CLI can't block on a full pipe.
@@ -255,6 +266,29 @@ pub fn claude_program() -> PathBuf {
     default_program()
 }
 
+/// What to start for a session: the native `claude.exe`; for an npm
+/// install, Node running Claude Code's `cli.js` directly; else `claude`.
+fn launcher() -> (PathBuf, Vec<PathBuf>) {
+    let program = default_program();
+    let is_cmd = program.extension().is_some_and(|e| e.eq_ignore_ascii_case("cmd"));
+    if is_cmd {
+        let cli = program
+            .parent()
+            .map(|d| d.join("node_modules").join("@anthropic-ai").join("claude-code").join("cli.js"))
+            .filter(|p| p.is_file());
+        let node = std::env::var_os("PATH")
+            .into_iter()
+            .flat_map(|p| std::env::split_paths(&p).collect::<Vec<_>>())
+            .map(|d| d.join("node.exe"))
+            .chain(std::env::var_os("ProgramFiles").map(|p| PathBuf::from(p).join("nodejs").join("node.exe")))
+            .find(|p| p.is_file());
+        if let (Some(cli), Some(node)) = (cli, node) {
+            return (node, vec![cli]);
+        }
+    }
+    (program, Vec::new())
+}
+
 fn default_program() -> PathBuf {
     // Native installer first, then an npm global install, then whatever is on PATH.
     let native = std::env::var_os("USERPROFILE").map(|h| PathBuf::from(h).join(".local").join("bin").join("claude.exe"));
@@ -271,14 +305,6 @@ pub fn mcp_tool_name(tool: &str) -> String {
     format!("mcp__{MCP_SERVER_NAME}__{tool}")
 }
 
-/// A prompt starting with `-` would be parsed as a flag.
-fn guard_leading_dash(prompt: &str) -> String {
-    if prompt.starts_with('-') {
-        format!(" {prompt}")
-    } else {
-        prompt.to_owned()
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -292,8 +318,9 @@ mod tests {
     fn prompt_follows_print_flag_and_resume_is_last() {
         let mut cli = ClaudeCli::new(std::env::temp_dir());
         cli.allowed_tools.push(mcp_tool_name("lookup_item"));
-        let a = args(&cli.command("does this ring fit?", Some("sess_1")));
-        assert_eq!(&a[..2], ["-p", "does this ring fit?"]);
+        let a = args(&cli.command(Some("sess_1")));
+        assert_eq!(a[0], "-p");
+        assert_eq!(a[1], "--output-format", "the prompt goes on stdin, not the command line");
         assert!(a
             .windows(2)
             .any(|w| w == ["--allowedTools", "WebSearch,WebFetch,mcp__lifeline__lookup_item"]));
@@ -302,7 +329,7 @@ mod tests {
 
     #[test]
     fn subscription_mode_strips_api_keys() {
-        let cmd = ClaudeCli::new(std::env::temp_dir()).command("hi", None);
+        let cmd = ClaudeCli::new(std::env::temp_dir()).command(None);
         let removed: Vec<_> = cmd
             .get_envs()
             .filter(|(_, v)| v.is_none())
@@ -315,7 +342,7 @@ mod tests {
     fn companion_gets_agents_tools_and_isolation() {
         let dir = std::env::temp_dir();
         let cli = ClaudeCli::companion(dir.clone(), dir.join("mcp.json"), dir.join("agents.json"));
-        let a = args(&cli.command("hi", None));
+        let a = args(&cli.command(None));
         assert!(a.windows(2).any(|w| w == ["--tools", "WebSearch,WebFetch,Agent"]));
         assert!(a
             .windows(2)
@@ -330,11 +357,6 @@ mod tests {
             .map(|w| w[1].clone())
             .unwrap();
         assert!(allowed.contains("Agent") && allowed.contains("mcp__lifeline__propose_action"));
-    }
-
-    #[test]
-    fn leading_dash_is_guarded() {
-        assert_eq!(guard_leading_dash("-5% res?"), " -5% res?");
     }
 
     #[test]

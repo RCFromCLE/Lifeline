@@ -11,6 +11,8 @@ function toast(text, kind = "info") {
   toast.timer = setTimeout(() => t.classList.remove("show"), kind === "err" ? 8000 : 5500);
 }
 
+$("toast").addEventListener("click", () => $("toast").classList.remove("show"));
+
 // ---- tabs (also D-pad/arrow friendly: they're plain buttons) ----
 document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b === btn));
@@ -73,10 +75,16 @@ function renderConvList() {
   });
 }
 
+// "You · What next" for the player's messages, "Lifeline" for answers.
+function speaker(kind, label) {
+  if (kind.startsWith("user")) return label && label !== "Chat" ? `You · ${label}` : "You";
+  return "Lifeline";
+}
+
 function addMessage(kind, label, html) {
   const div = document.createElement("div");
   div.className = `msg ${kind}`;
-  div.innerHTML = `<div class="label">${escapeHtml(label)}</div><div class="body">${html}</div>`;
+  div.innerHTML = `<div class="label">${escapeHtml(speaker(kind, label))}</div><div class="body">${html}</div>`;
   $("chat").appendChild(div);
   $("chat").scrollTop = $("chat").scrollHeight;
   return div;
@@ -108,9 +116,12 @@ async function selectConv(id) {
   $("chat").innerHTML = "";
   if (!c) return;
   if (!c.messages.length) {
-    addMessage("ai", "Companion", renderMarkdown(c.in_game
-      ? "Hotkey answers land here."
-      : "New chat. I can see your other chats."));
+    if (c.in_game) addMessage("ai", "Companion", renderMarkdown("Answers to your in-game hotkeys and HUD buttons land here."));
+    else {
+      const m = addMessage("ai", "Companion", `Ask anything about your character, or start with one of these:
+        <div class="starters">${STARTERS.map(s => `<button class="ghost starter">${escapeHtml(s)}</button>`).join("")}</div>`);
+      m.querySelectorAll(".starter").forEach(b => b.addEventListener("click", () => { $("ask-input").value = b.textContent; sendAsk(); }));
+    }
   }
   for (const m of c.messages) {
     if (m.role === "market") { try { $("chat").appendChild(renderMarket(JSON.parse(m.text))); } catch (_) { } continue; }
@@ -147,7 +158,7 @@ listen("ai", ({ payload: e }) => {
       renderConvList();
     }
   } else if (e.type === "error") {
-    toast(e.text);
+    toast(e.text, "err");
   }
 });
 
@@ -162,7 +173,7 @@ function actionCard(a) {
   div.innerHTML = `<div class="s"><div class="k">${a.kind === "travel" ? "Buy" : "Trade search"}</div>${escapeHtml(a.summary)}</div>
     <button class="primary go">${label}</button><button class="ghost no">Dismiss</button>`;
   div.querySelector(".go").addEventListener("click", async () => {
-    try { toast(await invoke("confirm_action", { id: a.id })); } catch (e) { toast(e); }
+    try { toast(await invoke("confirm_action", { id: a.id })); } catch (e) { toast(e, "err"); }
     actions.delete(a.id); div.remove();
   });
   div.querySelector(".no").addEventListener("click", () => { invoke("dismiss_action", { id: a.id }); actions.delete(a.id); div.remove(); });
@@ -253,19 +264,49 @@ listen("market", ({ payload }) => {
   else { unread.add(payload.conv); renderConvList(); }
 });
 
-// ---- my gear (recorded with the record-equipped hotkey) ----
+// ---- my gear (recorded with the record-equipped hotkey or Ctrl+C mode) ----
+function openGearChecklist() {
+  document.querySelector('.tab[data-tab="play"]').click();
+  setTimeout(() => $("gear-card").scrollIntoView({ behavior: "smooth", block: "center" }), 200);
+}
+// Slot names a player recognizes, from the game's item classes.
+const SLOT_NAME = { "Rings": "Ring 1", "Rings (2)": "Ring 2", "Body Armours": "Body armour", "Helmets": "Helmet", "Amulets": "Amulet", "Belts": "Belt", "Shields": "Off-hand", "Bucklers": "Off-hand", "Quivers": "Off-hand", "Foci": "Off-hand" };
+let GEAR = {};
 function renderGear(g) {
-  const entries = Object.entries(g || {});
-  $("gear").innerHTML = entries.length ? entries.map(([slot, text]) => {
-    const lines = text.split("\n").filter(l => l && !l.startsWith("Item Class") && !l.startsWith("Rarity") && !l.startsWith("--"));
-    return `<li><span class="slot">${escapeHtml(slot)}</span><span class="gname">${escapeHtml(lines.slice(0, 2).join(" · "))}</span><button class="ghost x" data-slot="${escapeHtml(slot)}" title="Forget">×</button></li>`;
-  }).join("") : `<li class="hint">Hover worn gear, press ${escapeHtml(settings ? settings.hotkeys.record_equipped : "the record hotkey")}.</li>`;
+  GEAR = g || {};
+  const entries = Object.entries(GEAR);
+  $("gear-count").textContent = `${entries.length} of 10 slots`;
+  $("gear").innerHTML = entries.map(([slot, text]) => {
+    const lines = text.split("\n").filter(l => l && !l.startsWith("Item Class") && !l.startsWith("Rarity") && !l.startsWith("--") && !l.startsWith("{"));
+    return `<li><span class="slot">${escapeHtml(SLOT_NAME[slot] || slot)}</span><span class="gname">${escapeHtml(lines.slice(0, 2).join(" · "))}</span><button class="ghost x" data-slot="${escapeHtml(slot)}" title="Forget this item">×</button></li>`;
+  }).join("");
+  renderGearHow();
   $("gear").querySelectorAll(".x").forEach(b => b.addEventListener("click", async () => {
     await invoke("forget_equipped", { slot: b.dataset.slot });
     renderGear(await invoke("equipped"));
   }));
 }
 listen("equipped", ({ payload }) => renderGear(payload));
+
+// How to record: Ctrl+C mode (the game's own copy) or the Record gear hotkey.
+function renderGearHow() {
+  const key = settings?.hotkeys?.record_equipped || "Alt+Shift+E";
+  const on = typeof GEAR_WATCH !== "undefined" && GEAR_WATCH > 0;
+  const until = on ? new Date(Date.now() + GEAR_WATCH * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+  $("gear-how").innerHTML = `
+    <button class="${on ? "" : "primary"}" id="gear-watch-play">${on ? `Stop recording (on until ${until})` : "Record my gear"}</button>
+    <div class="hint">${on
+      ? "Now in game: open your inventory (<kbd>I</kbd>), point at each worn item and press <kbd>Ctrl+C</kbd>. Each one appears here."
+      : `Turn on, then in game point at each worn item and press <kbd>Ctrl+C</kbd>. Or any time: point at an item and press <kbd>${escapeHtml(key)}</kbd>.`}</div>`;
+  $("gear-watch-play").addEventListener("click", async () => {
+    try {
+      GEAR_WATCH = await invoke("gear_watch", { on: !on });
+      toast(GEAR_WATCH ? "Recording for 10 minutes. In game, point at each worn item and press Ctrl+C." : "Stopped recording gear.", GEAR_WATCH ? "ok" : "info");
+    } catch (e) { toast(e, "err"); }
+    renderGearHow();
+  });
+}
+listen("gear-watch", () => setTimeout(renderGearHow, 0));
 // ---- build rating page ----
 const RATING_MARKET_BASE = 900100;
 let ratingState = null;
@@ -283,7 +324,6 @@ function renderRating(snap) {
   $("r-run").disabled = !!snap.busy;
   $("r-grade").textContent = r ? r.grade : "?";
   $("r-grade").className = `grade big ${gradeClass(r && r.grade)}`;
-  $("r-tip").textContent = r ? r.explanation : "Rate your build to see why.";
   $("r-summary").textContent = r ? r.summary : "Not rated yet.";
   $("r-meta").textContent = r ? `${r.stage} · level ${r.level} · score ${Math.round(r.score)}/100 · rated ${new Date(r.rated_at * 1000).toLocaleString()}` : "";
   $("r-expl").textContent = r ? r.explanation : "";
@@ -292,7 +332,7 @@ function renderRating(snap) {
       <div><div class="n">${escapeHtml(c.name)}</div><div class="t">${escapeHtml(c.note)}</div></div></div>`).join("") : "";
   renderPieces(r);
   const recs = r ? r.recommendations : [];
-  $("r-recs").innerHTML = recs.length ? "" : "<p class='hint'>None yet.</p>";
+  $("r-recs").innerHTML = recs.length ? "" : `<p class='hint'>${r ? "No upgrades to buy right now." : "Press Rate: the upgrades that would raise your grade most show here."}</p>`;
   recs.forEach((rec, i) => {
     const div = document.createElement("div");
     div.className = "r-rec";
@@ -321,8 +361,8 @@ function renderPieces(r) {
   }
   const unrecorded = pieces.filter(p => p.group === "Gear" && /not recorded/i.test(p.note)).length;
   const key = settings?.hotkeys?.record_equipped || "Alt+Shift+E";
-  const nudge = unrecorded ? `<div class="r-nudge">${unrecorded} gear slot${unrecorded > 1 ? "s" : ""} not recorded, so ${unrecorded > 1 ? "they grade" : "it grades"} F. In game, point at each worn item and press <kbd>${escapeHtml(key)}</kbd>, then Rate again.
-    <button class="link" id="r-gear-help">Show the checklist</button></div>` : "";
+  const nudge = unrecorded ? `<div class="r-nudge">${unrecorded} gear slot${unrecorded > 1 ? "s" : ""} not recorded, so ${unrecorded > 1 ? "they grade" : "it grades"} F. Record your gear on the Play tab, then Rate again.
+    <button class="primary" id="r-gear-help">Record my gear</button></div>` : "";
   $("r-pieces").innerHTML = nudge + groups.map(g => `
     <div class="r-group"><h3>${escapeHtml(g.name)} <span class="hint">${g.items.length}</span></h3>
       <div class="r-pieces">${g.items.map(p => `
@@ -335,11 +375,7 @@ function renderPieces(r) {
           </div>
         </div>`).join("")}
       </div></div>`).join("");
-  $("r-gear-help")?.addEventListener("click", () => {
-    document.querySelector('.tab[data-tab="build"]').click();
-    showSub("current");
-    setTimeout(() => document.querySelector(".worn")?.scrollIntoView({ behavior: "smooth", block: "center" }), 400);
-  });
+  $("r-gear-help")?.addEventListener("click", openGearChecklist);
 }
 
 $("r-run").addEventListener("click", () => {
@@ -360,7 +396,7 @@ listen("market", ({ payload }) => {
 function renderSkills(snap) {
   const p = snap.plan;
   $("s-run").disabled = !!snap.busy;
-  $("s-summary").textContent = p ? p.summary : "No setup yet.";
+  $("s-summary").textContent = p ? p.summary : "Press Suggest skills & rotations to get your buttons, supports and rotations for where you are.";
   $("s-meta").textContent = p ? `${p.stage} · level ${p.level}` : "";
   $("s-skills").innerHTML = p ? p.skills.map(s => `
     <div class="s-card">
@@ -371,45 +407,67 @@ function renderSkills(snap) {
     </div>`).join("") : "";
   $("s-rotations").innerHTML = p ? p.rotations.map(r => `
     <div class="rot"><h3>${escapeHtml(r.situation)}</h3><ol>${r.steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ol></div>`).join("")
-    : "<p class='hint'>None yet.</p>";
+    : "<p class='hint'>Rotations for clearing and bosses show here after Suggest.</p>";
 }
-$("s-run").addEventListener("click", () => invoke("run_skills"));
+$("s-run").addEventListener("click", () => invoke("run_skills").catch(e => toast(e, "err")));
 listen("skills", ({ payload }) => renderSkills(payload));
 listen("skills-status", ({ payload }) => { $("s-status").textContent = payload.text || ""; $("s-run").disabled = !!payload.busy; });
-function sendAsk() {
+const STARTERS = [
+  "What should I upgrade first?",
+  "Are my resistances OK for the next act?",
+  "What can kill me in this act?",
+  "Which support gems should I use?",
+];
+
+// The open conversation, starting one if none is open.
+async function ensureConv() {
+  if (active === null) await selectConv(await invoke("new_conversation"));
+  return active;
+}
+
+async function sendAsk() {
   const text = $("ask-input").value.trim();
-  if (!text || active === null) return;
+  if (!text) return;
+  const conv = await ensureConv();
+  if (convs.find(c => c.id === conv)?.busy) {
+    toast("Still answering. Wait a moment, or press + New to ask in another chat.", "err");
+    return;
+  }
   $("ask-input").value = "";
-  invoke("ask", { conv: active, text });
+  invoke("ask", { conv, text }).catch(e => { $("ask-input").value = text; toast(e, "err"); });
 }
 $("ask-form").addEventListener("submit", ev => { ev.preventDefault(); sendAsk(); });
 $("ask-input").addEventListener("keydown", ev => {
   if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); sendAsk(); }
 });
-$("btn-next").addEventListener("click", () => invoke("what_next", { conv: active }));
+$("btn-next").addEventListener("click", async () => invoke("what_next", { conv: await ensureConv() }).catch(e => toast(e, "err")));
 $("btn-new-conv").addEventListener("click", async () => {
   const id = await invoke("new_conversation");
   await selectConv(id);
   $("ask-input").focus();
 });
-$("btn-delete-conv").addEventListener("click", async () => {
+$("btn-delete-conv").addEventListener("click", () => {
   if (active === null) return;
-  try {
-    await invoke("delete_conversation", { conv: active });
-    const next = convs.find(c => c.id !== active);
-    if (next) selectConv(next.id); else { active = null; $("chat").innerHTML = ""; }
-  } catch (e) { toast(e); }
+  confirmClick($("btn-delete-conv"), "Sure? Delete", async () => {
+    try {
+      const gone = active;
+      await invoke("delete_conversation", { conv: gone });
+      const next = convs.find(c => c.id !== gone);
+      if (next) selectConv(next.id); else selectConv(await invoke("new_conversation"));
+    } catch (e) { toast(e, "err"); }
+  });
 });
-$("btn-overlay").addEventListener("click", () => invoke("toggle_overlay"));
+$("btn-overlay").addEventListener("click", () => invoke("toggle_overlay")
+  .then(() => toast("HUD switched. It only shows while Path of Exile 2 is open and in front.", "info"))
+  .catch(e => toast(e, "err")));
 
 $("btn-paste-item").addEventListener("click", async () => {
-  let text = "";
-  try { text = await navigator.clipboard.readText(); } catch (_) { }
-  if (!text.startsWith("Item Class:")) {
-    toast("Copy an item in game first (Ctrl+Alt+C).");
+  const text = await invoke("clipboard_item").catch(() => null);
+  if (!text) {
+    toast("Copy an item first: in game, point at it and press Ctrl+C. Then click Check item.", "err");
     return;
   }
-  invoke("check_item_text", { conv: active, text });
+  invoke("check_item_text", { conv: await ensureConv(), text }).catch(e => toast(e, "err"));
 });
 // ---- build import ----
 function renderImport(v) {
@@ -422,7 +480,7 @@ function renderImport(v) {
     <table><thead><tr><th>Spec</th><th>Stage</th><th>Passives</th><th>Asc.</th><th>≈ Lvl</th></tr></thead><tbody>${rows}</tbody></table>
     <p class="hint" style="margin-top:8px">★ = written for that stage</p>
     <div class="import-actions">
-      <button id="btn-write" class="primary">Write to Build Planner</button>
+      <button id="btn-write" class="primary">Send to game planner</button>
     </div>`;
   $("btn-write").addEventListener("click", writeStages);
 }
@@ -470,7 +528,7 @@ function confirmClick(button, label, action) {
 async function refreshPlannerFiles() {
   const files = await invoke("planner_list");
   $("planner-hint").textContent = files.length ? `${files.length} files` : "";
-  if (!files.length) { $("planner-files").innerHTML = "<p class='hint'>No builds in the game's planner yet.</p>"; return; }
+  if (!files.length) { $("planner-files").innerHTML = "<p class='hint'>No builds in the game's planner yet. Follow a build (Showcase or My builds), then Send to game planner.</p>"; return; }
   // "Act 2 - Silverfist Companion…" → group by author and the build part of the name.
   const groups = new Map();
   for (const f of files) {
@@ -493,7 +551,7 @@ async function refreshPlannerFiles() {
   const list = [...groups.values()];
   const remove = async names => {
     try { await invoke("delete_planner_files", { files: names }); toast(`Deleted ${names.length} file${names.length > 1 ? "s" : ""}.`); }
-    catch (e) { toast(e); }
+    catch (e) { toast(e, "err"); }
     refreshPlannerFiles();
   };
   $("planner-files").querySelectorAll(".follow-group").forEach(b => b.addEventListener("click", async () => {
@@ -507,7 +565,7 @@ async function refreshPlannerFiles() {
   $("planner-files").querySelectorAll(".del-group").forEach(b => b.addEventListener("click", () =>
     confirmClick(b, `Delete ${list[b.dataset.g].files.length}?`, () => remove(list[b.dataset.g].files.map(f => f.file)))));
 }
-$("planner-open").addEventListener("click", () => invoke("open_planner_folder").catch(e => toast(e)));
+$("planner-open").addEventListener("click", () => invoke("open_planner_folder").catch(e => toast(e, "err")));
 $("planner-refresh").addEventListener("click", refreshPlannerFiles);
 
 // ---- settings ----
@@ -515,13 +573,6 @@ $("planner-refresh").addEventListener("click", refreshPlannerFiles);
 const CUES = ["level_up", "new_act", "boss_area", "penalty", "death", "ready"];
 const CUE_DEFAULTS = { level_up: false, new_act: true, boss_area: true, penalty: true, death: false, ready: true };
 const HOTKEY_KEYS = ["item_check", "what_next", "ask", "toggle_overlay", "record_equipped", "move_overlay"];
-function renderKeysSummary(s) {
-  if (!$("keys-summary")) return;
-  const k = s.hotkeys;
-  $("keys-summary").innerHTML = [
-    ["Item check", k.item_check], ["What next", k.what_next], ["Ask", k.ask], ["HUD overlay", k.toggle_overlay], ["Record equipped", k.record_equipped], ["Move HUD", k.move_overlay],
-  ].map(([n, v]) => `<li><span>${n}</span><kbd>${escapeHtml(v)}</kbd></li>`).join("");
-}
 
 function fillSettings(s) {
   const f = $("settings-form");
@@ -531,8 +582,9 @@ function fillSettings(s) {
   f.elements.sound.checked = s.sound !== false;
   f.elements.volume.value = s.volume ?? 0.6;
   f.elements.input.value = s.input || "keyboard";
+  f.elements.text_size.value = s.text_size || "auto";
+  applyTextSize(s.text_size);
   for (const c of CUES) f.elements["cue_" + c].checked = (s.sound_cues || {})[c] ?? CUE_DEFAULTS[c];
-  renderKeysSummary(s);
 }
 
 $("settings-form").addEventListener("submit", async ev => {
@@ -547,13 +599,56 @@ $("settings-form").addEventListener("submit", async ev => {
     sound: f.elements.sound.checked,
     volume: Number(f.elements.volume.value),
     input: f.elements.input.value,
+    text_size: f.elements.text_size.value,
     sound_cues: Object.fromEntries(CUES.map(c => [c, f.elements["cue_" + c].checked])),
   };
-  const failed = await invoke("save_settings", { settings: next });
-  settings = next;
-  renderKeysSummary(next);
-  $("settings-status").className = failed.length ? "status err" : "status ok";
-  $("settings-status").textContent = failed.length ? `Couldn't register: ${failed.join("; ")}` : "Saved — hotkeys are live.";
+  try {
+    const failed = await invoke("save_settings", { settings: next });
+    settings = next;
+    $("settings-status").className = failed.length ? "status err" : "status ok";
+    $("settings-status").textContent = failed.length ? `Couldn't use: ${failed.join("; ")}. Pick another combo.` : "✓ Saved.";
+  } catch (e) {
+    $("settings-status").className = "status err";
+    $("settings-status").textContent = `Couldn't save: ${e}`;
+  }
+});
+
+// Hotkey boxes record the combo you press (no typing, no typos).
+for (const key of HOTKEY_KEYS) {
+  const input = $("settings-form").elements[key];
+  input.readOnly = true;
+  input.placeholder = "Click, then press keys";
+  input.addEventListener("focus", () => { input.dataset.was = input.value; input.value = ""; input.placeholder = "Press the combo now…"; });
+  input.addEventListener("blur", () => { if (!input.value) input.value = input.dataset.was || ""; input.placeholder = "Click, then press keys"; });
+  input.addEventListener("keydown", ev => {
+    if (ev.key === "Tab") return;
+    ev.preventDefault();
+    if (ev.key === "Escape") { input.value = input.dataset.was || ""; input.blur(); return; }
+    if (["Control", "Alt", "Shift", "Meta"].includes(ev.key)) return;
+    const mods = [ev.ctrlKey && "Ctrl", ev.altKey && "Alt", ev.shiftKey && "Shift"].filter(Boolean);
+    if (!mods.length) { $("settings-status").className = "status err"; $("settings-status").textContent = "Use Ctrl, Alt or Shift with the key so the game doesn't get it too."; return; }
+    const name = ev.code.startsWith("Key") ? ev.code.slice(3) : ev.code.startsWith("Digit") ? ev.code.slice(5) : ev.key.length === 1 ? ev.key.toUpperCase() : ev.code;
+    input.value = [...mods, name].join("+");
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    input.blur();
+  });
+}
+
+// ---- text size: the whole app scales; Auto grows with the window ----
+let TEXT_SIZE = "auto";
+function applyTextSize(size) {
+  TEXT_SIZE = size || "auto";
+  const w = window.innerWidth;
+  const zoom = { normal: 1, large: 1.2, xlarge: 1.4 }[TEXT_SIZE] ?? (w >= 2300 ? 1.3 : w >= 1700 ? 1.15 : 1);
+  document.documentElement.style.zoom = zoom;
+}
+applyTextSize("auto");
+window.addEventListener("resize", () => { if (TEXT_SIZE === "auto") applyTextSize("auto"); });
+$("settings-form").elements.text_size.addEventListener("change", ev => applyTextSize(ev.target.value));
+// Every change saves on its own (hotkey boxes save when you leave them).
+$("settings-form").addEventListener("change", ev => {
+  if (!settings) return;
+  $("settings-form").requestSubmit();
 });
 
 document.querySelectorAll(".sound-tests button").forEach(b => b.addEventListener("click", () =>
@@ -584,7 +679,7 @@ listen("focus-chat", () => {
   renderCharacter(snap.character);
   renderFeed(snap.feed);
   fillSettings(snap.settings);
-  if (snap.imported) renderImport(snap.imported);
+  if (snap.hotkey_errors?.length) toast(snap.hotkey_errors.join(" "), "err");
   refreshPlannerFiles();
   renderGear(await invoke("equipped"));
   renderRating(await invoke("rating_snapshot"));

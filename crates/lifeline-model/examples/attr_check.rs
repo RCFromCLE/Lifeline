@@ -28,7 +28,7 @@ fn main() {
     let start = build.class_name.as_deref().and_then(|c| tree.class_start(c));
     let order = attributes::allocation_order(&tree, start, &main);
     let stage = lifeline_pob::Stage::Act(1);
-    let needs = attributes::stage_needs(&tree, &build, 0, stage, Some(&data));
+    let needs = attributes::stage_needs(&tree, &build, stage, Some(&data));
     println!("class {:?} start {start:?} stage {stage:?}", build.class_name);
     println!("weights str {:.2} dex {:.2} int {:.2}", needs.weight(attributes::Attr::Str), needs.weight(attributes::Attr::Dex), needs.weight(attributes::Attr::Int));
     let plan = attributes::plan(&tree, &order, &needs);
