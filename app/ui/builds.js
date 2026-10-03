@@ -135,6 +135,15 @@ document.querySelectorAll("#subtabs .subtab").forEach(t => t.addEventListener("c
 function showSub(name) {
   document.querySelectorAll("#subtabs .subtab").forEach(x => x.classList.toggle("active", x.dataset.sub === name));
   document.querySelectorAll("#view-build .sub").forEach(x => x.classList.toggle("active", x.id === `sub-${name}`));
+  $("subtabs").parentElement.scrollTop = 0;
+  if (name === "planner" && typeof refreshPlannerFiles === "function") refreshPlannerFiles();
+}
+
+/** Builds → Game planner, from anywhere. */
+function openGamePlanner() {
+  document.querySelector('.tab[data-tab="build"]').click();
+  userPickedSub = true;
+  showSub("planner");
 }
 
 // ---- details, generation, my builds ----
@@ -365,8 +374,10 @@ function renderCurrent(v) {
     <div class="d-actions">
       <button class="primary" id="cur-check">Check my build with AI</button>
       <button id="cur-write" title="Write this build's stages into the game's Build Planner">Send to game planner</button>
+      <button id="cur-planner" title="See, follow or delete the builds in the game's Build Planner">Manage game planner</button>
       <button class="ghost" id="cur-change">Change build</button>
     </div>`;
+  $("cur-planner").addEventListener("click", openGamePlanner);
   $("cur-check").addEventListener("click", async () => {
     const id = await invoke("build_check_chat");
     document.querySelector('.tab[data-tab="play"]').click();

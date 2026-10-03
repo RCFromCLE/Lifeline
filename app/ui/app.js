@@ -664,6 +664,7 @@ listen("open-conversation", ({ payload: id }) => {
 listen("imported", ({ payload }) => renderImport(payload));
 listen("planner-files", () => refreshPlannerFiles());
 $("btn-create-build-play").addEventListener("click", () => openShowcase());
+$("btn-game-planner").addEventListener("click", () => openGamePlanner());
 listen("focus-chat", () => {
   document.querySelector('.tab[data-tab="play"]').click();
   $("ask-input").focus();
