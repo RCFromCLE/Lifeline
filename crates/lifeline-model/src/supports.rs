@@ -143,20 +143,28 @@ pub fn skill_available_from(crafting_level: u64) -> u32 {
     TABLE.iter().rev().find(|(cl, _)| crafting_level >= *cl).map_or(1, |(_, lvl)| *lvl)
 }
 
-/// The closest cuttable attack for `weapon` to `like`: most shared name
-/// words and skill types, usable by `by_level`.
+/// The closest cuttable attack for `weapon` to `like`: most shared skill
+/// types (how it plays), then the earliest gem — the weapon's staple skill,
+/// with the most levels and supports by then. Names mean nothing here
+/// (Rapid Assault is nothing like Whirling Assault).
 fn similar_attack<'a>(data: &'a GameData, like: &Gem, weapon: &str, by_level: u32) -> Option<&'a Gem> {
-    let words: Vec<&str> = like.name.split_whitespace().collect();
     data.gems()
         .iter()
         .filter(|g| g.kind != "support" && weapon_of(g) == Some(weapon) && g.crafting_level > 0)
         .filter(|g| skill_available_from(g.crafting_level) <= by_level)
+        // A main attack, not a movement, cooldown, buff, mark or charge-spending skill.
+        .filter(|g| !g.skill_types.iter().any(|t| UTILITY_TYPES.contains(&t.as_str())))
         .max_by_key(|g| {
             let shared = g.skill_types.iter().filter(|t| like.skill_types.contains(t)).count();
-            let named = g.name.split_whitespace().filter(|w| words.contains(w)).count();
-            (named * 3 + shared, g.crafting_level, std::cmp::Reverse(g.name.clone()))
+            (shared, std::cmp::Reverse(g.crafting_level), std::cmp::Reverse(g.name.clone()))
         })
 }
+
+/// Skill types of utility skills a build doesn't swap a main attack for.
+const UTILITY_TYPES: [&str; 11] = [
+    "Movement", "Travel", "Cooldown", "Buff", "Persistent", "Mark", "Minion",
+    "ConsumesCharges", "RequiresCharges", "HasUsageCondition", "OngoingSkill",
+];
 
 fn note(skill: &mut SkillRef, text: String) {
     skill.additional_text = Some(match skill.additional_text.take() {
