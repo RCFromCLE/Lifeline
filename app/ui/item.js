@@ -88,7 +88,41 @@ function parsePobItem(text, slot) {
 }
 
 // A trade listing (lifeline-trade Listing): no rarity field, so it comes from the art path and the name.
+// "+40 to Evasion Rating (P9)" → text and tier ("P9": prefix tier 9, "S8": suffix).
+const TIER = / \(([PS]\d+)\)$/;
+const withTier = t => {
+  const m = String(t).match(TIER);
+  return m ? { kind: "mod", text: t.replace(TIER, ""), tier: m[1] } : { kind: "mod", text: t };
+};
+
+/** A trade listing drawn like the trade site's item box: type line and
+ *  properties, item level and requirements, granted skills, implicit /
+ *  rune / enchant mods, explicit mods with tiers, the seller's note, and
+ *  the totals line under it. */
 function listingItem(c) {
+  if (!c.rarity && !c.properties) return listingItemShort(c);
+  const rarity = c.rarity || "Normal";
+  const named = c.name && c.name !== c.base;
+  const item = { rarity, name: c.name || c.base, base: named ? c.base : "", top: [], blocks: [] };
+  if (c.item_class) item.top.push({ kind: "cls", text: c.item_class });
+  for (const p of c.properties || []) item.top.push({ kind: "prop", text: p });
+  const meta = [];
+  if (c.item_level) meta.push({ kind: "prop", text: `Item Level: ${c.item_level}` });
+  if (c.requires) meta.push({ kind: "req", text: c.requires });
+  if (meta.length) item.blocks.push(meta);
+  if ((c.granted || []).length) item.blocks.push(c.granted.map(g => ({ kind: "grant", text: g })));
+  for (const [key, kind] of [["enchant_mods", "rune"], ["rune_mods", "rune"], ["implicit_mods", "mod"]]) {
+    if ((c[key] || []).length) item.blocks.push(c[key].map(t => ({ ...withTier(t), kind })));
+  }
+  if ((c.explicit_mods || []).length) item.blocks.push(c.explicit_mods.map(withTier));
+  if (c.corrupted) item.blocks.push([{ kind: "corr", text: "Corrupted" }]);
+  if (c.note) item.blocks.push([{ kind: "note", text: c.note }]);
+  item.totals = c.totals || [];
+  return item;
+}
+
+// Listings saved before Lifeline kept the whole item box.
+function listingItemShort(c) {
   let unique = false;
   try {
     const seg = (c.icon || "").split("/image/")[1]?.split("/")[0] || "";
@@ -125,7 +159,7 @@ function itemLine(l) {
   switch (l.kind) {
     case "prop": case "grant": return `<div class="pl prop">${propLine(l.text)}</div>`;
     case "req": return `<div class="pl req"><span class="k">Requires: </span><span class="v">${fmt(l.text)}</span></div>`;
-    default: return `<div class="pl ${l.kind}">${fmt(l.text)}</div>`;
+    default: return `<div class="pl ${l.kind}">${l.tier ? `<span class="tier ${l.tier[0] === "P" ? "pre" : "suf"}">${escapeHtml(l.tier)}</span>` : ""}${fmt(l.text)}</div>`;
   }
 }
 
@@ -137,7 +171,18 @@ function itemCard(model, { equipped = false } = {}) {
   return `<div class="poe-item r-${escapeHtml(r)}">
     <div class="ph"><div class="n">${escapeHtml(model.name)}</div>${model.base ? `<div class="n">${escapeHtml(model.base)}</div>` : ""}</div>
     <div class="pb">${body}${equipped ? `<div class="sep"></div><div class="pl foot">Equipped</div>` : ""}</div>
+    ${(model.totals || []).length ? `<div class="ptotals">${model.totals.map(t => propLine(t)).join(" · ")}</div>` : ""}
   </div>`;
+}
+
+/** The asking price as the trade site shows it: "1× [orb] Orb of Alchemy",
+ *  plus the gold fee. */
+function priceHtml(c) {
+  if (c.price_amount == null) return `<span class="mprice-plain">${escapeHtml(c.price || "no price")}</span>`;
+  const amount = Number.isInteger(c.price_amount) ? c.price_amount : c.price_amount.toFixed(2).replace(/0+$/, "");
+  const name = c.currency_name || c.price_currency || "";
+  return `<span class="mprice-amt">${amount}×</span>${c.currency_icon ? `<img class="mprice-orb" src="${escapeHtml(c.currency_icon)}" alt="">` : ""}<span class="mprice-cur">${escapeHtml(name)}</span>`
+    + (c.fee ? `<span class="mprice-fee" title="Gold fee to buy">Fee: ${c.fee.toLocaleString()} gold</span>` : "");
 }
 
 /** Item card straight from item text, game copy or build-plan format. */

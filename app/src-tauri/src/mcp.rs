@@ -295,13 +295,13 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             for r in args["ratings"].as_array().into_iter().flatten() {
                 let Some(id) = r["listing_id"].as_str() else { continue };
                 let Some(l) = data.get(id) else { continue };
-                cards.push(json!({
-                    "listing_id": l.id, "icon": l.icon, "name": l.name, "base": l.base, "price": l.price,
-                    "seller": l.seller, "instant_buyout": l.instant_buyout, "requires": l.requires,
-                    "item_level": l.item_level, "corrupted": l.corrupted, "mods": l.mods,
-                    "delta_pct": r["delta_pct"].as_f64().unwrap_or(0.0), "verdict": r["verdict"],
-                    "search_id": searches.get(id),
-                }));
+                // The whole listing (item box, price, currency art) plus the rating.
+                let mut card = serde_json::to_value(l).unwrap_or_default();
+                card["listing_id"] = json!(l.id);
+                card["delta_pct"] = json!(r["delta_pct"].as_f64().unwrap_or(0.0));
+                card["verdict"] = r["verdict"].clone();
+                card["search_id"] = json!(searches.get(id));
+                cards.push(card);
             }
             // Best for the build first.
             cards.sort_by(|a, b| b["delta_pct"].as_f64().unwrap_or(0.0).total_cmp(&a["delta_pct"].as_f64().unwrap_or(0.0)));

@@ -69,6 +69,30 @@ pub struct Listing {
     pub mods: Vec<String>,
     /// Item art URL (web.poecdn.com).
     pub icon: Option<String>,
+    /// Everything the trade site's item box shows, in its order:
+    /// "Normal" / "Magic" / "Rare" / "Unique".
+    pub rarity: String,
+    /// The type line under the name, e.g. "Buckler".
+    pub item_class: Option<String>,
+    /// "Block chance: 20%", "Evasion Rating: 82 (augmented)".
+    pub properties: Vec<String>,
+    /// "Grants Skill: Parry".
+    pub granted: Vec<String>,
+    /// Mod sections as the site splits them, each "text (tier)".
+    pub enchant_mods: Vec<String>,
+    pub rune_mods: Vec<String>,
+    pub implicit_mods: Vec<String>,
+    pub explicit_mods: Vec<String>,
+    /// The seller's note, e.g. "~b/o 1 alch".
+    pub note: Option<String>,
+    /// Totals under the box: "Evasion: 98", "Armour: 120", "DPS: 54.3".
+    pub totals: Vec<String>,
+    /// Asking price: amount and currency (id, name, image), plus the gold fee.
+    pub price_amount: Option<f64>,
+    pub price_currency: Option<String>,
+    pub currency_name: Option<String>,
+    pub currency_icon: Option<String>,
+    pub fee: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -92,6 +116,8 @@ pub struct Market {
     agent: ureq::Agent,
     next_allowed: Mutex<HashMap<&'static str, Instant>>,
     stats: Mutex<Option<Vec<StatEntry>>>,
+    /// Currency id → (name, image URL), from the site's static data.
+    currencies: Mutex<Option<HashMap<String, (String, String)>>>,
     ninja: Mutex<HashMap<String, (Instant, Value)>>,
 }
 
@@ -160,6 +186,7 @@ impl Market {
             agent,
             next_allowed: Mutex::new(HashMap::new()),
             stats: Mutex::new(None),
+            currencies: Mutex::new(None),
             ninja: Mutex::new(HashMap::new()),
         }
     }
@@ -244,6 +271,29 @@ impl Market {
         Ok(entries)
     }
 
+    /// Currency names and images ("alch" → Orb of Alchemy), fetched once.
+    fn currencies(&self) -> HashMap<String, (String, String)> {
+        if let Some(c) = self.currencies.lock().unwrap().clone() {
+            return c;
+        }
+        let Ok(v) = self.request("data", &format!("{BASE}/api/trade2/data/static"), None) else {
+            return HashMap::new();
+        };
+        let map: HashMap<String, (String, String)> = v["result"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .flat_map(|g| g["entries"].as_array().cloned().unwrap_or_default())
+            .filter_map(|e| {
+                let image = e["image"].as_str()?;
+                let image = if image.starts_with("http") { image.to_owned() } else { format!("https://web.poecdn.com{image}") };
+                Some((e["id"].as_str()?.to_owned(), (e["text"].as_str()?.to_owned(), image)))
+            })
+            .collect();
+        *self.currencies.lock().unwrap() = Some(map.clone());
+        map
+    }
+
     /// Stat ids whose text best matches `query` ("cold res", "maximum life").
     pub fn find_stats(&self, query: &str, limit: usize) -> Result<Vec<StatEntry>, String> {
         Ok(rank_stats(&self.stats()?, query, limit))
@@ -285,6 +335,14 @@ impl Market {
                     .flatten()
                     .filter_map(parse_listing),
             );
+        }
+        // Currency name and image for each asking price, as the site shows it.
+        let currencies = self.currencies();
+        for l in &mut listings {
+            if let Some((name, icon)) = l.price_currency.as_ref().and_then(|c| currencies.get(c)) {
+                l.currency_name = Some(name.clone());
+                l.currency_icon = Some(icon.clone());
+            }
         }
         Ok(SearchOutcome {
             url: format!("{BASE}/trade2/search/poe2/{league_seg}/{query_id}"),
@@ -425,32 +483,69 @@ fn requirements(item: &Value) -> Option<String> {
     (!parts.is_empty()).then(|| parts.join(", "))
 }
 
+/// A property line as the site shows it: "Block chance: 20%",
+/// "Evasion Rating: 82 (augmented)", "Elemental Damage: 5-9 (fire)".
+fn property_line(p: &Value) -> Option<String> {
+    let name = plain(p["name"].as_str()?);
+    let values: Vec<String> = p["values"]
+        .as_array()?
+        .iter()
+        .filter_map(|v| {
+            let text = v[0].as_str()?;
+            Some(match v[1].as_u64() {
+                Some(1) => format!("{text} (augmented)"),
+                Some(4) => format!("{text} (fire)"),
+                Some(5) => format!("{text} (cold)"),
+                Some(6) => format!("{text} (lightning)"),
+                Some(7) => format!("{text} (chaos)"),
+                _ => text.to_owned(),
+            })
+        })
+        .collect();
+    if values.is_empty() {
+        return None;
+    }
+    // "Elemental Damage: 5-9 (fire)" keeps one value per element.
+    Some(format!("{name}: {}", values.join(", ")))
+}
+
+fn mod_lines(item: &Value, key: &str) -> Vec<String> {
+    item[key]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|m| {
+            // trade2 returns objects ({description, mods:[{tier}]}); older shapes are strings.
+            let text = m.as_str().or_else(|| m["description"].as_str())?;
+            let tier = m["mods"][0]["tier"].as_str().map(|t| format!(" ({t})")).unwrap_or_default();
+            Some(format!("{}{tier}", plain(text)))
+        })
+        .collect()
+}
+
 fn parse_listing(v: &Value) -> Option<Listing> {
     let listing = &v["listing"];
     let item = &v["item"];
-    let price = listing["price"]["amount"]
-        .as_f64()
-        .map(|a| format!("{a} {}", listing["price"]["currency"].as_str().unwrap_or("?")));
-    let mut mods = Vec::new();
-    for key in [
-        "implicitMods",
-        "runeMods",
-        "enchantMods",
-        "explicitMods",
-        "craftedMods",
-        "desecratedMods",
-    ] {
-        for m in item[key].as_array().into_iter().flatten() {
-            // trade2 returns objects ({description, mods:[{tier}]}); older shapes are strings.
-            let text = m.as_str().or_else(|| m["description"].as_str());
-            let Some(text) = text else { continue };
-            let tier = m["mods"][0]["tier"]
-                .as_str()
-                .map(|t| format!(" ({t})"))
-                .unwrap_or_default();
-            mods.push(format!("{}{tier}", plain(text)));
-        }
-    }
+    let amount = listing["price"]["amount"].as_f64();
+    let currency = listing["price"]["currency"].as_str().map(str::to_owned);
+    let price = amount.map(|a| format!("{a} {}", currency.as_deref().unwrap_or("?")));
+    let (enchant, rune, implicit) = (mod_lines(item, "enchantMods"), mod_lines(item, "runeMods"), mod_lines(item, "implicitMods"));
+    let mut explicit = mod_lines(item, "explicitMods");
+    explicit.extend(mod_lines(item, "craftedMods"));
+    explicit.extend(mod_lines(item, "desecratedMods"));
+    let mods: Vec<String> = implicit.iter().chain(&rune).chain(&enchant).chain(&explicit).cloned().collect();
+    let props = item["properties"].as_array().cloned().unwrap_or_default();
+    // A property with no values is the type line ("Buckler").
+    let item_class = props
+        .iter()
+        .find(|p| p["values"].as_array().is_some_and(Vec::is_empty))
+        .and_then(|p| p["name"].as_str())
+        .map(plain);
+    let ext = &item["extended"];
+    let totals: Vec<String> = [("ar", "Armour"), ("ev", "Evasion"), ("es", "Energy Shield"), ("dps", "DPS"), ("pdps", "Physical DPS"), ("edps", "Elemental DPS")]
+        .iter()
+        .filter_map(|(k, label)| ext[*k].as_f64().filter(|v| *v > 0.0).map(|v| format!("{label}: {}", if v.fract() == 0.0 { format!("{v:.0}") } else { format!("{v:.1}") })))
+        .collect();
     Some(Listing {
         id: v["id"].as_str()?.to_owned(),
         price,
@@ -467,12 +562,60 @@ fn parse_listing(v: &Value) -> Option<Listing> {
         requires: requirements(item),
         mods,
         icon: item["icon"].as_str().map(str::to_owned),
+        rarity: item["frameTypeId"].as_str().unwrap_or("").to_owned(),
+        item_class,
+        properties: props.iter().filter_map(property_line).collect(),
+        granted: item["grantedSkills"].as_array().into_iter().flatten().filter_map(property_line).collect(),
+        enchant_mods: enchant,
+        rune_mods: rune,
+        implicit_mods: implicit,
+        explicit_mods: explicit,
+        note: item["note"].as_str().map(str::to_owned),
+        totals,
+        price_amount: amount,
+        price_currency: currency,
+        currency_name: None,
+        currency_icon: None,
+        fee: listing["fee"].as_u64(),
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn listings_keep_the_whole_item_box() {
+        // Trimmed from a real HC Forbidden Rites listing (Storm Fend, Iron Buckler).
+        let v = json!({
+            "id": "abc",
+            "listing": {"fee": 1272, "price": {"amount": 1, "currency": "alch", "type": "~b/o"}, "account": {"name": "Sauronneur#6397"}},
+            "item": {
+                "name": "Storm Fend", "baseType": "Iron Buckler", "typeLine": "Iron Buckler", "frameTypeId": "Rare", "ilvl": 21,
+                "note": "~b/o 1 alch",
+                "properties": [
+                    {"name": "[Buckler]", "values": [], "displayMode": 0},
+                    {"name": "[Block] chance", "values": [["20%", 0]], "displayMode": 0},
+                    {"name": "[Evasion|Evasion Rating]", "values": [["82", 1]], "displayMode": 0}
+                ],
+                "requirements": [{"name": "Level", "values": [["16", 0]]}, {"name": "[Dexterity|Dex]", "values": [["25", 0]]}],
+                "grantedSkills": [{"name": "Grants Skill", "values": [["Parry", 25]]}],
+                "explicitMods": [{"description": "+40 to [Evasion] Rating", "mods": [{"tier": "P9"}]},
+                                 {"description": "+8% to [Resistances|Fire Resistance]", "mods": [{"tier": "S8"}]}],
+                "extended": {"ev": 98}
+            }
+        });
+        let l = parse_listing(&v).unwrap();
+        assert_eq!(l.item_class.as_deref(), Some("Buckler"));
+        assert_eq!(l.properties, vec!["Block chance: 20%", "Evasion Rating: 82 (augmented)"]);
+        assert_eq!(l.granted, vec!["Grants Skill: Parry"]);
+        assert_eq!(l.explicit_mods, vec!["+40 to Evasion Rating (P9)", "+8% to Fire Resistance (S8)"]);
+        assert_eq!(l.requires.as_deref(), Some("Level 16, 25 Dex"));
+        assert_eq!(l.note.as_deref(), Some("~b/o 1 alch"));
+        assert_eq!(l.totals, vec!["Evasion: 98"]);
+        assert_eq!((l.price_amount, l.price_currency.as_deref(), l.fee), (Some(1.0), Some("alch"), Some(1272)));
+        assert_eq!(l.rarity, "Rare");
+    }
 
     #[test]
     fn rate_limit_backoff() {

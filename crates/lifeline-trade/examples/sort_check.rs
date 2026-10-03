@@ -18,6 +18,8 @@ fn main() {
             for l in &o.listings {
                 let ar: Vec<&String> = l.mods.iter().filter(|m| m.contains("Armour") || m.contains("Evasion")).collect();
                 println!("  {} | {} | {:?}", l.base, l.price.clone().unwrap_or_default(), ar);
+                println!("    class {:?} props {:?} granted {:?} totals {:?}", l.item_class, l.properties, l.granted, l.totals);
+                println!("    price {:?} × {:?} icon {} fee {:?} note {:?}", l.price_amount, l.currency_name, l.currency_icon.is_some(), l.fee, l.note);
             }
         }
         Err(e) => println!("error: {e}"),

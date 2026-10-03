@@ -218,7 +218,7 @@ function renderMarket(m) {
     const card = document.createElement("div");
     card.className = "mcard";
     card.innerHTML = `
-      <div class="mtop2"><div class="mprice">${escapeHtml(c.price || "no price")}</div>
+      <div class="mtop2"><div class="mprice">${priceHtml(c)}</div>
         <div class="badge ${badgeClass(pct)}">${pct > 0 ? "+" : ""}${pct}%</div></div>
       ${itemCard(listingItem(c))}
       <div class="mverdict">${escapeHtml(c.verdict || "")}</div>

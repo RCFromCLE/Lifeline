@@ -144,11 +144,10 @@ pub fn search(app: &AppHandle, req: &SearchRequest) -> Result<Value, String> {
         .listings
         .iter()
         .map(|l| {
-            json!({
-                "listing_id": l.id, "icon": l.icon, "name": l.name, "base": l.base, "price": l.price,
-                "seller": l.seller, "instant_buyout": l.instant_buyout, "requires": l.requires,
-                "item_level": l.item_level, "corrupted": l.corrupted, "mods": l.mods, "search_id": outcome.query_id,
-            })
+            let mut card = serde_json::to_value(l).unwrap_or_default();
+            card["listing_id"] = json!(l.id);
+            card["search_id"] = json!(outcome.query_id);
+            card
         })
         .collect();
     Ok(json!({"total": outcome.total, "url": outcome.url, "search_id": outcome.query_id, "level": level, "cards": cards}))
