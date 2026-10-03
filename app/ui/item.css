@@ -1,0 +1,63 @@
+/* Item tooltip in the game's style (item.js). Title bar framed and coloured
+   by rarity, small-caps serif, gold separators, blue mods. */
+
+.poe-item {
+  --frame: #8c8c8c; --frame-hi: #d9d9d9; --title: #c8c8c8;
+  display: flex; flex-direction: column; width: 100%; max-width: 30rem; margin: 0 auto;
+  background: linear-gradient(180deg, rgba(12, 10, 8, 0.96), rgba(6, 5, 4, 0.96));
+  border: 1px solid #2a2219; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55);
+  font-family: "Fontin SmallCaps", "Fontin", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  font-variant: small-caps; font-variant-numeric: lining-nums; text-align: center; line-height: 1.3; font-size: 15px; color: #c8c8c8;
+}
+.poe-item.r-magic { --frame: #4d5fb3; --frame-hi: #a9b4ff; --title: #8888ff; }
+.poe-item.r-rare { --frame: #b8903f; --frame-hi: #f3d68c; --title: #f8dc6b; }
+.poe-item.r-unique { --frame: #9b5a26; --frame-hi: #e4a46a; --title: #d0843a; }
+
+/* Title bar: double gold frame, dark centre, a flourish at each end. */
+.poe-item .ph {
+  position: relative; padding: 0.4em 2.9em 0.45em;
+  background: radial-gradient(120% 140% at 50% 50%, #241b11 0%, #0e0b07 70%);
+  border: 2px solid var(--frame);
+  box-shadow: inset 0 0 0 1px #000, inset 0 0 0 3px color-mix(in srgb, var(--frame) 55%, transparent), 0 0 0 1px #000;
+}
+.poe-item .ph::before, .poe-item .ph::after {
+  content: ""; position: absolute; top: 50%; width: 2.3em; height: 2.3em; margin-top: -1.15em;
+  background: linear-gradient(180deg, var(--frame-hi), var(--frame));
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M2 24c6-2 10-6 12-12 1 5 4 8 9 9-4-5-3-11 2-15 0 6 3 10 8 12-3 2-5 4-5 6 0 2 2 4 5 6-5 2-8 6-8 12-5-4-6-10-2-15-5 1-8 4-9 9-2-6-6-10-12-12z'/><circle cx='40' cy='24' r='3.2'/><path d='M44 22h4v4h-4z'/></svg>") center / contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M2 24c6-2 10-6 12-12 1 5 4 8 9 9-4-5-3-11 2-15 0 6 3 10 8 12-3 2-5 4-5 6 0 2 2 4 5 6-5 2-8 6-8 12-5-4-6-10-2-15-5 1-8 4-9 9-2-6-6-10-12-12z'/><circle cx='40' cy='24' r='3.2'/><path d='M44 22h4v4h-4z'/></svg>") center / contain no-repeat;
+}
+.poe-item .ph::before { left: 0.2em; }
+.poe-item .ph::after { right: 0.2em; transform: scaleX(-1); }
+.poe-item .ph .n { color: var(--title); font-size: 1.32em; letter-spacing: 0.02em; text-shadow: 0 1px 2px #000; }
+
+.poe-item .pb { padding: 0.45em 1em 0.6em; }
+.poe-item .num { font-variant: normal; font-size: 0.92em; }
+.poe-item .pl { padding: 0.04em 0; font-size: 1.12em; }
+.poe-item .cls, .poe-item .k { color: #8f8f8f; }
+.poe-item .v { color: #e3e3e3; }
+.poe-item .v.aug { color: #8888ff; }
+.poe-item .mod { color: #9a9aff; }
+.poe-item .rune, .poe-item .craft { color: #b9b9ff; }
+.poe-item .frac { color: #a29162; }
+.poe-item .desc { color: #c9a0ff; }
+.poe-item .flav { color: #af6025; font-style: italic; font-variant: normal; font-size: 1.02em; }
+.poe-item .corr { color: #d20000; }
+.poe-item .foot { color: #c9a45c; }
+.poe-item .sep {
+  height: 2px; width: 72%; margin: 0.32em auto;
+  background: linear-gradient(90deg, transparent, #7a5a26 18%, #e2be6a 50%, #7a5a26 82%, transparent);
+  box-shadow: 0 0 6px rgba(226, 190, 106, 0.25);
+}
+
+/* Where gear lists use the cards. */
+.item-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr)); gap: 12px; align-items: start; }
+.item-grid > li { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.item-grid .slot-row { display: flex; align-items: center; justify-content: space-between; min-height: 24px; }
+.item-grid .slot-l { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+.item-grid .x { padding: 0 8px; line-height: 1.4; }
+.item-empty { padding: 14px; text-align: center; color: var(--muted); border: 1px dashed rgba(120, 95, 60, 0.6); border-radius: var(--radius); font-style: italic; }
+.goal-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; align-items: start; }
+.goal-grid .gh { font-family: var(--display); color: var(--gold); font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.6px; }
+.goal-grid .gs { color: var(--muted); padding-top: 8px; }
+.mcard .poe-item { max-width: none; font-size: 13.5px; }
+.mtop2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

@@ -117,7 +117,9 @@ pub fn alignment(state: &AppState) -> Value {
         .map(|s| {
             json!({
                 "skill": crate::gamedata::gem_display(state, &s.id),
+                "attr": crate::gamedata::gem_attribute(state, &s.id),
                 "supports": s.support_skills.iter().map(|x| crate::gamedata::gem_display(state, &x.id)).collect::<Vec<_>>(),
+                "support_attrs": s.support_skills.iter().map(|x| crate::gamedata::gem_attribute(state, &x.id)).collect::<Vec<_>>(),
             })
         })
         .collect();
@@ -134,16 +136,13 @@ pub fn alignment(state: &AppState) -> Value {
                     let goal = imported.build.items.get(&s.item_id).cloned().unwrap_or_default();
                     let goal_lines: Vec<&str> = goal.lines().skip_while(|l| !l.starts_with("Implicits:")).skip(1).collect();
                     let unique = goal.starts_with("Rarity: UNIQUE").then(|| goal.lines().nth(1).unwrap_or_default().to_owned());
-                    let worn = classes_for(&s.slot)
-                        .iter()
-                        .find_map(|cl| equipped.get(*cl))
-                        .or_else(|| {
-                            (s.slot == "Weapon 1")
-                                .then(|| equipped.iter().find(|(k, _)| crate::state::WEAPON_CLASSES.contains(&k.as_str())).map(|(_, v)| v))
-                                .flatten()
-                        })
-                        .map(|t| item_title(t));
-                    json!({"slot": s.slot, "goal_unique": unique, "goal": goal_lines, "recorded": worn})
+                    let worn = classes_for(&s.slot).iter().find_map(|cl| equipped.get(*cl)).or_else(|| {
+                        (s.slot == "Weapon 1")
+                            .then(|| equipped.iter().find(|(k, _)| crate::state::WEAPON_CLASSES.contains(&k.as_str())).map(|(_, v)| v))
+                            .flatten()
+                    });
+                    json!({"slot": s.slot, "goal_unique": unique, "goal": goal_lines, "goal_text": goal,
+                           "recorded": worn.map(|t| item_title(t)), "recorded_text": worn})
                 })
                 .collect()
         })
@@ -159,7 +158,7 @@ pub fn alignment(state: &AppState) -> Value {
                 classes_for(slot).iter().find_map(|cl| equipped.get(*cl))
             };
             let label = match *slot { "Weapon 1" => "Weapon", "Weapon 2" => "Off-hand", s => s };
-            json!({"slot": label, "recorded": item.map(|t| item_title(t))})
+            json!({"slot": label, "recorded": item.map(|t| item_title(t)), "text": item})
         })
         .collect();
 
@@ -183,6 +182,23 @@ pub fn alignment(state: &AppState) -> Value {
         "worn": worn,
         "note": "Allocated passives come from the game log (only allocations Lifeline has seen). The game doesn't log gems; ask the player what's socketed.",
     })
+}
+
+/// The alignment without the full item texts the screens draw as tooltips;
+/// the AI reads items through its own tools.
+pub fn for_ai(mut v: Value) -> Value {
+    for g in v["gear"].as_array_mut().into_iter().flatten() {
+        if let Some(o) = g.as_object_mut() {
+            o.remove("goal_text");
+            o.remove("recorded_text");
+        }
+    }
+    for w in v["worn"].as_array_mut().into_iter().flatten() {
+        if let Some(o) = w.as_object_mut() {
+            o.remove("text");
+        }
+    }
+    v
 }
 
 #[cfg(test)]

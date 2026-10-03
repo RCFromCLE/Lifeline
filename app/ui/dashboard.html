@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Lifeline Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="dash">
+  <header class="dh">
+    <img src="logo.svg" alt="" class="dh-logo">
+    <div class="dh-char">
+      <div class="dh-name" id="d-name">Waiting for the game log…</div>
+      <div class="dh-meta" id="d-meta"></div>
+    </div>
+    <div class="dh-stats">
+      <div class="dstat"><span class="v" id="d-level">—</span><span class="l">Level</span></div>
+      <div class="dstat"><span class="v" id="d-res">—</span><span class="l">Res penalty</span></div>
+      <div class="dstat"><span class="v" id="d-deaths">0</span><span class="l">Deaths</span></div>
+      <div class="dstat"><span class="v" id="d-pct">—</span><span class="l">Passives on plan</span></div>
+    </div>
+    <button id="d-full" class="ghost" title="Full screen (F11)">⛶</button>
+  </header>
+
+  <main class="dgrid">
+    <section class="dcol d-skills">
+      <h2>Skills &amp; supports <small id="d-stage"></small></h2>
+      <div id="d-skills" class="sk-list"><p class="hint">Follow a build in Lifeline to see its skills here.</p></div>
+      <div class="hint" id="d-skills-note"></div>
+    </section>
+
+    <section class="dcol d-passives">
+      <h2>Passives <small id="d-pcount"></small></h2>
+      <div class="tree-view" id="tree-view" tabindex="0" aria-label="Passive tree: drag to pan, scroll or plus/minus to zoom">
+        <svg id="tree-svg" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="tree-tip hidden" id="tree-tip"></div>
+        <div class="tree-zoom"><button id="tz-in" title="Zoom in">+</button><button id="tz-out" title="Zoom out">−</button><button id="tz-fit" title="Fit the plan">⤢</button></div>
+        <div class="tree-legend"><span class="lg plan"></span>Planned <span class="lg taken"></span>Taken <span class="lg earlier"></span>Earlier stage <span class="lg off"></span>Off-plan <b style="color:#e58a6e">S</b><b style="color:#8fd17a">D</b><b style="color:#79b2e8">I</b> Attribute pick</div>
+      </div>
+      <div class="p-lists">
+        <div class="p-col"><h3>Take next</h3><ol id="d-next" class="d-next"></ol></div>
+        <div class="p-col"><h3>Taken so far</h3><div id="d-taken" class="d-taken"></div></div>
+        <div class="p-col"><h3>Ascendancy</h3><ul id="d-asc" class="d-asc"></ul></div>
+      </div>
+    </section>
+
+    <section class="dcol d-log">
+      <h2>Playthrough log</h2>
+      <ul class="feed d-feed" id="d-feed"></ul>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="tree.js"></script>
+</body>
+</html>

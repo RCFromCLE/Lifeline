@@ -1,0 +1,82 @@
+/* Playthrough dashboard: one big screen for a second monitor. Sizes follow
+   the window width so it reads from across the desk. */
+
+html { font-size: clamp(15px, 0.95vw, 30px); }
+body.dash { font-size: 1rem; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body.dash::after { display: none; }
+
+/* ---- header ---- */
+.dh {
+  position: relative; z-index: 1; display: flex; align-items: center; gap: 1.4rem; padding: 0.8rem 1.4rem;
+  background: linear-gradient(180deg, rgba(30, 20, 14, 0.95), rgba(14, 10, 8, 0.9));
+  border-bottom: 1px solid transparent; border-image: linear-gradient(90deg, transparent, rgba(217, 169, 87, 0.55), transparent) 1;
+}
+.dh-logo { width: 3rem; height: 3rem; filter: drop-shadow(0 0 10px rgba(232, 116, 58, 0.45)); }
+.dh-char { flex: 1; min-width: 0; }
+.dh-name { font-family: var(--display); font-weight: 800; font-size: 2rem; line-height: 1.15; color: var(--gold-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-meta { color: var(--muted); font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-stats { display: flex; gap: 2rem; }
+.dstat { display: flex; flex-direction: column; align-items: center; min-width: 5rem; }
+.dstat .v { font-family: var(--display); font-weight: 800; font-size: 2.1rem; line-height: 1.1; color: var(--text); }
+.dstat .v.warn { color: var(--gold-2); }
+.dstat .v.bad { color: var(--red); }
+.dstat .v.good { color: var(--green); }
+.dstat .l { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+#d-full { font-size: 1.4rem; padding: 0.3rem 0.7rem; }
+
+/* ---- three columns: skills, passives, log ---- */
+.dgrid {
+  position: relative; z-index: 1; flex: 1; min-height: 0; padding: 1rem 1.4rem 1.2rem;
+  display: grid; grid-template-columns: minmax(0, 30fr) minmax(0, 44fr) minmax(0, 26fr); gap: 1.2rem;
+}
+@media (max-width: 1200px) { .dgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .d-log { grid-column: 1 / -1; max-height: 30vh; } body.dash { overflow-y: auto; } }
+.dcol {
+  min-height: 0; display: flex; flex-direction: column; padding: 1rem 1.1rem;
+  background: rgba(24, 18, 14, 0.82); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.dcol h2 { margin: 0 0 0.8rem; font-size: 1.35rem; }
+.dcol h2 small { font-size: 0.95rem; }
+.dcol h3 { margin: 0 0 0.5rem; font-family: var(--display); font-size: 1.05rem; color: var(--gold); letter-spacing: 0.5px; }
+.dash .hint { color: var(--muted); font-size: 0.95rem; }
+
+/* ---- skills (gem dots .gd live in theme.css) ---- */
+.sk-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.9rem; padding-right: 0.3rem; }
+.sk { padding: 0.8rem 1rem; border: 1px solid var(--line); border-left: 4px solid var(--gem, var(--gold)); border-radius: var(--radius); background: rgba(33, 25, 19, 0.85); }
+.sk-top { display: flex; align-items: center; gap: 0.6rem; }
+.sk-name { font-family: var(--display); font-weight: 800; font-size: 1.55rem; color: var(--gold-3); flex: 1; min-width: 0; }
+.sk-top .gd { width: 1.1rem; height: 1.1rem; }
+.btnchip { font-weight: 700; font-size: 1rem; padding: 0.1rem 0.6rem; border: 1px solid #8a6430; border-radius: 0.4rem; color: var(--gold-2); background: #2c2013; white-space: nowrap; }
+.sk-role { color: var(--muted); font-size: 1rem; margin-top: 0.2rem; }
+.sk-sups { list-style: none; margin: 0.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.sk-sups li { display: flex; align-items: center; gap: 0.6rem; font-size: 1.25rem; }
+.sk-sups .sn { font-weight: 600; }
+.sk-sups .sw { color: var(--muted); font-size: 0.95rem; }
+.sk-sups .empty { color: var(--muted); font-size: 1rem; }
+.sk-count { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+
+/* ---- passives ---- */
+.d-passives .tree-view { flex: 1.35; height: auto; min-height: 16rem; }
+.d-passives .tree-zoom button { width: 2.2rem; height: 2.2rem; font-size: 1.2rem; }
+.d-passives .tree-legend { font-size: 0.85rem; }
+.p-lists { flex: 1; min-height: 0; margin-top: 0.9rem; display: grid; grid-template-columns: 1fr 1.25fr 0.9fr; gap: 1rem; }
+.p-col { min-height: 0; overflow-y: auto; padding-right: 0.3rem; }
+.d-next { margin: 0; padding-left: 1.7rem; font-size: 1.15rem; }
+.d-next li { margin-bottom: 0.25rem; }
+.d-next li::marker { color: var(--gold); font-weight: 700; }
+.d-next li.notable { color: var(--gold-2); font-weight: 700; }
+.d-next .ac { font-weight: 800; margin-right: 0.3rem; }
+.d-taken { display: flex; flex-wrap: wrap; gap: 0.35rem 0.4rem; align-content: flex-start; }
+.pt { padding: 0.15rem 0.55rem; border-radius: 999px; border: 1px solid #3f5a33; background: rgba(134, 196, 110, 0.08); font-size: 0.95rem; color: var(--text); }
+.pt.big { font-family: var(--display); font-weight: 700; font-size: 1.1rem; color: #cfe9c2; border-color: #5f8a4d; }
+.pt.ks { color: var(--gold-3); border-color: var(--gold); background: rgba(217, 169, 87, 0.12); }
+.pt.off { border-color: #7a3a32; background: rgba(216, 87, 74, 0.1); color: #f0b3aa; }
+.pt .x { color: var(--muted); margin-left: 0.25rem; }
+.d-asc { list-style: none; margin: 0; padding: 0; font-size: 1.1rem; }
+.d-asc li { margin-bottom: 0.3rem; color: var(--muted); }
+.d-asc li.done { color: var(--green); font-weight: 700; }
+
+/* ---- log ---- */
+.d-feed { font-size: 1.15rem; }
+.d-feed li { padding: 0.45rem 0; gap: 0.7rem; }
+.d-feed li:first-child { animation: d-new 2.5s ease-out; }
+@keyframes d-new { from { background: rgba(217, 169, 87, 0.22); } to { background: transparent; } }

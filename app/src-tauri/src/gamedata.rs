@@ -149,3 +149,10 @@ pub fn gem_display(state: &AppState, id: &str) -> String {
         .and_then(|d| d.gem_name(id).map(str::to_owned))
         .unwrap_or_else(|| lifeline_gamefiles::build_planner::gem_short_name(id).to_owned())
 }
+
+/// A gem's colour by its attribute requirement: "str", "dex", "int", a mix
+/// like "str/dex", or "" when game data isn't loaded or the gem has none.
+pub fn gem_attribute(state: &AppState, id: &str) -> String {
+    let loaded = state.game.lock().unwrap().clone();
+    loaded.and_then(|d| d.gem_by_id(id).map(|g| g.attribute.clone())).unwrap_or_default()
+}

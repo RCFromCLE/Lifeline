@@ -398,8 +398,8 @@ function wornChecklist(worn) {
   const watching = GEAR_WATCH > 0;
   return `<div class="d-sec worn" style="margin-top:12px">
     <h3>Your gear <span class="hint">${done} of ${worn.length} recorded</span></h3>
-    <div class="worn-grid">${worn.map(w => `<div class="worn-slot ${w.recorded ? "ok" : ""}"><span class="ws">${esc(w.slot)}</span>
-      <span class="wi" title="${esc(w.recorded || "")}">${w.recorded ? "✓ " + esc(w.recorded) : "—"}</span></div>`).join("")}</div>
+    <ul class="item-grid" style="margin-bottom:10px">${worn.map(w => `<li><div class="slot-row"><span class="slot-l">${esc(w.slot)}</span></div>
+      ${w.text ? itemCardFromText(w.text, { equipped: true }) : `<div class="item-empty">Not recorded</div>`}</li>`).join("")}</ul>
     <div class="worn-how">
       <div class="worn-way">
         <b>Record my gear</b> <span class="hint">easiest</span>
@@ -440,10 +440,9 @@ function refreshAlignment() {
     $("align-stage").textContent = `${a.stage} plan · ${a.character.name || "character"} level ${a.character.level}`;
     document.querySelectorAll(".cstage").forEach(s => s.classList.toggle("on", s.dataset.stage === a.stage));
     const p = a.passives;
-    const gear = a.gear.map(g => {
-      const goal = g.goal_unique ? `<b>${esc(g.goal_unique)}</b>` : esc(g.goal.slice(0, 3).join(", ") || "—");
-      return `<tr><td>${esc(g.slot)}</td><td>${goal}</td><td class="${g.recorded ? "okc" : "noc"}">${g.recorded ? "✓ " + esc(g.recorded) : "not recorded"}</td></tr>`;
-    }).join("");
+    const gear = a.gear.map(g => `<div class="gs">${esc(g.slot)}</div>
+      <div>${g.goal_text ? itemCardFromText(g.goal_text, { slot: g.slot.replace(/ \d$/, "") }) : `<div class="item-empty">No goal</div>`}</div>
+      <div>${g.recorded_text ? itemCardFromText(g.recorded_text, { equipped: true }) : `<div class="item-empty">Not recorded</div>`}</div>`).join("");
     $("align-body").innerHTML = `
       <div class="align-top"><div class="align-pct">${p.percent}<small>%</small></div>
         <div class="grow"><div class="bars" style="grid-template-columns:110px 1fr"><span>Passives</span><div class="b"><i class="hc" style="width:${p.percent}%"></i></div></div>
@@ -451,11 +450,11 @@ function refreshAlignment() {
       <div class="d-grid">
         <div class="d-sec"><h3>Take next</h3><ul>${p.missing.slice(0, 10).map(m => `<li class="${m.notable ? "notable" : ""}">${esc(m.name)}</li>`).join("") || "<li>Nothing — on plan</li>"}</ul>${p.missing.length > 10 ? `<div class="hint">+${p.missing.length - 10} more</div>` : ""}</div>
         <div class="d-sec"><h3>Off-plan passives</h3><ul>${p.off_plan.slice(0, 10).map(n => `<li>${esc(n)}</li>`).join("") || "<li>None</li>"}</ul></div>
-        <div class="d-sec"><h3>Skills for this stage</h3><ul>${a.skills.map(s => `<li><span class="gem">${esc(s.skill)}</span>${s.supports.length ? ` <span class="sups">+ ${s.supports.map(esc).join(", ")}</span>` : ""}</li>`).join("") || "<li>—</li>"}</ul>
+        <div class="d-sec"><h3>Skills for this stage</h3><ul class="gem-list">${a.skills.map(s => `<li>${gemDot(s.attr)}<span class="gem">${esc(s.skill)}</span>${s.supports.length ? `<div class="sups">${s.supports.map((x, i) => `${gemDot(s.support_attrs?.[i])}${esc(x)}`).join(" ")}</div>` : ""}</li>`).join("") || "<li>—</li>"}</ul>
           <div class="hint">The game doesn't log gems; the AI will ask what you have socketed.</div></div>
       </div>
       ${wornChecklist(a.worn || [])}
-      <div class="d-sec" style="margin-top:12px"><h3>Gear goals</h3><table class="gear-align"><thead><tr><th>Slot</th><th>Goal</th><th>You</th></tr></thead><tbody>${gear || `<tr><td colspan="3" class="hint">This build has no gear goals.</td></tr>`}</tbody></table>
+      <div class="d-sec" style="margin-top:12px"><h3>Gear goals</h3>${gear ? `<div class="goal-grid"><span class="gh"></span><span class="gh">Goal</span><span class="gh">You</span>${gear}</div>` : `<p class="hint">This build has no gear goals.</p>`}
 </div>`;
     wireWorn();
     if (typeof refreshTree === "function") refreshTree();

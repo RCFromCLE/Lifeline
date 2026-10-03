@@ -391,6 +391,14 @@ button.danger { border-color: var(--red) !important; color: #ffb3a8 !important; 
 .tree-side .d-sec + .d-sec { margin-top: 12px; }
 .t-attrs, .t-asc { list-style: none; padding: 0; margin: 0 0 6px; }
 .t-attrs li { margin-bottom: 6px; }
+
+/* Gem dots, coloured by the gem's attribute (common.js gemDot). */
+.gd { display: inline-block; flex: none; width: 0.85em; height: 0.85em; border-radius: 50%; vertical-align: -0.05em; margin-right: 0.35em;
+  background: var(--gem, #c9c3b8); box-shadow: 0 0 0.5em var(--gem, transparent), inset 0 -0.15em 0.2em rgba(0, 0, 0, 0.45); }
+.gem-list { list-style: none; padding: 0; }
+.gem-list li { margin-bottom: 8px; }
+.gem-list .gem { font-weight: 700; }
+.gem-list .sups { margin: 2px 0 0 1.2em; display: flex; flex-wrap: wrap; gap: 2px 12px; }
 .t-chip { display: inline-block; min-width: 18px; font-weight: 700; text-align: center; margin-right: 4px; }
 .t-next { list-style: none; padding: 0; margin: 0; }
 .t-next li { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 14.5px; }

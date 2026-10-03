@@ -12,6 +12,7 @@ function toast(text, kind = "info") {
 }
 
 $("toast").addEventListener("click", () => $("toast").classList.remove("show"));
+$("open-dash").addEventListener("click", () => invoke("open_dashboard").catch(e => toast(`Couldn't open the dashboard: ${e}`, "err")));
 
 // ---- tabs (also D-pad/arrow friendly: they're plain buttons) ----
 document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
@@ -217,15 +218,10 @@ function renderMarket(m) {
     const card = document.createElement("div");
     card.className = "mcard";
     card.innerHTML = `
-      <div class="mtop">
-        ${c.icon ? `<img src="${escapeHtml(c.icon)}" alt="">` : "<div class='noimg'></div>"}
-        <div class="mtitle"><div class="mname">${escapeHtml(c.name || c.base)}</div><div class="mbase">${escapeHtml(c.name ? c.base : "")}${c.item_level ? ` · ilvl ${c.item_level}` : ""}</div>
-          <div class="mprice">${escapeHtml(c.price || "no price")}</div></div>
-        <div class="badge ${badgeClass(pct)}">${pct > 0 ? "+" : ""}${pct}%</div>
-      </div>
+      <div class="mtop2"><div class="mprice">${escapeHtml(c.price || "no price")}</div>
+        <div class="badge ${badgeClass(pct)}">${pct > 0 ? "+" : ""}${pct}%</div></div>
+      ${itemCard(listingItem(c))}
       <div class="mverdict">${escapeHtml(c.verdict || "")}</div>
-      <ul class="mmods">${(c.mods || []).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>
-      ${c.requires ? `<div class="mreq">Requires ${escapeHtml(c.requires)}</div>` : ""}
       <div class="mfoot"><span class="mseller">${escapeHtml(c.seller)}</span>
         ${c.instant_buyout ? `<button class="primary go">Travel</button>` : `<span class="hint">in person only</span>`}</div>`;
     const go = card.querySelector(".go");
@@ -276,10 +272,10 @@ function renderGear(g) {
   GEAR = g || {};
   const entries = Object.entries(GEAR);
   $("gear-count").textContent = `${entries.length} of 10 slots`;
-  $("gear").innerHTML = entries.map(([slot, text]) => {
-    const lines = text.split("\n").filter(l => l && !l.startsWith("Item Class") && !l.startsWith("Rarity") && !l.startsWith("--") && !l.startsWith("{"));
-    return `<li><span class="slot">${escapeHtml(SLOT_NAME[slot] || slot)}</span><span class="gname">${escapeHtml(lines.slice(0, 2).join(" · "))}</span><button class="ghost x" data-slot="${escapeHtml(slot)}" title="Forget this item">×</button></li>`;
-  }).join("");
+  $("gear").classList.add("item-grid");
+  $("gear").innerHTML = entries.map(([slot, text]) =>
+    `<li><div class="slot-row"><span class="slot-l">${escapeHtml(SLOT_NAME[slot] || slot)}</span><button class="ghost x" data-slot="${escapeHtml(slot)}" title="Forget this item">×</button></div>${itemCardFromText(text, { equipped: true })}</li>`
+  ).join("");
   renderGearHow();
   $("gear").querySelectorAll(".x").forEach(b => b.addEventListener("click", async () => {
     await invoke("forget_equipped", { slot: b.dataset.slot });

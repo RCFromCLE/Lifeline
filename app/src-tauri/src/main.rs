@@ -727,6 +727,36 @@ fn create_overlay(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+/// The playthrough dashboard: a big window for a second screen with the
+/// skills and supports, passives and the live log. Opens maximized on a
+/// monitor other than the main window's when there is one.
+// Async: building a window inside a sync command deadlocks on Windows.
+#[tauri::command]
+async fn open_dashboard(app: AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window("dashboard") {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+        return Ok(());
+    }
+    let main_monitor = app.get_webview_window("main").and_then(|w| w.current_monitor().ok().flatten());
+    let monitors = app.available_monitors().unwrap_or_default();
+    let target = monitors
+        .iter()
+        .find(|m| main_monitor.as_ref().map_or(true, |mm| m.position() != mm.position()))
+        .or(main_monitor.as_ref());
+    let mut builder = WebviewWindowBuilder::new(&app, "dashboard", WebviewUrl::App("dashboard.html".into()))
+        .title("Lifeline Dashboard")
+        .inner_size(1600.0, 900.0)
+        .min_inner_size(900.0, 560.0);
+    if let Some(m) = target {
+        let p = m.position().to_logical::<f64>(m.scale_factor());
+        builder = builder.position(p.x + 40.0, p.y + 40.0).maximized(true);
+    }
+    builder.build().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// The HUD page reports its content size; the window hugs it.
 #[tauri::command]
 fn fit_overlay(app: AppHandle, width: f64, height: f64) {
@@ -868,6 +898,7 @@ fn main() {
             active_saved,
             check_update,
             fit_overlay,
+            open_dashboard,
             skills_snapshot,
             run_skills,
             overlay_action,

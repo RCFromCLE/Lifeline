@@ -201,7 +201,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
         }
         n if n == tools::BUILD_ALIGNMENT => {
             let _ = crate::builds::load_tree(&state);
-            Ok(crate::alignment::alignment(&state))
+            Ok(crate::alignment::for_ai(crate::alignment::alignment(&state)))
         }
         n if n == tools::LOOKUP_GEM => {
             let d = crate::gamedata::load(&state)?;
