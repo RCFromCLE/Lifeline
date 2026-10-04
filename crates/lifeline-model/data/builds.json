@@ -28848,5 +28848,689 @@
     "videos": [
       "https://www.youtube.com/watch?v=MXduBvcV6Uc"
     ]
+  },
+  {
+    "id": "huntress-spirit-walker-fervor-companions",
+    "class": "Huntress",
+    "ascendancy": "Spirit Walker",
+    "name": "Fervor's Companion Zoo Spirit Walker",
+    "summary": "Level as a spear Whirling Slash > Twister Huntress, tame Rathbreaker in Act 2 and Mighty Silverfist plus an aura beast in Act 3, then hand the killing to the beasts. In endgame, Sylvan's Effigy removes the companion cap so you field 7+ beasts (Silverfist, Azmerian Wolf, Wolf Pack, Spirit Vessel bear, aura beasts) fed by The Catha's Balance and +minion levels.",
+    "style": [
+      "minion",
+      "companion",
+      "league starter",
+      "spear (leveling)"
+    ],
+    "damage": [
+      "physical",
+      "chaos",
+      "cold"
+    ],
+    "defences": [
+      "life",
+      "energy shield",
+      "evasion",
+      "damage taken by companions"
+    ],
+    "ratings": {
+      "damage": 4,
+      "tankiness": 3,
+      "clear_speed": 3,
+      "bossing": 4,
+      "budget": 3,
+      "complexity": 4,
+      "hardcore": 3
+    },
+    "main_skill": "Tame Beast",
+    "skills": [
+      {
+        "gem": "Tame Beast",
+        "supports": [
+          "Feeding Frenzy II",
+          "Rapid Attacks II",
+          "Rage III",
+          "Hulking Minions",
+          "Muster"
+        ]
+      },
+      {
+        "gem": "Wild Protector",
+        "supports": [
+          "Rage III",
+          "Loyalty",
+          "Hulking Minions",
+          "Muster",
+          "Rapid Attacks II"
+        ]
+      },
+      {
+        "gem": "Wolf Pack",
+        "supports": [
+          "Rage III",
+          "Rapid Attacks II",
+          "Minion Splash II",
+          "Loyalty",
+          "Heft"
+        ]
+      },
+      {
+        "gem": "Azmerian Wolf",
+        "supports": [
+          "Bidding III",
+          "Loyalty",
+          "Hulking Minions",
+          "Rage III",
+          "Muster"
+        ]
+      },
+      {
+        "gem": "Spirit Vessel",
+        "supports": [
+          "Muster",
+          "Loyalty",
+          "Hulking Minions"
+        ]
+      },
+      {
+        "gem": "Tame Beast",
+        "supports": [
+          "Loyalty",
+          "Feeding Frenzy II",
+          "Rage III",
+          "Rapid Attacks II"
+        ]
+      },
+      {
+        "gem": "Tame Beast",
+        "supports": [
+          "Muster",
+          "Loyalty",
+          "Rage III",
+          "Rapid Attacks II"
+        ]
+      },
+      {
+        "gem": "Tame Beast",
+        "supports": [
+          "Rage III",
+          "Loyalty",
+          "Muster",
+          "Rapid Attacks II"
+        ]
+      },
+      {
+        "gem": "Tame Beast",
+        "supports": [
+          "Rage III",
+          "Loyalty",
+          "Muster",
+          "Rapid Attacks II"
+        ]
+      },
+      {
+        "gem": "Sniper's Mark",
+        "supports": [
+          "Charged Mark",
+          "Mark of Siphoning",
+          "Mark for Death"
+        ]
+      }
+    ],
+    "leveling": [
+      {
+        "gem": "Whirling Slash",
+        "supports": [
+          "Rage I",
+          "Rapid Attacks I"
+        ]
+      },
+      {
+        "gem": "Twister",
+        "supports": [
+          "Retreat I",
+          "Elemental Armament I"
+        ]
+      },
+      {
+        "gem": "Frost Bomb",
+        "supports": []
+      },
+      {
+        "gem": "Fangs of Frost",
+        "supports": []
+      },
+      {
+        "gem": "War Banner",
+        "supports": [
+          "Prolonged Duration I"
+        ]
+      },
+      {
+        "gem": "Ice-Tipped Arrows",
+        "supports": [
+          "Elemental Armament II"
+        ]
+      },
+      {
+        "gem": "Freezing Mark",
+        "supports": [
+          "Mark for Death"
+        ]
+      },
+      {
+        "gem": "Tame Beast",
+        "supports": [
+          "Rage I",
+          "Rapid Attacks I",
+          "Minion Splash I"
+        ]
+      },
+      {
+        "gem": "Wild Protector",
+        "supports": [
+          "Feeding Frenzy I",
+          "Magnified Area II",
+          "Rage II"
+        ]
+      },
+      {
+        "gem": "Sniper's Mark",
+        "supports": [
+          "Mark for Death",
+          "Eternal Mark"
+        ]
+      },
+      {
+        "gem": "Blasphemy",
+        "supports": [
+          "Magnified Area II"
+        ]
+      },
+      {
+        "gem": "Vulnerability",
+        "supports": []
+      },
+      {
+        "gem": "Mace Strike",
+        "supports": [
+          "Armour Break I",
+          "Armour Demolisher II",
+          "Brutality II",
+          "Rage III"
+        ]
+      }
+    ],
+    "keystones": [
+      "Trusted Kinship",
+      "Giant's Blood"
+    ],
+    "key_passives": [
+      "Warlord Leader",
+      "Captivating Companionship",
+      "Easy Going",
+      "Inspiring Ally",
+      "Unspoken Bond",
+      "Long Distance Relationship",
+      "Bond of the Wolf",
+      "Bond of the Ape",
+      "Bond of the Cat",
+      "Bond of the Mamba",
+      "Bond of the Viper",
+      "Bond of the Owl",
+      "Sturdy Ally",
+      "Nourishing Ally",
+      "Sic 'Em",
+      "Lifelong Friend",
+      "Nurturing Guardian",
+      "Blur",
+      "Crystalline Flesh"
+    ],
+    "ascendancy_passives": [
+      "Companion Life and Area",
+      "The Natural Order",
+      "Shared Companion Damage",
+      "Wild Protector",
+      "The Catha's Balance",
+      "Spirit",
+      "Idolatry"
+    ],
+    "key_uniques": [
+      "Sylvan's Effigy",
+      "Forgotten Warden",
+      "Chober Chaber",
+      "Starkonja's Head",
+      "Trenchtimbre"
+    ],
+    "gear": "Sylvan's Effigy (sceptre) in the off hand. Main hand: Trenchtimbre for the cheap start, then a Chober Chaber corrupted to +4 minion levels, held in one hand via Giant's Blood; its high physical damage feeds The Catha's Balance. Starkonja's Head, and Forgotten Warden (grants Spirit Vessel). Amulet with +3 minion levels. Idols: Idol of Ralakesh (helmet), Primate Idol (sceptre), Fox Idol (body). Everything else: resistances, life, evasion/ES, attributes and some rarity. Anoint Crystalline Flesh. Fervor's total cost was about 20 divines.",
+    "strengths": [
+      "Cheap league start: Fervor ran T15 maps on day 1 with Silverfist, an aura beast and Wild Protector for 0 exalts",
+      "You stay back while 7+ companions tank and kill; with Minion Splash, packs die to beast swings",
+      "Big damage once scaled: Fervor kills pinnacle bosses in seconds at about 20 divines",
+      "Captivating Companionship, Starkonja's Head and Forgotten Warden push part of the damage you take onto companions",
+      "The Catha's Balance lets your levelling spear (and later Chober Chaber) feed companion damage"
+    ],
+    "weaknesses": [
+      "In Fervor's day-1 setup, resistances were only capped while the resistance-aura beast was alive and near you: a big hardcore risk",
+      "Fairly small pool for hardcore endgame: about 2k life + 1.4k ES (Giant's Blood halves Strength life)",
+      "Needs specific beasts and modifiers (Haste or resistance auras, cheap-Spirit beasts) and a spare Tame Beast gem for re-taming",
+      "Heavy Spirit and attribute juggling: Strength for Giant's Blood, Intelligence for sceptres",
+      "Clear is slower than self-cast builds, and damage depends on companion AI",
+      "Sylvan's Effigy is item level 78 and is farmed (Fervor farms Bodach) or bought; it needs Perfect Jeweller's for sockets"
+    ],
+    "league_start": true,
+    "sources": [
+      "https://mobalytics.gg/poe-2/profile/fervorgaming/builds/spirit-walker-companion-build",
+      "https://mobalytics.gg/poe-2/profile/fervorgaming/builds/spirit-walker-companion-league-starter",
+      "https://www.youtube.com/watch?v=oqBjHS_vPqo",
+      "https://www.youtube.com/watch?v=LlHray1VdJg",
+      "https://www.youtube.com/watch?v=iS8eh9UUCs0",
+      "https://www.poe-vault.com/poe2/huntress/spirit-walker/companion-leveling-build",
+      "https://maxroll.gg/poe2/build-guides/companion-spirit-walker-build-guide",
+      "https://maxroll.gg/poe2/planner/7c456i0y",
+      "https://maxroll.gg/poe2/build-guides/minion-army-spirit-walker-build-guide",
+      "https://maxroll.gg/poe2/planner/cm547b06",
+      "https://maxroll.gg/poe2/build-guides/spirit-walker-twisters",
+      "https://pathofexile2.wiki.fextralife.com/Forgotten_Warden_Primal_Markings",
+      "https://game8.co/games/Path-of-Exile-2/archives/506618",
+      "https://togame.io/a/poe2-taming-guide/",
+      "https://pathofexile2.wiki.fextralife.com/Support_Gems"
+    ],
+    "videos": [
+      "https://www.youtube.com/watch?v=oqBjHS_vPqo",
+      "https://www.youtube.com/watch?v=LlHray1VdJg",
+      "https://www.youtube.com/watch?v=iS8eh9UUCs0"
+    ],
+    "act_plan": [
+      {
+        "stage": "Act 1",
+        "levels": "1-17",
+        "skills": [
+          {
+            "gem": "Whirling Slash",
+            "supports": [
+              "Rage I",
+              "Rapid Attacks I"
+            ],
+            "from_level": 1,
+            "note": "From the first chest. Cast it 3x to build Whirlwind stages, then Twister. Keep the gem low level to save mana."
+          },
+          {
+            "gem": "Twister",
+            "supports": [
+              "Retreat I",
+              "Elemental Armament I"
+            ],
+            "from_level": 1,
+            "note": "Cut it with your first uncut skill gem. Twister uses up the Whirlwind stages to fire more twisters. This is your damage until Act 3."
+          },
+          {
+            "gem": "Frost Bomb",
+            "supports": [],
+            "from_level": 3,
+            "note": "Optional. Applies Exposure on bosses and tanky rares."
+          },
+          {
+            "gem": "Fangs of Frost",
+            "supports": [],
+            "from_level": 6,
+            "note": "Fervor's key early pickup. Parry, then Fangs of Frost, leaves chilled ground that boosts Twister on bosses."
+          },
+          {
+            "gem": "War Banner",
+            "supports": [
+              "Prolonged Duration I"
+            ],
+            "from_level": 11,
+            "note": "Cut it from the King in the Mists reward at Freythorn (about level 11). Fervor calls it the best option at that point. Drop it on bosses."
+          },
+          {
+            "gem": "Ice-Tipped Arrows",
+            "supports": [],
+            "from_level": 14,
+            "note": "Optional, from poe-vault/maxroll. Use your first level-5 uncut gem; with Barrage it speeds up clear. Fervor doesn't mention it."
+          }
+        ],
+        "companions": "None yet. Tame Beast is a level-7 uncut gem, but unique beasts need The Natural Order (Act 2 trial), so save the gem for now.",
+        "passives": [
+          "Honed Instincts",
+          "Clean Shot",
+          "Disorientation",
+          "Blinding Strike"
+        ],
+        "ascendancy": [],
+        "gear": "Your spear is everything. Set the loot filter to show all spears and pick them all up: Hardwood Spear, Ironhead Spear (Red Vale), Hunting Spear (Hunting Grounds), Winged Spear (Ogham Manor; may not drop). Craft on the best base with the Runes of Aldur mechanic, and check vendors or gamble if you're stuck. Get life, resistances and evasion on armour, and flat damage on gloves and rings.",
+        "notes": "Fervor calls Count Geonor the hardest boss of the whole campaign. If he goes down easily, the rest is easy. Kite and use Parry > Fangs of Frost > Whirling Slash x3 > Twister on chilled ground."
+      },
+      {
+        "stage": "Act 2",
+        "levels": "17-32",
+        "skills": [
+          {
+            "gem": "Twister",
+            "supports": [
+              "Retreat I",
+              "Frost Nexus",
+              "Elemental Armament II"
+            ],
+            "from_level": 17,
+            "note": "Frost Nexus (first level-2 uncut support) makes frozen enemies leave chilled ground, so Parry/Fangs is no longer needed. Add the third socket with a Jeweller's Orb."
+          },
+          {
+            "gem": "Whirling Slash",
+            "supports": [
+              "Rage I",
+              "Rapid Attacks I"
+            ],
+            "from_level": 17,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Freezing Mark",
+            "supports": [
+              "Mark for Death"
+            ],
+            "from_level": 18,
+            "note": "poe-vault pick for bosses. Armour break helps your later physical companions."
+          },
+          {
+            "gem": "Tame Beast",
+            "supports": [
+              "Rage I",
+              "Rapid Attacks I",
+              "Minion Splash I"
+            ],
+            "from_level": 22,
+            "note": "After the first ascension (Fervor suggests about level 21-22), tame Rathbreaker. Supports are from maxroll (Fervor shows none)."
+          },
+          {
+            "gem": "War Banner",
+            "supports": [
+              "Prolonged Duration I"
+            ],
+            "from_level": 17,
+            "note": "Keep it for bosses."
+          }
+        ],
+        "companions": "Tame Rathbreaker, the first boss of Act 2 (Vastiri Outskirts). Ctrl+click the zone on the map to open a fresh instance. Cast Tame Beast on him; sparkles show he can be captured. Get him low, recast, then kill him within the roughly 8-9 second window. He is your unique beast until Act 3.",
+        "passives": [
+          "Hail",
+          "Blur",
+          "Inspiring Ally",
+          "Easy Going"
+        ],
+        "ascendancy": [
+          "Companion Life and Area",
+          "The Natural Order"
+        ],
+        "gear": "Spears: Winged Spear early, then War Spear for damage. Keep the spear upgraded; Fervor killed the Act 2 boss in seconds with a crafted one. Start saving minion gear: helmet, sceptre and amulet with +level of minion skills, sceptre with % Spirit or minion damage.",
+        "notes": "Do the Trial of the Sekhemas (Traitor's Passage) around level 21-22; it is easy for this build. Otherwise, just clear the act normally."
+      },
+      {
+        "stage": "Act 3",
+        "levels": "31-48",
+        "skills": [
+          {
+            "gem": "Tame Beast",
+            "supports": [
+              "Feeding Frenzy I",
+              "Rage II",
+              "Rapid Attacks I"
+            ],
+            "from_level": 33,
+            "note": "Mighty Silverfist from Jungle Ruins, replacing Rathbreaker (only one unique beast at a time). Fervor calls this the big power spike. Supports per poe-vault's Act 3 setup."
+          },
+          {
+            "gem": "Tame Beast",
+            "supports": [
+              "Loyalty",
+              "Feeding Frenzy I"
+            ],
+            "from_level": 34,
+            "note": "Second companion via Trusted Kinship: an aura beast, ideally with Haste aura (Fervor later found a River Drake). A beast with ground effects that Twister can pick up is a fine stand-in. Fervor's Diretusk used Loyalty + Feeding Frenzy I."
+          },
+          {
+            "gem": "Twister",
+            "supports": [
+              "Retreat II",
+              "Frost Nexus",
+              "Elemental Armament II"
+            ],
+            "from_level": 31,
+            "note": "Fervor keeps the spear and Parry for defence. Swapping to a sceptre for more Spirit/auras is his stated alternative (needs Intelligence)."
+          },
+          {
+            "gem": "Wild Protector",
+            "supports": [
+              "Feeding Frenzy I",
+              "Magnified Area II",
+              "Rage II"
+            ],
+            "from_level": 40,
+            "note": "Granted by the second ascension (Trial of Chaos). Supports per poe-vault."
+          },
+          {
+            "gem": "Sniper's Mark",
+            "supports": [
+              "Mark for Death",
+              "Eternal Mark"
+            ],
+            "from_level": 40,
+            "note": "Replaces Freezing Mark for armour shred and crit on bosses (poe-vault/maxroll)."
+          }
+        ],
+        "companions": "Jungle Ruins: tame Mighty Silverfist and drop Rathbreaker. Act 3 is full of beasts, so look for an aura beast for the second slot, preferably Haste. Diretusk Boars in Infested Barrens can roll it. Reload instances if you want, but Fervor says not to dwell on it. Always keep a spare Tame Beast gem on you, since each gem works like a Poké Ball.",
+        "passives": [
+          "Trusted Kinship",
+          "Unspoken Bond",
+          "Long Distance Relationship",
+          "Bond of the Cat",
+          "Bond of the Wolf"
+        ],
+        "ascendancy": [
+          "Shared Companion Damage",
+          "Wild Protector"
+        ],
+        "gear": "Sandswept Marsh: an elite camp with two elites always drops a Lesser Jewel of War. Fervor used a rare Plague Edge Crossblade Spear he crafted through Acts 3-4. Keep resistances up; start placing Spirit and minion-level pieces.",
+        "notes": "Venom Crypts: Fervor takes the stun-threshold draught (he calls it 'Drop of Stone'). Temple of Chaos: Trial of Chaos for the second ascension. Ignagduk (Azak Bog) gives +30 Spirit and an uncut Spirit gem; poe-vault cuts Wolf Pack with it."
+      },
+      {
+        "stage": "Act 4",
+        "levels": "47-58",
+        "skills": [
+          {
+            "gem": "Tame Beast",
+            "supports": [
+              "Feeding Frenzy II",
+              "Rapid Attacks II",
+              "Rage II",
+              "Hulking Minions"
+            ],
+            "from_level": 47,
+            "note": "Silverfist with 4 sockets. These are Fervor's day-1 map supports, with Rage II until Rage III drops."
+          },
+          {
+            "gem": "Wild Protector",
+            "supports": [
+              "Rage II",
+              "Loyalty",
+              "Hulking Minions",
+              "Rapid Attacks II"
+            ],
+            "from_level": 47,
+            "note": "Fervor: Hulking Minions does not raise Wild Protector's Spirit cost. Loyalty cuts the damage you take."
+          },
+          {
+            "gem": "Tame Beast",
+            "supports": [
+              "Loyalty",
+              "Feeding Frenzy II",
+              "Rapid Attacks II"
+            ],
+            "from_level": 47,
+            "note": "Aura beast. Swap to a better one if you see Haste or resistance aura mods."
+          },
+          {
+            "gem": "Twister",
+            "supports": [
+              "Retreat II",
+              "Frost Nexus",
+              "Elemental Armament II",
+              "Rapid Attacks II"
+            ],
+            "from_level": 47,
+            "note": "Your own damage and spear upkeep. It matters again once The Catha's Balance copies main-hand damage."
+          },
+          {
+            "gem": "Sniper's Mark",
+            "supports": [
+              "Mark for Death",
+              "Eternal Mark",
+              "Charged Mark"
+            ],
+            "from_level": 52,
+            "note": "Charged Mark when tier-5 supports show up (Fervor's endgame uses it)."
+          }
+        ],
+        "companions": "Keep Silverfist and your best aura beast. Keep a spare Tame Beast gem for any better aura or cheap-Spirit beast you spot.",
+        "passives": [
+          "Bond of the Ape",
+          "Sturdy Ally",
+          "Captivating Companionship",
+          "Bond of the Mamba",
+          "Bond of the Viper",
+          "Lifelong Friend"
+        ],
+        "ascendancy": [],
+        "gear": "Spears: Crossblade Spear, Seaglass Spear, Sword Spear. A crafted rare is enough; Fervor's Crossblade Spear from Act 3 beat every boss. Give every skill 4 sockets with Jeweller's Orbs.",
+        "notes": "Eye of Hinekora: Fervor takes resistances (stats is also fine). Islands can be done in any order."
+      },
+      {
+        "stage": "Interludes",
+        "levels": "57-65",
+        "skills": [
+          {
+            "gem": "Tame Beast",
+            "supports": [
+              "Feeding Frenzy II",
+              "Rapid Attacks II",
+              "Rage III",
+              "Hulking Minions"
+            ],
+            "from_level": 57,
+            "note": "Rage III once level-5 uncut supports drop. Add Muster as the 5th support when you get the socket."
+          },
+          {
+            "gem": "Wild Protector",
+            "supports": [
+              "Rage III",
+              "Loyalty",
+              "Hulking Minions",
+              "Rapid Attacks II"
+            ],
+            "from_level": 57,
+            "note": "Same idea."
+          },
+          {
+            "gem": "Blasphemy",
+            "supports": [
+              "Magnified Area II"
+            ],
+            "from_level": 60,
+            "note": "Fervor's day-1 map aura, with Vulnerability inside it for more physical damage taken. Use the permanent +40 Spirit from Lythara (poe-vault: do that interlude first)."
+          },
+          {
+            "gem": "Vulnerability",
+            "supports": [],
+            "from_level": 60,
+            "note": "Socket it inside Blasphemy: the curse becomes an aura that hits everything near you."
+          }
+        ],
+        "companions": "Same pair. Keep checking for Haste / elemental-resistance aura beasts.",
+        "passives": [
+          "Nourishing Ally",
+          "Sic 'Em",
+          "Bond of the Owl",
+          "Warlord Leader"
+        ],
+        "ascendancy": [],
+        "gear": "Spears: Branched Spear and Jagged Spear. Fervor only found a Jagged Spear at the very end and used his Act 3 spear until then. Cap elemental resistances before maps.",
+        "notes": "Qimah pillar: Fervor took global armour/evasion/ES. Movement speed or attributes are fine; skip the experience option. Fervor says the campaign takes about 6-7 hours."
+      },
+      {
+        "stage": "Endgame",
+        "levels": "65+",
+        "skills": [
+          {
+            "gem": "Mace Strike",
+            "supports": [
+              "Armour Break I",
+              "Armour Demolisher II",
+              "Brutality II",
+              "Rage III"
+            ],
+            "from_level": 65,
+            "note": "Fervor's day-1 swap to Trenchtimbre (Spiked Club, +minion levels) with a rare sceptre (allies-in-presence damage, Primate Idol). Mace Strike only finishes downed enemies. Support tiers are from maxroll's Sylvan profile."
+          },
+          {
+            "gem": "Azmerian Wolf",
+            "supports": [
+              "Bidding III",
+              "Loyalty",
+              "Hulking Minions",
+              "Rage III",
+              "Muster"
+            ],
+            "from_level": 78,
+            "note": "Unlocked by Sylvan's Effigy, which removes the companion cap if each companion is a different type and you have the Spirit."
+          },
+          {
+            "gem": "Wolf Pack",
+            "supports": [
+              "Rage III",
+              "Rapid Attacks II",
+              "Minion Splash II",
+              "Loyalty",
+              "Heft"
+            ],
+            "from_level": 78,
+            "note": "Fervor's permanent 6-link. Minion Splash II does the clearing."
+          },
+          {
+            "gem": "Spirit Vessel",
+            "supports": [
+              "Muster",
+              "Loyalty",
+              "Hulking Minions"
+            ],
+            "from_level": 78,
+            "note": "Granted by Forgotten Warden. Fervor also puts Lunar Assault on the meta gem; it is a skill, so it's left out here."
+          },
+          {
+            "gem": "Tame Beast",
+            "supports": [
+              "Muster",
+              "Loyalty",
+              "Rage III",
+              "Rapid Attacks II"
+            ],
+            "from_level": 78,
+            "note": "Extra aura beasts. Fervor ran a Brimstone Crab (extra physical aura, about 32 Spirit; crabs are cheaper), a crab with Haste aura, and a Prowling Chimera (Hinder aura, armour break)."
+          }
+        ],
+        "companions": "Day 1: Mighty Silverfist + an aura beast (elemental resistance aura, hasted, regen) + Wild Protector. Then farm Bodach (Fervor did Ritual) for Sylvan's Effigy and Forgotten Warden, and grow to about 9 companions: Silverfist, Wild Protector, Azmerian Wolf, Wolf Pack, the Spirit Vessel bear, the Diretusk aura beast, and several crab/chimera aura beasts. Prefer cheap-Spirit beasts.",
+        "passives": [
+          "Giant's Blood",
+          "Crystalline Flesh"
+        ],
+        "ascendancy": [
+          "Shared Companion Damage",
+          "The Catha's Balance",
+          "Spirit",
+          "Idolatry"
+        ],
+        "gear": "Sylvan's Effigy off hand (item level 78; needs Perfect Jeweller's for full sockets). Chober Chaber corrupted to +4 minion levels in the main hand via Giant's Blood (Fervor: about 1 exalt + vaal, or ~10 ex to buy). Starkonja's Head, Forgotten Warden, amulet with +3 minion levels (his priciest item). Rest: resistances, life, evasion/ES, attributes, rarity. Jewels: minion damage, minion attack speed, crit damage. Anoint Crystalline Flesh.",
+        "notes": "Hardcore: if your resistances depend on an aura beast (as in Fervor's day-1 setup), cap them on gear before pushing red maps. Companions absorb a share of hits (Captivating Companionship, Starkonja's Head, Forgotten Warden), so losing them also lowers your defences. Lifelong Friend speeds up revives."
+      }
+    ]
   }
 ]

@@ -4,8 +4,8 @@
 //! from the level its gem is usually cut, and a low-level skill covers a
 //! stage's first levels when nothing else can.
 //!
-//! Supports: The game allows each
-//! support gem in only one skill, a skill gem has 2 support sockets until
+//! Supports: A support gem may go in several skills but only once per skill
+//! (the one-skill limit ended in 0.3), a skill gem has 2 support sockets until
 //! Jeweller's Orbs add more (Lesser 3, Greater 4, Perfect 5), and a support
 //! needs an Uncut Support Gem of high enough level to cut. This keeps the
 //! planned supports (in order) where they fit those rules, then fills empty
@@ -250,12 +250,12 @@ pub fn fit_skills(skills: &mut Vec<SkillRef>, data: &GameData, stage: Stage, wea
     }
 }
 
-/// Makes every skill's supports usable at `stage`: unique across skills,
-/// cuttable by then, at most the stage's socket count, empty sockets filled.
+/// Makes every skill's supports usable at `stage`: no family twice in one
+/// skill (since 0.3 the same support may go in several skills), cuttable by
+/// then, at most the stage's socket count, empty sockets filled.
 pub fn complete(skills: &mut [SkillRef], data: &GameData, stage: Stage) {
     let max_level = max_crafting_level(stage);
     let slots = sockets(stage);
-    let mut used: HashSet<String> = HashSet::new();
     let cuttable = |g: &Gem| g.kind == "support" && !g.is_lineage && (1..=max_level).contains(&g.crafting_level);
     for skill in skills.iter_mut() {
         let Some(gem) = data.gem_by_id(&skill.id) else { continue };
@@ -263,6 +263,7 @@ pub fn complete(skills: &mut [SkillRef], data: &GameData, stage: Stage) {
             continue;
         }
         let mut kept: Vec<SupportRef> = Vec::new();
+        let mut used: HashSet<String> = HashSet::new();
         for s in std::mem::take(&mut skill.support_skills) {
             let Some(support) = data.gem_by_id(&s.id) else { continue };
             // A planned support too advanced for the stage: its best cuttable tier.

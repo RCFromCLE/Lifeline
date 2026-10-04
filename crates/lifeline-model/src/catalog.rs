@@ -69,6 +69,47 @@ pub struct Archetype {
     /// Video guides (YouTube links), shown as "Watch" in the app.
     #[serde(default)]
     pub videos: Vec<String>,
+    /// The campaign act by act (Act 1 … Endgame): what to use and do.
+    #[serde(default)]
+    pub act_plan: Vec<ActStep>,
+}
+
+/// One stage of an archetype's campaign plan.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ActStep {
+    /// "Act 1" … "Act 4", "Interludes", "Endgame".
+    pub stage: String,
+    /// Character levels this stage covers, e.g. "1-17".
+    #[serde(default)]
+    pub levels: String,
+    #[serde(default)]
+    pub skills: Vec<ActSkill>,
+    /// Which companions to tame and when.
+    #[serde(default)]
+    pub companions: String,
+    /// Notables or tree areas to path to, in order.
+    #[serde(default)]
+    pub passives: Vec<String>,
+    /// Ascendancy points taken this stage.
+    #[serde(default)]
+    pub ascendancy: Vec<String>,
+    #[serde(default)]
+    pub gear: String,
+    #[serde(default)]
+    pub notes: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ActSkill {
+    pub gem: String,
+    #[serde(default)]
+    pub supports: Vec<String>,
+    /// Character level to start using it (when it can be cut).
+    #[serde(default)]
+    pub from_level: Option<u32>,
+    /// Why, or when to switch.
+    #[serde(default)]
+    pub note: String,
 }
 
 /// Problems with one archetype's names and numbers (empty = good).
@@ -142,6 +183,16 @@ pub fn check(a: &Archetype, tree: &PassiveTree, data: &GameData) -> Vec<String> 
     }
     for s in a.skills.iter().chain(&a.leveling) {
         check_skill(s, &mut p);
+    }
+    for step in &a.act_plan {
+        for s in &step.skills {
+            let design = SkillDesign { gem: s.gem.clone(), supports: s.supports.clone() };
+            let before = p.len();
+            check_skill(&design, &mut p);
+            for msg in &mut p[before..] {
+                *msg = format!("{}: {msg}", step.stage);
+            }
+        }
     }
     let main_ok = |n: &TreeNode| {
         n.ascendancy_id.is_none()

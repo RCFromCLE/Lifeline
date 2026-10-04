@@ -51,3 +51,16 @@
 .sort-note { margin: 4px 0 8px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sort-note b { color: var(--gold-2); }
 .sort-note .sort-clear { padding: 2px 8px; font-size: 13px; }
+
+/* Build details: act by act (builds.js actPlan) */
+.act-plan { margin: 12px 0; }
+.ap-step { border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; margin-bottom: 6px; background: rgba(33, 25, 19, 0.6); }
+.ap-step summary { cursor: pointer; font-size: 15px; }
+.ap-step summary b { color: var(--gold-2); }
+.ap-lvl { color: var(--muted); font-size: 13px; }
+.ap-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; margin-top: 8px; font-size: 14px; }
+.ap-row p { margin: 0; }
+.ap-row ul { margin: 0; padding-left: 18px; }
+.ap-k { color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-size: 12.5px; padding-top: 2px; }
+.ap-sup { color: var(--gold-2); font-size: 13.5px; }
+.ap-note { color: var(--muted); font-size: 13px; }

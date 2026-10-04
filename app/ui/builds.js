@@ -174,11 +174,29 @@ const skillLine = s => `<li><span class="gem">${esc(s.gem)}</span>${s.supports?.
 const list = (title, items, ordered = false) => items?.length
   ? `<div class="d-sec"><h3>${title}</h3><${ordered ? "ol" : "ul"}>${items.map(x => typeof x === "string" ? `<li>${esc(x)}</li>` : skillLine(x)).join("")}</${ordered ? "ol" : "ul"}></div>` : "";
 
+// The campaign act by act: skills (from which level), companions,
+// passives, ascendancy, gear and notes for each stage.
+function actPlan(steps) {
+  if (!steps?.length) return "";
+  const skill = s => `<li><b>${esc(s.gem)}</b>${s.from_level ? ` <span class="ap-lvl">from level ${s.from_level}</span>` : ""}${s.supports?.length ? `<div class="ap-sup">${s.supports.map(esc).join(" · ")}</div>` : ""}${s.note ? `<div class="ap-note">${esc(s.note)}</div>` : ""}</li>`;
+  return `<div class="d-sec act-plan"><h3>Act by act</h3>${steps.map((st, i) => `
+    <details class="ap-step" ${i === 0 ? "open" : ""}>
+      <summary><b>${esc(st.stage)}</b>${st.levels ? ` <span class="ap-lvl">levels ${esc(st.levels)}</span>` : ""}</summary>
+      ${st.skills?.length ? `<div class="ap-row"><span class="ap-k">Skills</span><ul>${st.skills.map(skill).join("")}</ul></div>` : ""}
+      ${st.companions ? `<div class="ap-row"><span class="ap-k">Companions</span><p>${esc(st.companions)}</p></div>` : ""}
+      ${st.passives?.length ? `<div class="ap-row"><span class="ap-k">Passives</span><p>${st.passives.map(esc).join(" → ")}</p></div>` : ""}
+      ${st.ascendancy?.length ? `<div class="ap-row"><span class="ap-k">Ascendancy</span><p>${st.ascendancy.map(esc).join(", ")}</p></div>` : ""}
+      ${st.gear ? `<div class="ap-row"><span class="ap-k">Gear</span><p>${esc(st.gear)}</p></div>` : ""}
+      ${st.notes ? `<div class="ap-row"><span class="ap-k">Notes</span><p>${esc(st.notes)}</p></div>` : ""}
+    </details>`).join("")}</div>`;
+}
+
 function archetypeDetail(a) {
   return `<div class="d-head">${portrait(a.class, a.ascendancy, 128)}<div>
       <h1>${esc(a.name)}</h1><div class="sub2">${esc(a.class)} · ${esc(a.ascendancy)} · main skill ${esc(a.main_skill)}</div>
       ${tags(a)}</div></div>
     <p>${esc(a.summary)}</p>${bars(a.ratings)}
+    ${actPlan(a.act_plan)}
     <div class="d-grid">
       ${list("Endgame skills", a.skills)}
       ${list("Levelling", a.leveling)}

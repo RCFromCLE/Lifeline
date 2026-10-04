@@ -167,7 +167,7 @@ fn planner_skills(set: &SkillSet) -> Vec<SkillRef> {
 }
 
 /// Skills (with supports) the build uses at `stage`.
-/// A stage's skills with supports the player can actually use then (unique,
+/// A stage's skills with supports the player can actually use then (none twice in a skill,
 /// cuttable, filling the stage's sockets); see [`supports::complete`].
 pub fn usable_skills(build: &PobBuild, stage: Stage, data: Option<&lifeline_data::GameData>) -> Vec<SkillRef> {
     let mut skills = skills_for_stage(build, stage);
