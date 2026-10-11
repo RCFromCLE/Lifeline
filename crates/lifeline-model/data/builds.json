@@ -29532,5 +29532,709 @@
         "notes": "Hardcore: if your resistances depend on an aura beast (as in Fervor's day-1 setup), cap them on gear before pushing red maps. Companions absorb a share of hits (Captivating Companionship, Starkonja's Head, Forgotten Warden), so losing them also lowers your defences. Lifelong Friend speeds up revives."
       }
     ]
+  },
+  {
+    "id": "monk-invoker-falling-thunder-lightning",
+    "class": "Monk",
+    "ascendancy": "Invoker",
+    "name": "Thunderstruck Falling Thunder Invoker",
+    "summary": "A pure lightning quarterstaff Monk: Storm Wave shocks, Siphoning Strike consumes the shock for Power Charges, and Falling Thunder spends them on big hits while Herald of Thunder clears packs. It never uses Tempest Bell, and Invoker adds I am the Thunder, Unbound Avatar and Sunder my Enemies for damage, plus spirit for Ghost Dance and Wind Dancer.",
+    "style": [
+      "melee"
+    ],
+    "damage": [
+      "lightning",
+      "shock"
+    ],
+    "defences": [
+      "evasion",
+      "energy shield",
+      "life",
+      "deflection"
+    ],
+    "ratings": {
+      "damage": 4,
+      "tankiness": 3,
+      "clear_speed": 4,
+      "bossing": 4,
+      "budget": 2,
+      "complexity": 4,
+      "hardcore": 3
+    },
+    "main_skill": "Falling Thunder",
+    "skills": [
+      {
+        "gem": "Falling Thunder",
+        "supports": [
+          "Lightning Attunement",
+          "Perpetual Charge",
+          "Fist of War II",
+          "Elemental Armament II",
+          "Ricochet I"
+        ]
+      },
+      {
+        "gem": "Storm Wave",
+        "supports": [
+          "Shock",
+          "Lightning Attunement",
+          "Branching Fissures II",
+          "Lightning Exposure",
+          "Elemental Armament II"
+        ]
+      },
+      {
+        "gem": "Siphoning Strike",
+        "supports": [
+          "Elemental Armament II",
+          "Charge Profusion II",
+          "Magnified Area II",
+          "Rapid Attacks II",
+          "Lightning Attunement"
+        ]
+      },
+      {
+        "gem": "Herald of Thunder",
+        "supports": [
+          "Lightning Attunement",
+          "Magnified Area II",
+          "Lightning Mastery"
+        ]
+      },
+      {
+        "gem": "Unbound Avatar",
+        "supports": [
+          "Lightning Mastery",
+          "Prolonged Duration II",
+          "Cooldown Recovery II"
+        ]
+      },
+      {
+        "gem": "Lingering Illusion",
+        "supports": [
+          "Charge Profusion II"
+        ]
+      },
+      {
+        "gem": "Ghost Dance",
+        "supports": [
+          "Cooldown Recovery II"
+        ]
+      },
+      {
+        "gem": "Wind Dancer",
+        "supports": []
+      },
+      {
+        "gem": "Charge Regulation",
+        "supports": []
+      },
+      {
+        "gem": "Elemental Weakness",
+        "supports": [
+          "Heightened Curse"
+        ]
+      }
+    ],
+    "leveling": [
+      {
+        "gem": "Falling Thunder",
+        "supports": [
+          "Lightning Attunement",
+          "Perpetual Charge"
+        ]
+      },
+      {
+        "gem": "Killing Palm",
+        "supports": [
+          "Charge Profusion I"
+        ]
+      },
+      {
+        "gem": "Herald of Thunder",
+        "supports": [
+          "Lightning Attunement"
+        ]
+      },
+      {
+        "gem": "Tempest Flurry",
+        "supports": [
+          "Rapid Attacks I",
+          "Rage I"
+        ]
+      },
+      {
+        "gem": "Storm Wave",
+        "supports": [
+          "Shock",
+          "Lightning Attunement",
+          "Lightning Exposure"
+        ]
+      },
+      {
+        "gem": "Siphoning Strike",
+        "supports": [
+          "Elemental Armament II",
+          "Charge Profusion I"
+        ]
+      },
+      {
+        "gem": "Lingering Illusion",
+        "supports": [
+          "Charge Profusion I"
+        ]
+      },
+      {
+        "gem": "Elemental Weakness",
+        "supports": [
+          "Heightened Curse"
+        ]
+      },
+      {
+        "gem": "Unbound Avatar",
+        "supports": [
+          "Prolonged Duration II",
+          "Cooldown Recovery II"
+        ]
+      },
+      {
+        "gem": "Ghost Dance",
+        "supports": [
+          "Cooldown Recovery II"
+        ]
+      }
+    ],
+    "keystones": [],
+    "key_passives": [
+      "Flow Like Water",
+      "Essence of the Storm",
+      "Killer Instinct",
+      "General Electric",
+      "Endless Circuit",
+      "Dizzying Sweep",
+      "Concussive Attack",
+      "Alternating Current",
+      "Echoing Thunder",
+      "Overflowing Power",
+      "Storm Surge",
+      "Unbound Forces",
+      "Nature's Bite",
+      "Blinding Strike",
+      "Flow State",
+      "Mindful Awareness",
+      "Spectral Ward",
+      "One with the Storm",
+      "The Power Within",
+      "Deadly Force",
+      "Moment of Truth",
+      "For the Jugular",
+      "True Strike",
+      "The Hollowkeeper"
+    ],
+    "ascendancy_passives": [
+      "Shock Effect",
+      "I am the Thunder...",
+      "Elemental Damage",
+      "...and I Shall Rage",
+      "Critical Chance",
+      "Sunder my Enemies...",
+      "Evasion and Energy Shield",
+      "Lead me through Grace..."
+    ],
+    "key_uniques": [
+      "Prism of Belief"
+    ],
+    "gear": "Unarmed with Hollow Palm Technique through most of the campaign: gloves and amulet with + level of melee skills, evasion/ES armour (evasion adds attack speed, ES adds crit while unarmed), rings with flat lightning to attacks. In maps, swap to a crit quarterstaff (Sinister Quarterstaff) with flat lightning, + melee skill levels and attack speed, then refund Hollow Palm. The body armour should be high in evasion and ES because Lead me through Grace turns it into spirit. Cap resistances, add chaos resistance, and get curse protection from The Hollowkeeper. Prism of Belief (+Falling Thunder levels) is the jewel upgrade. No build-enabling unique is needed.",
+    "strengths": [
+      "Every damage skill is lightning (Storm Wave, Siphoning Strike, Falling Thunder, Herald of Thunder), and Tempest Bell is never used",
+      "Big single-target burst once the Storm Wave > Siphoning Strike > Falling Thunder loop is running",
+      "Very fast pack clear from Act 2 on (Rynze: 'entire packs almost instantly')",
+      "SSF-friendly campaign: Rynze finished it with no traded items, and Hollow Palm removes the need for a good early weapon",
+      "Lightning Exposure plus Sunder my Enemies... (crits ignore elemental resistance) keep damage high against resistant enemies"
+    ],
+    "weaknesses": [
+      "Weak Act 1: both source guides say so, and this pure-lightning version gives up the guide's Glacial Cascade boss tool",
+      "Combo rotation plus weapon-set juggling (Storm Wave sits on Weapon Set 2 for the shock nodes)",
+      "Melee: Falling Thunder is a slam cone, so you stand closer to bosses than a ranged build",
+      "Power Charge generation depends on shocking, which is slower against bosses that are hard to shock",
+      "Defences are hybrid evasion/ES with moderate life; there is no block or big armour layer, so hardcore play needs capped resistances, chaos resistance and curse protection",
+      "The endgame setup combines several guides; no single tested PoB exists for it"
+    ],
+    "league_start": true,
+    "sources": [
+      "https://www.poe-vault.com/poe2/monk/invoker/thunderstruck-monk-leveling-build",
+      "https://www.poe-vault.com/poe2/api/build-file?author=lollash&filename=Thunderstruck-Monk-Leveling.build",
+      "https://game8.co/games/Path-of-Exile-2/archives/572012",
+      "https://maxroll.gg/poe2/build-guides/falling-thunder-martial-artist-build-guide",
+      "https://maxroll.gg/poe2/build-guides/storm-wave-monk-leveling-build-guide",
+      "https://maxroll.gg/poe2/resources/invoker-ascendancy",
+      "https://mobalytics.gg/poe-2/builds/everseens-falling-thunder-martial-artist",
+      "https://gamerant.com/path-of-exile-2-tempest-flurry-invoker-build-poe2-leveling/",
+      "https://deltiasgaming.com/path-of-exile-2-0-5-monk-martial-artist-leveling-guide/"
+    ],
+    "videos": [
+      "https://www.youtube.com/watch?v=pVIEENSnYNU"
+    ],
+    "act_plan": [
+      {
+        "stage": "Act 1",
+        "levels": "1-17",
+        "skills": [
+          {
+            "gem": "Falling Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Perpetual Charge"
+            ],
+            "from_level": 1,
+            "note": "Main skill from the start. It fires lightning projectiles only when it consumes Power Charges, so bank charges first."
+          },
+          {
+            "gem": "Killing Palm",
+            "supports": [
+              "Charge Profusion I"
+            ],
+            "from_level": 1,
+            "note": "Charge generator only. Cull weak enemies for Power Charges, then Falling Thunder. Its own hit is physical, so don't attack with it. Drop it in Act 3."
+          },
+          {
+            "gem": "Herald of Thunder",
+            "supports": [],
+            "from_level": 7,
+            "note": "Killing shocked enemies makes your next hits release bolts. This is your pack clear."
+          },
+          {
+            "gem": "Tempest Flurry",
+            "supports": [
+              "Rapid Attacks I",
+              "Rage I"
+            ],
+            "from_level": 9,
+            "note": "Pure-lightning stand-in for the guide's Glacial Cascade (cold). The 4th hit's shocking bolt is your boss damage. Drop it once Siphoning Strike arrives."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Flow Like Water",
+          "Essence of the Storm",
+          "Hollow Palm Technique"
+        ],
+        "ascendancy": [],
+        "gear": "Quarterstaff until Hollow Palm: Long Quarterstaff (~lvl 4), then Gothic Quarterstaff (~lvl 11), with flat lightning, % physical and attack speed; socket runes. Check vendors every town visit. Take Hollow Palm Technique (~lvl 14-16) and unequip the weapon; then hunt gloves and amulet with + level of melee skills. Rings: flat lightning to attacks, life, resistances.",
+        "notes": "Act 1 is this build's slowest act. Kill adds with Killing Palm to bank charges before you slam bosses. Count Geonor hits with cold: raise cold resistance (aim for 65%) and bring a Sapphire Charm. On hardcore, leave the arena rather than chug your last flask."
+      },
+      {
+        "stage": "Act 2",
+        "levels": "17-32",
+        "skills": [
+          {
+            "gem": "Storm Wave",
+            "supports": [
+              "Shock",
+              "Lightning Attunement"
+            ],
+            "from_level": 22,
+            "note": "Cut it from a level-7 uncut gem (the guide does this at 22; earlier if you find one). Put it on Weapon Set 2 so it gets the set-2 shock nodes. Applies shock and clears."
+          },
+          {
+            "gem": "Siphoning Strike",
+            "supports": [
+              "Elemental Armament II",
+              "Charge Profusion I"
+            ],
+            "from_level": 22,
+            "note": "Consumes shock for a shockwave and a Power Charge: your charge engine. Drop Tempest Flurry now."
+          },
+          {
+            "gem": "Falling Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Perpetual Charge"
+            ],
+            "from_level": 17,
+            "note": "Finisher. Loop: Storm Wave > Siphoning Strike > Storm Wave > Falling Thunder."
+          },
+          {
+            "gem": "Herald of Thunder",
+            "supports": [
+              "Lightning Attunement"
+            ],
+            "from_level": 17,
+            "note": "Add Lightning Attunement."
+          },
+          {
+            "gem": "Killing Palm",
+            "supports": [
+              "Charge Profusion I"
+            ],
+            "from_level": 17,
+            "note": "Keep it for extra charges on packs until Act 3."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Killer Instinct",
+          "General Electric",
+          "Endless Circuit",
+          "Dizzying Sweep"
+        ],
+        "ascendancy": [
+          "Shock Effect",
+          "I am the Thunder..."
+        ],
+        "gear": "Gloves and amulet with + level of melee skills (Hollow Palm scales with skill level). Evasion/ES hybrid armour. Flat lightning on rings. Lightning resistance before Jamanra (a Topaz Ring helps).",
+        "notes": "Do the Trial of the Sekhemas at level 20-30 for the first ascension; the guide calls it easy for this build. Skip the guide's Wild Storm notable (it adds cold). Valley of the Titans altar: 30% increased charm charges."
+      },
+      {
+        "stage": "Act 3",
+        "levels": "31-48",
+        "skills": [
+          {
+            "gem": "Falling Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Perpetual Charge",
+              "Fist of War II"
+            ],
+            "from_level": 33,
+            "note": "Put the guaranteed Lesser Jeweller's Orb from Sandswept Marsh on Falling Thunder for Fist of War II."
+          },
+          {
+            "gem": "Storm Wave",
+            "supports": [
+              "Shock",
+              "Lightning Attunement",
+              "Lightning Exposure"
+            ],
+            "from_level": 33,
+            "note": "Lightning Exposure (tier 4, available from Act 3) gives Exposure on shock. It replaces the guide's Frost Bomb, which is cold."
+          },
+          {
+            "gem": "Siphoning Strike",
+            "supports": [
+              "Elemental Armament II",
+              "Charge Profusion I"
+            ],
+            "from_level": 31,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Herald of Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Magnified Area II"
+            ],
+            "from_level": 31,
+            "note": "Bigger bolt area."
+          },
+          {
+            "gem": "Lingering Illusion",
+            "supports": [
+              "Charge Profusion I"
+            ],
+            "from_level": 33,
+            "note": "Dodge-roll copies drop Power Charges when they are destroyed. Replaces Killing Palm."
+          },
+          {
+            "gem": "Elemental Weakness",
+            "supports": [
+              "Heightened Curse"
+            ],
+            "from_level": 33,
+            "note": "Optional boss curse, from FGKorbyn's 0.5 lightning leveling."
+          },
+          {
+            "gem": "Unbound Avatar",
+            "supports": [],
+            "from_level": 40,
+            "note": "Granted by ...and I Shall Rage at the second ascension. Press it on bosses and tough rares once it's charged."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Concussive Attack",
+          "Alternating Current",
+          "Echoing Thunder",
+          "Overflowing Power"
+        ],
+        "ascendancy": [
+          "Elemental Damage",
+          "...and I Shall Rage"
+        ],
+        "gear": "Start capping elemental resistances. Keep upgrading + melee skill levels and evasion/ES. Venom Draught: 25% increased mana regeneration.",
+        "notes": "Do the second ascension trial in Act 3. Before Viper Napuatzi, farm Utzaal or the highest zone you can reach for gear and levels. The path to Echoing Thunder passes through Echoing Frost; that notable does nothing here, so just path through it."
+      },
+      {
+        "stage": "Act 4",
+        "levels": "47-58",
+        "skills": [
+          {
+            "gem": "Falling Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Perpetual Charge",
+              "Fist of War II"
+            ],
+            "from_level": 47,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Storm Wave",
+            "supports": [
+              "Shock",
+              "Lightning Attunement",
+              "Lightning Exposure"
+            ],
+            "from_level": 47,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Siphoning Strike",
+            "supports": [
+              "Elemental Armament II",
+              "Charge Profusion I"
+            ],
+            "from_level": 47,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Herald of Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Magnified Area II"
+            ],
+            "from_level": 47,
+            "note": "Lightning Mastery comes in the Interludes, when tier-5 supports appear."
+          },
+          {
+            "gem": "Lingering Illusion",
+            "supports": [
+              "Charge Profusion I"
+            ],
+            "from_level": 47,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Unbound Avatar",
+            "supports": [
+              "Prolonged Duration II",
+              "Cooldown Recovery II"
+            ],
+            "from_level": 47,
+            "note": "Longer and more frequent Unbound windows."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Storm Surge",
+          "Unbound Forces",
+          "Nature's Bite"
+        ],
+        "ascendancy": [],
+        "gear": "Shift to defence: evasion/ES, life and capped resistances. From late Act 4, look for a quarterstaff with +1/2 melee skills, flat physical or % physical, flat lightning and attack speed. If its skill DPS beats Hollow Palm, equip it and refund Hollow Palm.",
+        "notes": "Eye of Hinekora: take all three resistance tattoos. Tribal Medicine: Rakiata's Lesson (evasion as deflection). Solitary Confinement: increased life flask recovery."
+      },
+      {
+        "stage": "Interludes",
+        "levels": "57-65",
+        "skills": [
+          {
+            "gem": "Falling Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Perpetual Charge",
+              "Fist of War II",
+              "Elemental Armament II"
+            ],
+            "from_level": 57,
+            "note": "Fourth socket: Elemental Armament II."
+          },
+          {
+            "gem": "Storm Wave",
+            "supports": [
+              "Shock",
+              "Lightning Attunement",
+              "Branching Fissures II",
+              "Lightning Exposure"
+            ],
+            "from_level": 57,
+            "note": "Branching Fissures II (tier 5) for screen-wide shocks."
+          },
+          {
+            "gem": "Siphoning Strike",
+            "supports": [
+              "Elemental Armament II",
+              "Charge Profusion I",
+              "Magnified Area II",
+              "Rapid Attacks II"
+            ],
+            "from_level": 57,
+            "note": "Larger, faster shockwaves."
+          },
+          {
+            "gem": "Herald of Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Magnified Area II",
+              "Lightning Mastery"
+            ],
+            "from_level": 57,
+            "note": "Lightning Mastery adds +1 level."
+          },
+          {
+            "gem": "Unbound Avatar",
+            "supports": [
+              "Lightning Mastery",
+              "Prolonged Duration II",
+              "Cooldown Recovery II"
+            ],
+            "from_level": 57,
+            "note": "Adds Lightning Mastery."
+          },
+          {
+            "gem": "Lingering Illusion",
+            "supports": [
+              "Charge Profusion I"
+            ],
+            "from_level": 57,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Ghost Dance",
+            "supports": [
+              "Cooldown Recovery II"
+            ],
+            "from_level": 60,
+            "note": "Use the +40 spirit from defeating Lythara, the Wayward Spear. Ghost Shrouds regenerate ES when you're hit."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Blinding Strike",
+          "Flow State",
+          "Mindful Awareness",
+          "Spectral Ward"
+        ],
+        "ascendancy": [],
+        "gear": "Keep all resistances at 75%. Upgrade flasks: increased amount recovered plus charges per second. Charms: Stone, Thawing and Staunching/Antidote depending on the boss.",
+        "notes": "Skip the guide's Freeze Buildup / Essence of the Mountain branch (it adds cold) and put those points into defence. Don't rush the third trial; finish the campaign first."
+      },
+      {
+        "stage": "Endgame",
+        "levels": "65+",
+        "skills": [
+          {
+            "gem": "Falling Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Perpetual Charge",
+              "Fist of War II",
+              "Elemental Armament II",
+              "Ricochet I"
+            ],
+            "from_level": 65,
+            "note": "Fifth socket: Ricochet I for clear (from maxroll's Falling Thunder setup). Fire it with full Power Charges."
+          },
+          {
+            "gem": "Storm Wave",
+            "supports": [
+              "Shock",
+              "Lightning Attunement",
+              "Branching Fissures II",
+              "Lightning Exposure",
+              "Elemental Armament II"
+            ],
+            "from_level": 65,
+            "note": "Adds Elemental Armament II."
+          },
+          {
+            "gem": "Siphoning Strike",
+            "supports": [
+              "Elemental Armament II",
+              "Charge Profusion II",
+              "Magnified Area II",
+              "Rapid Attacks II",
+              "Lightning Attunement"
+            ],
+            "from_level": 65,
+            "note": "Upgrade Charge Profusion I to II."
+          },
+          {
+            "gem": "Lingering Illusion",
+            "supports": [
+              "Charge Profusion II"
+            ],
+            "from_level": 65,
+            "note": "Upgrade to Charge Profusion II."
+          },
+          {
+            "gem": "Charge Regulation",
+            "supports": [],
+            "from_level": 65,
+            "note": "Charge buff from maxroll's Falling Thunder setup. Take it once you have the spirit."
+          },
+          {
+            "gem": "Wind Dancer",
+            "supports": [],
+            "from_level": 65,
+            "note": "Up to 30% more evasion until you're hit. The first buff to drop if spirit is short."
+          },
+          {
+            "gem": "Elemental Weakness",
+            "supports": [
+              "Heightened Curse"
+            ],
+            "from_level": 65,
+            "note": "Curse bosses before you start the loop."
+          },
+          {
+            "gem": "Herald of Thunder",
+            "supports": [
+              "Lightning Attunement",
+              "Magnified Area II",
+              "Lightning Mastery"
+            ],
+            "from_level": 65,
+            "note": "Clears packs. Same supports as the Interludes."
+          },
+          {
+            "gem": "Unbound Avatar",
+            "supports": [
+              "Lightning Mastery",
+              "Prolonged Duration II",
+              "Cooldown Recovery II"
+            ],
+            "from_level": 65,
+            "note": "Burst window for bosses: pop it with full Power Charges."
+          },
+          {
+            "gem": "Ghost Dance",
+            "supports": [
+              "Cooldown Recovery II"
+            ],
+            "from_level": 65,
+            "note": "Ghost Shrouds restore energy shield when you are hit, based on your evasion. Keep it on."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "One with the Storm",
+          "The Power Within",
+          "Deadly Force",
+          "Moment of Truth",
+          "For the Jugular",
+          "True Strike",
+          "The Hollowkeeper"
+        ],
+        "ascendancy": [
+          "Critical Chance",
+          "Sunder my Enemies...",
+          "Evasion and Energy Shield",
+          "Lead me through Grace..."
+        ],
+        "gear": "Crit quarterstaff (Sinister Quarterstaff) with flat lightning, + melee skill levels and attack speed; refund Hollow Palm once you have one. Body armour with high evasion+ES feeds Lead me through Grace spirit (it disables spirit from other gear). Gloves with flat lightning, amulet with + melee levels. Prism of Belief (+Falling Thunder levels). Cap resistances, raise chaos resistance, and avoid shock-reflect supports.",
+        "notes": "Boss loop: curse > Storm Wave until shocked > Siphoning Strike for charges > Falling Thunder; press Unbound Avatar when it's charged. Faith is a Choice (Meditate, ES overflow) can replace Lead me through Grace if your spirit is fine without it. On hardcore, consider Chaos Inoculation only after you have a large ES pool."
+      }
+    ]
   }
 ]
