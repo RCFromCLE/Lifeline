@@ -86,13 +86,15 @@ fn query(req: &SearchRequest, level: u32) -> Value {
         .filter(|s| !s.is_empty())
         .collect();
     let mut equipment = serde_json::Map::new();
-    let mut weights = Vec::new();
-    for (i, id) in focus.iter().enumerate() {
+    // Every chosen stat is required. A weighted group would rank better, but
+    // the trade site rejects it as "too complex" unless you're logged in.
+    let mut stats = Vec::new();
+    for id in &focus {
         match id.strip_prefix("prop.") {
             Some(key) => {
                 equipment.insert(key.to_owned(), json!({"min": 1}));
             }
-            None => weights.push(json!({"id": id, "value": {"weight": if i == 0 { 2 } else { 1 }}})),
+            None => stats.push(json!({"id": id})),
         }
     }
     if !equipment.is_empty() {
@@ -102,14 +104,16 @@ fn query(req: &SearchRequest, level: u32) -> Value {
         "status": {"option": if req.instant_only { "securable" } else { "available" }},
         "filters": filters,
     });
-    if !weights.is_empty() {
-        q["stats"] = json!([{"type": "weight", "filters": weights, "value": {"min": 1}}]);
+    if !stats.is_empty() {
+        q["stats"] = json!([{"type": "and", "filters": stats}]);
     }
-    // Rank by the primary modifier (a property column, or the weighted
-    // stat group); without one, cheapest first.
-    let sort = match focus.first().map(|id| id.strip_prefix("prop.")) {
-        Some(Some(key)) => json!({ key: "desc" }),
-        Some(None) => json!({"statgroup.0": "desc"}),
+    // Rank by the primary modifier (a property column, or its stat);
+    // without one, cheapest first.
+    let sort = match focus.first() {
+        Some(id) => match id.strip_prefix("prop.") {
+            Some(key) => json!({ key: "desc" }),
+            None => json!({ format!("stat.{id}"): "desc" }),
+        },
         None => json!({"price": "asc"}),
     };
     json!({"query": q, "sort": sort})
@@ -221,8 +225,13 @@ mod tests {
         assert_eq!(q["query"]["filters"]["trade_filters"]["filters"]["price"]["max"], 10.0);
 
         let q = query(&req("pseudo.pseudo_total_life", "prop.ar", true), 30);
-        assert_eq!(q["sort"], json!({"statgroup.0": "desc"}));
-        assert_eq!(q["query"]["stats"][0]["filters"][0]["value"]["weight"], 2);
+        assert_eq!(q["sort"], json!({"stat.pseudo.pseudo_total_life": "desc"}));
+        assert_eq!(q["query"]["stats"], json!([{"type": "and", "filters": [{"id": "pseudo.pseudo_total_life"}]}]));
         assert!(q["query"]["filters"]["trade_filters"].is_null(), "best possible ignores price");
+
+        // Never a weighted group: signed-out searches reject it as too complex.
+        let q = query(&req("explicit.stat_3372524247", "explicit.stat_4220027924", false), 7);
+        assert_eq!(q["query"]["stats"][0]["type"], "and");
+        assert_eq!(q["query"]["stats"][0]["filters"].as_array().unwrap().len(), 2);
     }
 }
