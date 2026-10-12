@@ -197,6 +197,7 @@ function archetypeDetail(a) {
       ${tags(a)}</div></div>
     <p>${esc(a.summary)}</p>${bars(a.ratings)}
     ${actPlan(a.act_plan)}
+    ${a.boss_rotation?.length ? `<div class="d-sec boss-rot"><h3>Boss rotation</h3><ol>${a.boss_rotation.map(s => `<li>${esc(s)}</li>`).join("")}</ol></div>` : ""}
     <div class="d-grid">
       ${list("Endgame skills", a.skills)}
       ${list("Levelling", a.leveling)}

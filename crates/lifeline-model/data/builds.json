@@ -30236,5 +30236,816 @@
         "notes": "Boss loop: curse > Storm Wave until shocked > Siphoning Strike for charges > Falling Thunder; press Unbound Avatar when it's charged. Faith is a Choice (Meditate, ES overflow) can replace Lead me through Grace if your spirit is fine without it. On hardcore, consider Chaos Inoculation only after you have a large ES pool."
       }
     ]
+  },
+  {
+    "id": "sorceress-chronomancer-flameblast-fire",
+    "class": "Sorceress",
+    "ascendancy": "Chronomancer",
+    "name": "Flameblast Ignite Chronomancer (CI)",
+    "summary": "Channel Flameblast to full stages and release one enormous fire hit plus a huge ignite, with Time Freeze holding the boss still and Time Snap resetting your cooldowns for another round. Energy shield with Chaos Inoculation, Phased Form and Temporal Rift keep you alive; you level with Ember Fusillade and Living Bomb until Flameblast unlocks around level 50.",
+    "style": [
+      "caster"
+    ],
+    "damage": [
+      "fire",
+      "ignite"
+    ],
+    "defences": [
+      "energy shield",
+      "chaos inoculation",
+      "delayed damage (Phased Form)",
+      "rewind (Temporal Rift)"
+    ],
+    "ratings": {
+      "damage": 5,
+      "tankiness": 3,
+      "clear_speed": 3,
+      "bossing": 5,
+      "budget": 4,
+      "complexity": 5,
+      "hardcore": 3
+    },
+    "main_skill": "Flameblast",
+    "skills": [
+      {
+        "gem": "Flameblast",
+        "supports": [
+          "Uhtred's Constellation",
+          "Wildfire",
+          "Scouring Flame",
+          "Considered Casting",
+          "Momentum"
+        ]
+      },
+      {
+        "gem": "Frost Bomb",
+        "supports": [
+          "Potent Exposure",
+          "Overabundance II",
+          "Spell Echo",
+          "Prolonged Duration II",
+          "Arbiter's Ignition"
+        ]
+      },
+      {
+        "gem": "Elemental Weakness",
+        "supports": [
+          "Expanse",
+          "Cursed Ground",
+          "Heightened Curse",
+          "Prolonged Duration II"
+        ]
+      },
+      {
+        "gem": "Blasphemy",
+        "supports": [
+          "Magnified Area II",
+          "Seraph's Heart"
+        ]
+      },
+      {
+        "gem": "Temporal Chains",
+        "supports": [
+          "Ritualistic Curse",
+          "Slow Potency"
+        ]
+      },
+      {
+        "gem": "Time Freeze",
+        "supports": [
+          "Prolonged Duration II",
+          "Second Wind III",
+          "Magnified Area II",
+          "Rapid Casting III"
+        ]
+      },
+      {
+        "gem": "Time Snap",
+        "supports": [
+          "Rapid Casting III"
+        ]
+      },
+      {
+        "gem": "Temporal Rift",
+        "supports": [
+          "Cooldown Recovery II"
+        ]
+      },
+      {
+        "gem": "Sigil of Power",
+        "supports": [
+          "Magnified Area II",
+          "Prolonged Duration II",
+          "Rapid Casting III"
+        ]
+      },
+      {
+        "gem": "Convalescence",
+        "supports": [
+          "Second Wind III",
+          "Rapid Casting III",
+          "Prolonged Duration II"
+        ]
+      },
+      {
+        "gem": "Blink",
+        "supports": [
+          "Cooldown Recovery II",
+          "Rapid Casting III",
+          "Mysticism I"
+        ]
+      },
+      {
+        "gem": "Mana Remnants",
+        "supports": [
+          "Khatal's Rejuvenation",
+          "Harmonic Remnants II",
+          "Remnant Potency III"
+        ]
+      }
+    ],
+    "leveling": [
+      {
+        "gem": "Firebolt",
+        "supports": [
+          "Unleash"
+        ]
+      },
+      {
+        "gem": "Frost Bomb",
+        "supports": []
+      },
+      {
+        "gem": "Living Bomb",
+        "supports": [
+          "Overabundance I",
+          "Rapid Casting I"
+        ]
+      },
+      {
+        "gem": "Orb of Storms",
+        "supports": [
+          "Overabundance I",
+          "Unleash"
+        ]
+      },
+      {
+        "gem": "Ember Fusillade",
+        "supports": [
+          "Swift Affliction I",
+          "Compressed Duration I",
+          "Rapid Casting I"
+        ]
+      },
+      {
+        "gem": "Elemental Weakness",
+        "supports": [
+          "Heightened Curse",
+          "Focused Curse"
+        ]
+      },
+      {
+        "gem": "Mana Remnants",
+        "supports": [
+          "Harmonic Remnants I",
+          "Remnant Potency I"
+        ]
+      },
+      {
+        "gem": "Flameblast",
+        "supports": [
+          "Wildfire",
+          "Considered Casting",
+          "Eternal Flame II",
+          "Second Wind II"
+        ]
+      }
+    ],
+    "keystones": [
+      "Chaos Inoculation",
+      "Whispers of Doom"
+    ],
+    "key_passives": [
+      "Temporal Mastery",
+      "Burnout",
+      "Slow Burn",
+      "Firestarter",
+      "Affliction Enforcer",
+      "Stripped Defences",
+      "All Natural",
+      "Elemental Force",
+      "Raw Power",
+      "Practiced Signs",
+      "Efficient Casting",
+      "Roil",
+      "Reverberation",
+      "Explosive Impact",
+      "Volcanic Skin",
+      "Chronomancy",
+      "Preservation",
+      "Zone of Control",
+      "Lingering Whispers",
+      "Pure Energy",
+      "Melding",
+      "Patient Barrier",
+      "Dampening Shield",
+      "Eldritch Will",
+      "Hallowed"
+    ],
+    "ascendancy_passives": [
+      "Phased Form",
+      "Footprints in the Sand",
+      "Unbound Encore",
+      "Ultimate Command"
+    ],
+    "key_uniques": [
+      "Silks of Veneration",
+      "Darkness Enthroned",
+      "Grip of Kulemak",
+      "Prism of Belief"
+    ],
+    "gear": "Scale ENERGY SHIELD and run Chaos Inoculation (about 9k ES in Achaka's PoB). Weapon: a two-handed staff with + to Level of all Fire Spell Skills, increased fire/spell damage, 'Gain % of Damage as Extra Fire Damage' and cast speed (Achaka uses an Ashen Staff; Lazy Exile a Sanctified Staff with the Passion of Aldur rune). Weapon swap: a Chiming Staff (grants Sigil of Power) with ailment magnitude and exposure effect. Armour: ES rares with capped resistances and ES recharge; gloves with ignite/ailment magnitude and ailment duration; boots with movement speed. Get cooldown recovery wherever you can (Grip of Kulemak, jewels, boot rune) and ailment threshold from ES (Hallowed, Eldritch Will, Dampening Shield, Darkness Enthroned) so electrocute and freeze can't lock you. Silks of Veneration turns current ES into elemental damage reduction; Prism of Belief can add Flameblast levels. Don't want CI? Lazy Exile's version is life plus ES (about 1.6k life, 3.7k ES) with 75% chaos resistance.",
+    "strengths": [
+      "Biggest single hit we found for a fire Sorceress: a full 10-stage Flameblast averaged about 1.1 million per hit in Achaka's 0.5 PoB, plus about 470k ignite DPS",
+      "Time Freeze holds the boss still while you channel, and Time Snap resets every cooldown for a second full round",
+      "Strong hardcore toolkit: Phased Form spreads big hits out, Temporal Rift rewinds your life/ES and clears the delayed damage, and Blasphemy-Temporal Chains slows everything",
+      "No minions, totems or summons; Wildfire spreads ignites through packs",
+      "Proven on one life: Achaka ran it on the HC ladder, and MisoxShiru took an HCSSF Flameblast Chronomancer to level 96 and killed the Arbiter",
+      "0.5.5 made no balance changes, so the 0.5 guides and PoBs still apply"
+    ],
+    "weaknesses": [
+      "Very button-heavy boss rotation (Achaka calls it 'piano'); one-shots only happen with the full setup and buffs up",
+      "Flameblast can't be cut until about level 50 and has a 10-second cooldown, so the campaign is played with Ember Fusillade and Living Bomb",
+      "Wants Uhtred's Constellation (a lineage support that drops from Uhtred, the Expedition pinnacle boss) to get three Flameblast uses; budget about 20-50 divines",
+      "CI energy shield has a low physical max hit (about 13k in the PoB), and channelling slows you by 70%",
+      "MisoxShiru's HCSSF character died at level 96 in Expedition to electrocution: stack ailment threshold, carry a Thawing/Grounding charm, and log out when locked",
+      "Time Freeze recast within 30 seconds lasts only half as long"
+    ],
+    "league_start": false,
+    "sources": [
+      "https://pobb.in/-ws_ounvSbMa",
+      "https://forum.gamer.com.tw/Co.php?bsn=82273&sn=9132",
+      "https://mobalytics.gg/poe-2/builds/flameblast-frostflame-nova-all-content-blaster",
+      "https://mobalytics.gg/poe-2/profile/lazy-exile/builds/0-5-flameblast-frostflame-nova-all-content-blaster",
+      "https://www.poebuilds.cc/poe2/build/FIrdL-dVFrI",
+      "https://pobb.in/6qC3_AJPIglX",
+      "https://www.pathofexile.com/forum/view-thread/3768099",
+      "https://maxroll.gg/poe2/resources/chronomancer-ascendancy",
+      "https://maxroll.gg/poe2/news/0-5-5-forbidden-rites-patch-notes",
+      "https://game8.co/games/Path-of-Exile-2/archives/603189",
+      "https://www.poebuilds.cc/poe2?skill=Flameblast",
+      "https://www.poebuilds.cc/poe2/build/08u5dBhFrGM",
+      "https://www.poebuilds.cc/poe2/build/U_n5tNHB9Uo",
+      "https://pobb.in/3CjkokUtCYx4",
+      "https://maxroll.gg/poe2/build-guides/fireball-stormweaver-leveling-guide",
+      "https://game8.co/games/Path-of-Exile-2/archives/488378"
+    ],
+    "videos": [
+      "https://www.youtube.com/watch?v=oNXP_wARq90",
+      "https://www.youtube.com/watch?v=FIrdL-dVFrI",
+      "https://www.youtube.com/watch?v=A6K1I8PU_2s",
+      "https://www.youtube.com/watch?v=TBD5-pYF3dE",
+      "https://www.youtube.com/watch?v=F3uHHAMSmQ8",
+      "https://www.youtube.com/watch?v=BFWm--zRE6M"
+    ],
+    "act_plan": [
+      {
+        "stage": "Act 1",
+        "levels": "1-17",
+        "skills": [
+          {
+            "gem": "Firebolt",
+            "supports": [
+              "Unleash"
+            ],
+            "from_level": 1,
+            "note": "Comes free on an Ashen Staff. Caliathlol uses a Voltaic Staff (Lightning Bolt + Unleash) in Act 1 and switches to the Ashen Staff in Act 2. Either works; take the staff with + to level of all spell skills."
+          },
+          {
+            "gem": "Frost Bomb",
+            "supports": [],
+            "from_level": 1,
+            "note": "Exposure on bosses and rares. It's cold, but only used as a debuff."
+          },
+          {
+            "gem": "Living Bomb",
+            "supports": [
+              "Overabundance I",
+              "Rapid Casting I"
+            ],
+            "from_level": 5,
+            "note": "Plant it on enemies. The explosion leaves a Fire Infusion; pick it up to empower your next spells."
+          },
+          {
+            "gem": "Orb of Storms",
+            "supports": [
+              "Overabundance I",
+              "Unleash"
+            ],
+            "from_level": 5,
+            "note": "Lightning helper from Caliathlol's leveling setup: shocks and makes Lightning Infusions. Drop it next to the fight."
+          },
+          {
+            "gem": "Ember Fusillade",
+            "supports": [
+              "Swift Affliction I",
+              "Compressed Duration I"
+            ],
+            "from_level": 9,
+            "note": "Your main fire damage until Flameblast. Cast it a few times and the embers launch together."
+          },
+          {
+            "gem": "Mana Remnants",
+            "supports": [],
+            "from_level": 12,
+            "note": "Mana sustain once you have Spirit."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Raw Power",
+          "Practiced Signs",
+          "Elemental Force",
+          "Potent Incantation"
+        ],
+        "ascendancy": [],
+        "gear": "Staff with + to Level of all Spell Skills and increased spell damage (Ashen Staff for Firebolt, or a Voltaic Staff like Caliathlol). Life and resistances on every armour piece, movement speed on boots, resistance rings.",
+        "notes": "Boss pattern: Orb of Storms and Frost Bomb down, Living Bomb on the boss, then Ember Fusillade from range. In hardcore, don't stand in melee range to finish a boss; back off and recast."
+      },
+      {
+        "stage": "Act 2",
+        "levels": "17-32",
+        "skills": [
+          {
+            "gem": "Ember Fusillade",
+            "supports": [
+              "Swift Affliction I",
+              "Compressed Duration I",
+              "Rapid Casting I"
+            ],
+            "from_level": 17,
+            "note": "Add the third support when the gem gets a third socket."
+          },
+          {
+            "gem": "Living Bomb",
+            "supports": [
+              "Overabundance I",
+              "Rapid Casting I"
+            ],
+            "from_level": 17,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Orb of Storms",
+            "supports": [
+              "Overabundance I",
+              "Unleash"
+            ],
+            "from_level": 17,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Frost Bomb",
+            "supports": [
+              "Potent Exposure"
+            ],
+            "from_level": 17,
+            "note": "Stronger exposure."
+          },
+          {
+            "gem": "Elemental Weakness",
+            "supports": [
+              "Heightened Curse",
+              "Focused Curse"
+            ],
+            "from_level": 17,
+            "note": "Curse bosses and rares before you burst them."
+          },
+          {
+            "gem": "Firebolt",
+            "supports": [],
+            "from_level": 17,
+            "note": "From the Ashen Staff (Caliathlol switches to it here). Filler damage."
+          },
+          {
+            "gem": "Mana Remnants",
+            "supports": [
+              "Harmonic Remnants I",
+              "Remnant Potency I"
+            ],
+            "from_level": 17,
+            "note": "Mana sustain."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Exploit the Elements",
+          "Empowering Infusions",
+          "Secrets of the Orb"
+        ],
+        "ascendancy": [
+          "Phased Form"
+        ],
+        "gear": "Ashen Staff with spell damage and + to Level of all Spell Skills. Keep life and resistances on armour.",
+        "notes": "First ascendancy: Phased Form. You take 30% less from each hit right away and the delayed 30% four seconds later, so a big hit won't kill you instantly. Empowering Infusions only works if you pick up Living Bomb's Fire Infusions."
+      },
+      {
+        "stage": "Act 3",
+        "levels": "31-48",
+        "skills": [
+          {
+            "gem": "Ember Fusillade",
+            "supports": [
+              "Swift Affliction I",
+              "Compressed Duration I",
+              "Rapid Casting I"
+            ],
+            "from_level": 31,
+            "note": "Still the main damage."
+          },
+          {
+            "gem": "Living Bomb",
+            "supports": [
+              "Overabundance I",
+              "Rapid Casting I",
+              "Deliberation"
+            ],
+            "from_level": 31,
+            "note": "Deliberation: more damage, you move slower while casting."
+          },
+          {
+            "gem": "Frost Bomb",
+            "supports": [
+              "Potent Exposure",
+              "Cooldown Recovery I"
+            ],
+            "from_level": 31,
+            "note": "More uptime."
+          },
+          {
+            "gem": "Orb of Storms",
+            "supports": [
+              "Overabundance I",
+              "Unleash"
+            ],
+            "from_level": 31,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Elemental Weakness",
+            "supports": [
+              "Heightened Curse",
+              "Focused Curse"
+            ],
+            "from_level": 31,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Temporal Rift",
+            "supports": [],
+            "from_level": 38,
+            "note": "From the second ascendancy. Your panic button: it rewinds your position, life and ES a few seconds and removes Phased Form's delayed damage."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Stripped Defences",
+          "Overexposure",
+          "Stormbreaker"
+        ],
+        "ascendancy": [
+          "Footprints in the Sand"
+        ],
+        "gear": "Upgrade the staff (+ to Level of all Spell Skills or + Fire Spell Skills, spell damage). Gloves with life and Intelligence. Keep resistances capped.",
+        "notes": "Second ascendancy: Footprints in the Sand (Temporal Rift). Practice using Rift as soon as a big hit lands, before you are low."
+      },
+      {
+        "stage": "Act 4",
+        "levels": "47-58",
+        "skills": [
+          {
+            "gem": "Ember Fusillade",
+            "supports": [
+              "Swift Affliction I",
+              "Compressed Duration I",
+              "Rapid Casting I"
+            ],
+            "from_level": 47,
+            "note": "Keep it for clearing."
+          },
+          {
+            "gem": "Living Bomb",
+            "supports": [
+              "Overabundance I",
+              "Rapid Casting I",
+              "Deliberation"
+            ],
+            "from_level": 47,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Orb of Storms",
+            "supports": [
+              "Overabundance I",
+              "Unleash",
+              "Rapid Casting I"
+            ],
+            "from_level": 47,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Frost Bomb",
+            "supports": [
+              "Potent Exposure",
+              "Cooldown Recovery I"
+            ],
+            "from_level": 47,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Flameblast",
+            "supports": [
+              "Wildfire",
+              "Considered Casting",
+              "Eternal Flame II",
+              "Second Wind II"
+            ],
+            "from_level": 50,
+            "note": "Cut it from the first level-13 uncut gem (about level 50). Boss nuke only for now: channel to full stages while the boss is frozen or stunned, then release. Second Wind II gives a second use until you get Uhtred's Constellation."
+          },
+          {
+            "gem": "Elemental Weakness",
+            "supports": [
+              "Heightened Curse",
+              "Focused Curse"
+            ],
+            "from_level": 47,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Temporal Rift",
+            "supports": [],
+            "from_level": 47,
+            "note": "Unchanged."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "All Natural",
+          "Efficient Casting",
+          "Temporal Mastery"
+        ],
+        "ascendancy": [],
+        "gear": "Look for a staff with + to Level of all Fire Spell Skills, fire damage and cast speed for Flameblast. Start keeping energy shield armour bases. Pick up cooldown recovery wherever it shows up.",
+        "notes": "In 0.5.5 The Runeseeker quest in Act 4 unlocks the Verisium Anvil, where Kalguuran skills such as Frostflame Nova are made. Flameblast slows you by 70% while you channel, so only channel when the boss is locked down."
+      },
+      {
+        "stage": "Interludes",
+        "levels": "57-65",
+        "skills": [
+          {
+            "gem": "Flameblast",
+            "supports": [
+              "Wildfire",
+              "Considered Casting",
+              "Eternal Flame II",
+              "Second Wind III"
+            ],
+            "from_level": 57,
+            "note": "Becomes your boss skill, and your main skill once Time Snap is in."
+          },
+          {
+            "gem": "Ember Fusillade",
+            "supports": [
+              "Swift Affliction III",
+              "Compressed Duration II",
+              "Rapid Casting II",
+              "Efficiency II"
+            ],
+            "from_level": 57,
+            "note": "Caliathlol's map setup. Keep it for packs until Flameblast's cooldowns let it clear."
+          },
+          {
+            "gem": "Living Bomb",
+            "supports": [
+              "Overabundance I",
+              "Rapid Casting I",
+              "Deliberation"
+            ],
+            "from_level": 57,
+            "note": "Unchanged."
+          },
+          {
+            "gem": "Frost Bomb",
+            "supports": [
+              "Potent Exposure",
+              "Overabundance II",
+              "Spell Echo",
+              "Prolonged Duration II"
+            ],
+            "from_level": 57,
+            "note": "Moving toward Achaka's endgame link."
+          },
+          {
+            "gem": "Temporal Rift",
+            "supports": [
+              "Cooldown Recovery II"
+            ],
+            "from_level": 57,
+            "note": "Panic button more often."
+          },
+          {
+            "gem": "Time Snap",
+            "supports": [
+              "Rapid Casting III"
+            ],
+            "from_level": 60,
+            "note": "After the third ascendancy (about level 60; may slip into early maps). Resets Flameblast's 10-second cooldown."
+          },
+          {
+            "gem": "Blink",
+            "supports": [
+              "Cooldown Recovery II"
+            ],
+            "from_level": 57,
+            "note": "Dodge tool. Caliathlol adds it for maps."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Burnout",
+          "Slow Burn",
+          "Pure Energy",
+          "Roil"
+        ],
+        "ascendancy": [
+          "Unbound Encore"
+        ],
+        "gear": "Fire staff with + to Level of all Fire Spell Skills (Caliathlol runs a Pyrophyte Staff for early maps; it grants Solar Orb). Move armour toward energy shield plus resistances, and start getting ailment threshold.",
+        "notes": "Third ascendancy: Unbound Encore (Time Snap). Turn ignites up (Burnout, Slow Burn). Don't take Chaos Inoculation yet; finish the campaign on life plus ES."
+      },
+      {
+        "stage": "Endgame",
+        "levels": "65+",
+        "skills": [
+          {
+            "gem": "Flameblast",
+            "supports": [
+              "Uhtred's Constellation",
+              "Wildfire",
+              "Scouring Flame",
+              "Considered Casting",
+              "Momentum"
+            ],
+            "from_level": 65,
+            "note": "Achaka's endgame link. Uhtred's gives three uses and more damage for each different cooldown skill you used in the last 8 seconds. Scouring Flame comes from Expedition."
+          },
+          {
+            "gem": "Frost Bomb",
+            "supports": [
+              "Potent Exposure",
+              "Overabundance II",
+              "Spell Echo",
+              "Prolonged Duration II",
+              "Arbiter's Ignition"
+            ],
+            "from_level": 65,
+            "note": "Exposure, and a cooldown skill that counts for Uhtred's."
+          },
+          {
+            "gem": "Elemental Weakness",
+            "supports": [
+              "Expanse",
+              "Cursed Ground",
+              "Heightened Curse",
+              "Prolonged Duration II"
+            ],
+            "from_level": 65,
+            "note": "Expanse gives it a cooldown, so it also counts for Uhtred's."
+          },
+          {
+            "gem": "Blasphemy",
+            "supports": [
+              "Magnified Area II",
+              "Seraph's Heart"
+            ],
+            "from_level": 65,
+            "note": "Meta gem: socket Temporal Chains in it (the next entry). Needs Whispers of Doom for the second curse."
+          },
+          {
+            "gem": "Temporal Chains",
+            "supports": [
+              "Ritualistic Curse",
+              "Slow Potency"
+            ],
+            "from_level": 65,
+            "note": "Socketed in Blasphemy: a slow aura around you."
+          },
+          {
+            "gem": "Time Freeze",
+            "supports": [
+              "Prolonged Duration II",
+              "Second Wind III",
+              "Magnified Area II",
+              "Rapid Casting III"
+            ],
+            "from_level": 75,
+            "note": "From the fourth ascendancy. Stops the boss for the full channel."
+          },
+          {
+            "gem": "Time Snap",
+            "supports": [
+              "Rapid Casting III"
+            ],
+            "from_level": 65,
+            "note": "Resets every cooldown. Use it after the first full round."
+          },
+          {
+            "gem": "Temporal Rift",
+            "supports": [
+              "Cooldown Recovery II"
+            ],
+            "from_level": 65,
+            "note": "Panic rewind."
+          },
+          {
+            "gem": "Sigil of Power",
+            "supports": [
+              "Magnified Area II",
+              "Prolonged Duration II",
+              "Rapid Casting III"
+            ],
+            "from_level": 65,
+            "note": "Granted by a Chiming Staff on weapon swap. Stand in it while you blast."
+          },
+          {
+            "gem": "Convalescence",
+            "supports": [
+              "Second Wind III",
+              "Rapid Casting III",
+              "Prolonged Duration II"
+            ],
+            "from_level": 65,
+            "note": "Instant ES recharge on demand."
+          },
+          {
+            "gem": "Blink",
+            "supports": [
+              "Cooldown Recovery II",
+              "Rapid Casting III",
+              "Mysticism I"
+            ],
+            "from_level": 65,
+            "note": "Reposition."
+          },
+          {
+            "gem": "Mana Remnants",
+            "supports": [
+              "Khatal's Rejuvenation",
+              "Harmonic Remnants II",
+              "Remnant Potency III"
+            ],
+            "from_level": 65,
+            "note": "Mana for long channels."
+          }
+        ],
+        "companions": "",
+        "passives": [
+          "Dampening Shield",
+          "Melding",
+          "Affliction Enforcer",
+          "Firestarter",
+          "Patient Barrier",
+          "Enhanced Barrier",
+          "Eldritch Will",
+          "Chaos Inoculation",
+          "Whispers of Doom",
+          "Zone of Control",
+          "Lingering Whispers",
+          "Chronomancy",
+          "Preservation",
+          "Reverberation",
+          "Explosive Impact",
+          "Hallowed",
+          "Illuminated Crown",
+          "Volcanic Skin",
+          "Ingenuity"
+        ],
+        "ascendancy": [
+          "Ultimate Command"
+        ],
+        "gear": "Achaka's gear: Ashen Staff with +6 Fire Spell Skills, high fire and spell damage and extra fire; Chiming Staff swap for Sigil of Power; Silks of Veneration; Darkness Enthroned; Grip of Kulemak; ES rares with resistances. Buy or farm Uhtred's Constellation.",
+        "notes": "Fourth ascendancy: Ultimate Command (Time Freeze). Respec the leveling nodes (Potent Incantation, Exploit the Elements, Empowering Infusions, Secrets of the Orb, Overexposure, Stormbreaker) into the ES and curse clusters. Take Chaos Inoculation only once your ES pool is well above your life. Respect electrocution and freeze: a CI character that gets locked dies, so log out instead of trying to play out of it."
+      }
+    ],
+    "boss_rotation": [
+      "Before the fight: Temporal Rift and Blasphemy (Temporal Chains) running.",
+      "Swap to the Chiming Staff, drop Sigil of Power, swap back and stand in it.",
+      "Frost Bomb on the boss (exposure) and Elemental Weakness (Expanse). Every different cooldown skill you use adds 8% more Flameblast damage through Uhtred's.",
+      "Time Freeze the boss.",
+      "Channel Flameblast to 10 stages and release on it, then spend the other two Uhtred's uses.",
+      "Time Snap to reset every cooldown and repeat steps 2-5. A Time Freeze recast within 30 seconds only lasts half as long, so put the second round's freeze at the end of the cycle.",
+      "If something goes wrong: Temporal Rift (rewinds life/ES and clears Phased Form's delayed damage), then Blink away."
+    ]
   }
 ]

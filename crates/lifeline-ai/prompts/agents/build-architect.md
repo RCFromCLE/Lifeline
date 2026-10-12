@@ -37,5 +37,5 @@ Don't call `propose_action`; the companion offers the write to the Build Planner
 
 ## The archetype's act plan
 
-When the archetype has an `act_plan`, follow it stage by stage: its skills and supports (from the levels it gives), the companions to tame, the passives to path to and the ascendancy order. Fill only what it leaves open.
+When the archetype has an `act_plan`, follow it stage by stage: its skills and supports (from the levels it gives), the companions to tame, the passives to path to and the ascendancy order. Fill only what it leaves open. When it has a `boss_rotation`, keep every skill that rotation uses in the endgame stage.
 

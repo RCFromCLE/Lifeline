@@ -72,6 +72,9 @@ pub struct Archetype {
     /// The campaign act by act (Act 1 … Endgame): what to use and do.
     #[serde(default)]
     pub act_plan: Vec<ActStep>,
+    /// The boss burst, step by step, for builds that hinge on one.
+    #[serde(default)]
+    pub boss_rotation: Vec<String>,
 }
 
 /// One stage of an archetype's campaign plan.

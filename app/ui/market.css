@@ -63,4 +63,6 @@
 .ap-row ul { margin: 0; padding-left: 18px; }
 .ap-k { color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-size: 12.5px; padding-top: 2px; }
 .ap-sup { color: var(--gold-2); font-size: 13.5px; }
+.boss-rot ol { margin: 0; padding-left: 22px; font-size: 14px; }
+.boss-rot li { margin-bottom: 4px; }
 .ap-note { color: var(--muted); font-size: 13px; }
