@@ -69,7 +69,67 @@ function setBackdrop(name) {
   root.setProperty("--art-pos", `-${f.x * sx}px -${f.y * sy}px`);
 }
 
+// ---- search: typing filters every build, whatever the picks above ----
+let ALL = null; // every build, ranked by the current priorities
+const searchText = () => $("w-search").value.trim().toLowerCase();
+
+/** "no X", "without X" and "-X" hide builds that use X; every other word must match. */
+function parseQuery(q, list) {
+  const want = [], avoid = [];
+  const words = q.split(/\s+/).filter(Boolean);
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (["no", "without", "not"].includes(w) && words[i + 1]) avoid.push(words[++i]);
+    else if (w.startsWith("-") && w.length > 1) avoid.push(w.slice(1));
+    else want.push(w);
+  }
+  const lower = xs => [...new Set(xs.map(x => (x || "").toLowerCase()).filter(Boolean))];
+  return { want, avoid, classes: lower(list.map(a => a.class)), ascs: lower(list.map(a => a.ascendancy)) };
+}
+
+/** True when `text` holds the word (a trailing plural "s" is optional). */
+const has = (text, w) => text.includes(w) || (w.length > 3 && w.endsWith("s") && text.includes(w.slice(0, -1)));
+// Element words match what the build deals, not every mention in its text.
+const ELEMENTS = ["fire", "cold", "lightning", "chaos", "physical", "ignite", "poison", "bleed"];
+
+function searchable(a) {
+  const r = a.ratings || {};
+  const gems = [...(a.skills || []), ...(a.leveling || []), ...(a.act_plan || []).flatMap(s => s.skills || [])].map(s => s.gem);
+  const minion = (a.style || []).includes("minion");
+  const traits = [
+    r.tankiness >= 4 ? "tanky tank" : "", r.damage >= 4 ? "damage dps" : "", r.bossing >= 4 ? "bossing boss killer" : "",
+    r.hardcore >= 4 ? "hardcore safe hc" : "", r.budget <= 2 ? "cheap budget" : "", r.complexity <= 2 ? "easy simple" : "",
+    a.league_start ? "league start starter" : "", minion ? "summoner summons" : "",
+  ];
+  const low = xs => xs.filter(Boolean).join(" | ").toLowerCase();
+  return {
+    all: low([a.name, a.main_skill, a.summary, ...(a.style || []), ...(a.damage || []), ...(a.defences || []),
+      ...gems, ...(a.keystones || []), ...(a.key_uniques || []), ...(a.ascendancy_passives || []), ...traits]),
+    elements: low([a.name, a.main_skill, ...(a.damage || [])]),
+    uses: low([...gems, ...(a.style || []), ...(a.damage || []), minion ? "summons" : ""]),
+    cls: (a.class || "").toLowerCase(),
+    asc: (a.ascendancy || "").toLowerCase(),
+  };
+}
+
+function wordMatches(s, w, p) {
+  const el = w.replace(/s$/, "");
+  if (el.length >= 3 && ELEMENTS.some(e => e.startsWith(el))) return s.elements.includes(el);
+  if (p.classes.includes(w)) return s.cls === w;
+  if (w.length >= 3 && p.classes.some(c => c.startsWith(w))) return s.cls.startsWith(w);
+  if (w.length >= 3 && p.ascs.some(c => c.startsWith(w))) return s.asc.startsWith(w);
+  return has(s.all, w);
+}
+
+function matches(a, p) {
+  const s = searchable(a);
+  return p.want.every(w => wordMatches(s, w, p)) && !p.avoid.some(w => has(s.uses, w));
+}
+
+$("w-search").addEventListener("input", () => renderBuilds());
+
 async function loadShowcase() {
+  ALL = null;
   SHOW = await invoke("showcase", { prefs: prefs() });
   if (SHOW.character.class) setBackdrop(SHOW.character.class);
   renderClasses();
@@ -105,11 +165,21 @@ function renderAscs() {
   }));
 }
 
-function renderBuilds() {
-  const list = SHOW.builds;
+async function renderBuilds() {
+  const q = searchText();
+  $("sub-showcase").classList.toggle("searching", !!q);
+  $("w-pick").textContent = q ? "Matching builds" : "Pick a build";
+  let list = SHOW.builds;
+  if (q) {
+    if (!ALL) ALL = (await invoke("showcase", { prefs: { ...W, class: null, ascendancy: null, styles: [] } })).builds;
+    if (q !== searchText()) return; // a newer keystroke is already rendering
+    const parsed = parseQuery(q, ALL.map(r => r.archetype));
+    list = ALL.filter(r => matches(r.archetype, parsed));
+  }
   $("w-count").textContent = SHOW.total ? `${list.length} of ${SHOW.total}` : "";
   if (!list.length) {
-    $("w-builds").innerHTML = `<p class="hint">${SHOW.total ? "Nothing matches. Loosen the picks above." : "The researched builds are still being added."}</p>`;
+    $("w-builds").innerHTML = `<p class="hint">${q ? `No build matches “${esc(q)}”. Try fewer words.`
+      : SHOW.total ? "Nothing matches. Loosen the picks above." : "The researched builds are still being added."}</p>`;
     return;
   }
   $("w-builds").innerHTML = list.map((r, i) => `<button class="bcard" data-i="${i}">${buildCard(r.archetype, r)}</button>`).join("");

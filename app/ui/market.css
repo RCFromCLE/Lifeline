@@ -66,3 +66,6 @@
 .boss-rot ol { margin: 0; padding-left: 22px; font-size: 14px; }
 .boss-rot li { margin-bottom: 4px; }
 .ap-note { color: var(--muted); font-size: 13px; }
+.build-search { padding: 10px 12px; }
+.build-search input { width: 100%; font-size: 16px; padding: 10px 12px; }
+#sub-showcase.searching .wiz-step { display: none; }

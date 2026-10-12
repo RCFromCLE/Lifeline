@@ -161,15 +161,18 @@
           </div>
         </div>
         <div class="sub active" id="sub-showcase">
-          <div class="card">
+          <div class="card build-search">
+            <input type="search" id="w-search" placeholder="Search builds: fire sorceress · Flameblast · tanky lightning monk no bell" autocomplete="off" spellcheck="false" aria-label="Search builds">
+          </div>
+          <div class="card wiz-step">
             <div class="step-h"><span class="step-n" data-n="1">1</span><h2>Class</h2><span class="hint" id="w-char"></span></div>
             <div class="art-grid" id="w-classes"></div>
           </div>
-          <div class="card">
+          <div class="card wiz-step">
             <div class="step-h"><span class="step-n" data-n="2">2</span><h2>Ascendancy</h2></div>
             <div class="art-grid small" id="w-ascs"></div>
           </div>
-          <div class="card">
+          <div class="card wiz-step">
             <div class="step-h"><span class="step-n" data-n="3">3</span><h2>What matters</h2></div>
             <div class="pref-rows">
               <div class="pref"><span>Focus</span><div class="chips" data-key="focus">
@@ -183,7 +186,7 @@
             </div>
           </div>
           <div class="card">
-            <div class="step-h"><span class="step-n" data-n="4">4</span><h2>Pick a build</h2><span class="hint" id="w-count"></span></div>
+            <div class="step-h"><span class="step-n" data-n="4">4</span><h2 id="w-pick">Pick a build</h2><span class="hint" id="w-count"></span></div>
             <div class="build-grid" id="w-builds"></div>
           </div>
         </div>
