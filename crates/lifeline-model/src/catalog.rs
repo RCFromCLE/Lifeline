@@ -75,6 +75,43 @@ pub struct Archetype {
     /// The boss burst, step by step, for builds that hinge on one.
     #[serde(default)]
     pub boss_rotation: Vec<String>,
+    /// The guide's dated versions (publish date, patch), newest first.
+    #[serde(default)]
+    pub versions: Vec<BuildVersion>,
+    /// When Lifeline added the build (YYYY-MM-DD).
+    #[serde(default)]
+    pub added: String,
+}
+
+/// One dated version of a build's guide.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct BuildVersion {
+    /// Patch it's for: "0.5" or "0.5.5".
+    pub game_version: String,
+    /// Published or updated: "YYYY-MM-DD", or "YYYY-MM" when only the month is known.
+    pub date: String,
+    #[serde(default)]
+    pub note: String,
+    /// The page that shows the date.
+    #[serde(default)]
+    pub url: String,
+    /// The patch was worked out from the date, not stated by the guide.
+    #[serde(default)]
+    pub inferred: bool,
+}
+
+/// "YYYY-MM-DD" or "YYYY-MM".
+fn is_date(s: &str) -> bool {
+    let parts: Vec<&str> = s.split('-').collect();
+    let num = |x: &str, n: usize| x.len() == n && x.bytes().all(|b| b.is_ascii_digit());
+    matches!(parts.as_slice(), [y, m] if num(y, 4) && num(m, 2))
+        || matches!(parts.as_slice(), [y, m, d] if num(y, 4) && num(m, 2) && num(d, 2))
+}
+
+/// "0.5" or "0.5.5".
+fn is_game_version(s: &str) -> bool {
+    let parts: Vec<&str> = s.split('.').collect();
+    (2..=3).contains(&parts.len()) && parts.iter().all(|x| !x.is_empty() && x.bytes().all(|b| b.is_ascii_digit()))
 }
 
 /// One stage of an archetype's campaign plan.
@@ -149,6 +186,25 @@ pub fn check(a: &Archetype, tree: &PassiveTree, data: &GameData) -> Vec<String> 
         if !url.starts_with("https://") {
             p.push(format!("'{url}' must be an https:// link"));
         }
+    }
+    for v in &a.versions {
+        if !is_date(&v.date) {
+            p.push(format!("version date '{}' must be YYYY-MM-DD or YYYY-MM", v.date));
+        }
+        if !is_game_version(&v.game_version) {
+            p.push(format!("game version '{}' must look like 0.5 or 0.5.5", v.game_version));
+        }
+        if !v.url.is_empty() && !v.url.starts_with("https://") {
+            p.push(format!("'{}' must be an https:// link", v.url));
+        }
+    }
+    // A month-only date ("2026-09") may sit on either side of a day in that month.
+    let older = |x: &str, y: &str| if x.len() == 7 || y.len() == 7 { x[..7.min(x.len())] < y[..7.min(y.len())] } else { x < y };
+    if a.versions.windows(2).any(|w| older(&w[0].date, &w[1].date)) {
+        p.push("versions must be newest first".into());
+    }
+    if !a.added.is_empty() && !is_date(&a.added) {
+        p.push(format!("added date '{}' must be YYYY-MM-DD", a.added));
     }
     let check_skill = |s: &SkillDesign, p: &mut Vec<String>| {
         let Some(gem) = data.gem_named(&s.gem) else {
@@ -356,6 +412,14 @@ mod tests {
             },
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn version_dates_and_patches() {
+        assert!(is_date("2026-09-14") && is_date("2026-09"));
+        assert!(!is_date("Sep 2026") && !is_date("2026-9-14"));
+        assert!(is_game_version("0.5") && is_game_version("0.5.5"));
+        assert!(!is_game_version("0.5.") && !is_game_version("v0.5") && !is_game_version("5"));
     }
 
     #[test]

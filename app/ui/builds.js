@@ -38,13 +38,47 @@ function bars(r) {
     `${row("Bossing", r.bossing)}${row("HC safety", r.hardcore, "hc")}</div>`;
 }
 
+// ---- versions: when the guide was published and for which patch ----
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "2026-09-14" → "Sep 14, 2026"; "2026-09" → "Sep 2026". */
+function fmtDate(s) {
+  const [y, m, d] = (s || "").split("-").map(Number);
+  if (!y || !m) return s || "";
+  return d ? `${MONTHS[m - 1]} ${d}, ${y}` : `${MONTHS[m - 1]} ${y}`;
+}
+const patchKey = v => (v || "").split(".").slice(0, 2).map(Number);
+/** True when the guide's patch is older than the newest patch in the catalog. */
+function olderPatch(v) {
+  const latest = SHOW?.latest_patch;
+  if (!v || !latest) return false;
+  const [a, b] = patchKey(v), [c, d] = patchKey(latest);
+  return a < c || (a === c && b < d);
+}
+function versionLine(a) {
+  const v = a.versions?.[0];
+  if (!v) return a.added ? `<div class="ver">Patch unknown · added ${esc(fmtDate(a.added))}</div>` : "";
+  const old = olderPatch(v.game_version);
+  return `<div class="ver${old ? " old" : ""}" title="${v.inferred ? "Patch worked out from the date" : "Patch stated by the guide"}">` +
+    `For ${esc(v.game_version)}${v.inferred ? "*" : ""} · ${esc(fmtDate(v.date))} · v${a.versions.length}${old ? " · older patch" : ""}</div>`;
+}
+function versionsSection(a) {
+  const vs = a.versions || [];
+  if (!vs.length && !a.added) return "";
+  const rows = vs.map((v, i) => `<tr><td><b>v${vs.length - i}</b></td><td>${esc(v.game_version)}${v.inferred ? ` <small title="Worked out from the date">(from date)</small>` : ""}</td>
+      <td>${esc(fmtDate(v.date))}</td><td>${esc(v.note)}</td>
+      <td>${v.url ? `<button class="link" data-url="${esc(v.url)}" title="${esc(v.url)}">${esc(hostOf(v.url))}</button>` : ""}</td></tr>`).join("");
+  return `<div class="d-sec versions"><h3>Versions</h3>
+    ${vs.length ? `<table><thead><tr><th>Version</th><th>Game</th><th>Published</th><th>What</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : `<p class="hint">No dated guide version found.</p>`}
+    ${a.added ? `<p class="hint">Added to Lifeline ${esc(fmtDate(a.added))}.</p>` : ""}</div>`;
+}
+
 function buildCard(a, { score, reasons = [], state } = {}) {
   const extra = reasons.map(why => `<span class="${/Risky|expensive/.test(why) ? "bad" : "good"}">${esc(why)}</span>`);
   return `<div class="top">${portrait(a.class, a.ascendancy, 64)}<div>
       ${state ? `<div class="state">${esc(state)}</div>` : ""}
       <div class="nm">${esc(a.name)}</div><div class="sub2">${esc(a.class)} · ${esc(a.ascendancy)} · ${esc(a.main_skill)}</div></div>
       ${score !== undefined ? `<span class="match" title="How well it fits your picks">${score}<small>% fit</small></span>` : ""}</div>
-    <div class="sum">${esc(a.summary)}</div>${bars(a.ratings)}${tags(a, extra)}`;
+    ${versionLine(a)}<div class="sum">${esc(a.summary)}</div>${bars(a.ratings)}${tags(a, extra)}`;
 }
 
 // ---- showcase ----
@@ -100,6 +134,7 @@ function searchable(a) {
     r.tankiness >= 4 ? "tanky tank" : "", r.damage >= 4 ? "damage dps" : "", r.bossing >= 4 ? "bossing boss killer" : "",
     r.hardcore >= 4 ? "hardcore safe hc" : "", r.budget <= 2 ? "cheap budget" : "", r.complexity <= 2 ? "easy simple" : "",
     a.league_start ? "league start starter" : "", minion ? "summoner summons" : "",
+    ...(a.versions || []).slice(0, 1).map(v => `${v.game_version} patch ${v.game_version}`),
   ];
   const low = xs => xs.filter(Boolean).join(" | ").toLowerCase();
   return {
@@ -267,6 +302,7 @@ function archetypeDetail(a) {
       ${tags(a)}</div></div>
     <p>${esc(a.summary)}</p>${bars(a.ratings)}
     ${actPlan(a.act_plan)}
+    ${versionsSection(a)}
     ${a.boss_rotation?.length ? `<div class="d-sec boss-rot"><h3>Boss rotation</h3><ol>${a.boss_rotation.map(s => `<li>${esc(s)}</li>`).join("")}</ol></div>` : ""}
     <div class="d-grid">
       ${list("Endgame skills", a.skills)}

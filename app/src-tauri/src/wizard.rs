@@ -27,9 +27,16 @@ pub fn catalog() -> Vec<Archetype> {
 pub fn showcase(state: &AppState, prefs: &Preferences) -> Value {
     let all = catalog();
     let ranked = lifeline_model::rank(&all, prefs);
+    // The newest patch any guide is for; builds for an older one get flagged.
+    let latest_patch = all
+        .iter()
+        .filter_map(|a| a.versions.first())
+        .map(|v| v.game_version.clone())
+        .max_by_key(|v| v.split('.').map(|x| x.parse::<u32>().unwrap_or(0)).collect::<Vec<_>>());
     let c = state.character.lock().unwrap().clone();
     json!({
         "total": all.len(),
+        "latest_patch": latest_patch,
         "builds": ranked,
         "character": {"class": c.class, "level": c.level, "name": c.name},
         "classes": classes(state, &all),

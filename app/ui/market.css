@@ -69,3 +69,9 @@
 .build-search { padding: 10px 12px; }
 .build-search input { width: 100%; font-size: 16px; padding: 10px 12px; }
 #sub-showcase.searching .wiz-step { display: none; }
+.ver { font-size: 12.5px; color: var(--muted); margin: 4px 0 2px; letter-spacing: .2px; }
+.ver.old { color: #e0a85a; }
+.versions table { width: 100%; font-size: 13.5px; border-collapse: collapse; }
+.versions td, .versions th { padding: 4px 8px 4px 0; text-align: left; vertical-align: top; }
+.versions th { color: var(--muted); font-weight: normal; font-size: 12.5px; text-transform: uppercase; letter-spacing: .5px; }
+.versions small { color: var(--muted); }
