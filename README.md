@@ -6,6 +6,12 @@
   <b><a href="docs/media/lifeline-showcase.mp4">▶ Watch the full tour (2:24)</a></b>
 </p>
 
+<p align="center">
+  <a href="https://github.com/RCFromCLE/Lifeline/releases/latest"><img alt="Download the latest release" src="https://img.shields.io/github/v/release/RCFromCLE/Lifeline?label=Download%20latest&amp;style=for-the-badge&amp;color=d9a957"></a>
+  <br>
+  <a href="https://github.com/RCFromCLE/Lifeline/releases/latest"><b>Download the latest release</b></a> · Windows 10/11 · uses your Claude Pro or Max plan
+</p>
+
 An AI-assisted, hardcore-first playthrough companion for **Path of Exile 2**,
 written in Rust. It takes a build link, splits it into Act 1 → Act 4 →
 Interludes → Endgame, writes those stages straight into the game's own
