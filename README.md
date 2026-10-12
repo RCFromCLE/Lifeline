@@ -1,5 +1,11 @@
 # Lifeline
 
+<p align="center">
+  <a href="docs/media/lifeline-showcase.mp4"><img src="docs/media/lifeline-preview.gif" width="900" alt="Lifeline in action: searching 165 builds, the numbered passive tree stage by stage, and market upgrades sorted by a modifier"></a>
+  <br>
+  <b><a href="docs/media/lifeline-showcase.mp4">▶ Watch the full tour (2:24)</a></b>
+</p>
+
 An AI-assisted, hardcore-first playthrough companion for **Path of Exile 2**,
 written in Rust. It takes a build link, splits it into Act 1 → Act 4 →
 Interludes → Endgame, writes those stages straight into the game's own
