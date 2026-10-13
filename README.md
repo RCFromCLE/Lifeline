@@ -1,56 +1,68 @@
 # Lifeline
 
 <p align="center">
-  <a href="docs/media/lifeline-showcase.mp4"><img src="docs/media/lifeline-preview.gif" width="900" alt="Lifeline in action: searching 165 builds, the numbered passive tree stage by stage, and market upgrades sorted by a modifier"></a>
+  <a href="docs/media/lifeline-showcase.mp4"><img src="docs/media/lifeline-preview.gif" width="900" alt="Lifeline in action: searching the build list, a build's act-by-act plan, and the numbered passive tree stage by stage"></a>
   <br>
-  <b><a href="docs/media/lifeline-showcase.mp4">▶ Watch the full tour (2:24)</a></b>
+  <b><a href="docs/media/lifeline-showcase.mp4">▶ Watch the full tour (1:34)</a></b>
 </p>
 
 <p align="center">
   <a href="https://github.com/RCFromCLE/Lifeline/releases/latest"><img alt="Download the latest release" src="https://img.shields.io/github/v/release/RCFromCLE/Lifeline?label=Download%20latest&amp;style=for-the-badge&amp;color=d9a957"></a>
   <br>
-  <a href="https://github.com/RCFromCLE/Lifeline/releases/latest"><b>Download the latest release</b></a> · Windows 10/11 · uses your Claude Pro or Max plan
+  <a href="https://github.com/RCFromCLE/Lifeline/releases/latest"><b>Download the latest release</b></a> · Windows 10/11
 </p>
 
-An AI-assisted, hardcore-first playthrough companion for **Path of Exile 2**,
-written in Rust. It takes a build link, splits it into Act 1 → Act 4 →
-Interludes → Endgame, writes those stages straight into the game's own
-**Build Planner**, generates matching **item filters**, watches your game log
-to know where you are, and lets you talk (or type) to Claude about your gear,
-gems, market finds and next steps — controller-first (PS5 DualSense), with full
-mouse/keyboard support.
+**Builds, passives and skills for Path of Exile 2**, built for hardcore. Lifeline does three things:
 
-> Status: early but playable. See [PLAN.md](PLAN.md) for the full,
-> research-grounded plan and roadmap.
+- **Builds.** 165 researched builds across all 8 classes, sourced from guides, videos and Path of Building and checked against the current game data. Search them, read each one's plan and sources, and send a build straight into the game's own **Build Planner**.
+- **Passives.** It reads your game log, so it knows which passives you've taken. It shows the next ones to take, in order, on a numbered tree, and which stat to pick on every attribute node.
+- **Skills.** The skills and support gems for each stage of the campaign: only supports you can cut at that point and that fit your weapon. Plus rotations named for your controller or keys.
+
+It never touches the game. It reads the game's log file and Build Planner folder, and writes build files into that folder only when you ask.
+
+## What's in it
+
+**Builds**
+- Search as you type: class, ascendancy, skill, damage type or traits ("tanky", "cheap", "hardcore safe"). "no bell" or "no minions" hides builds that use them.
+- Or pick step by step: class → ascendancy → what matters (damage or tanky, style, budget, complexity), with a % fit for each build.
+- Every build is rated for damage, tankiness, clear speed, bossing, hardcore safety, budget and complexity.
+- Every build shows which game patch its guide is for, when it was published, and its version history, with links to every source.
+- Featured builds have an act-by-act plan (skills and supports with the level to start each, passives, ascendancy order, gear and boss tips) and a step-by-step boss rotation.
+- **Create full build** plans every stage from Act 1 to Endgame for any build in the list.
+- **Import** a Path of Building code or link.
+- **Send to game planner** writes each stage into Path of Exile 2's Build Planner. You can also follow or delete the builds already in there.
+
+**Passives**
+- How much of the plan you've taken, the next passives in order, and anything off-plan.
+- The passive tree with the plan numbered in the order to take it, stage by stage.
+- The stat (Strength, Dexterity or Intelligence) to pick on each "+5 to any Attribute" node, worked out from the plan's gems and gear goals.
+
+**Skills**
+- The skills and supports to socket for your current stage.
+- **Suggest skills & rotations**: which button each skill goes on, why each support is there, and rotations for clearing, bossing and emergencies.
+
+**Dashboard**
+- A second-screen view of your skills, supports and next passives. Hover a notable to see what it does.
+
+## Do I need a Claude subscription?
+
+No. Two buttons use AI, and they run on your own Claude Pro or Max plan through Claude Code (no API key, no extra bill):
+
+- **Create full build**
+- **Suggest skills & rotations**
+
+Everything else works without it: the build list, search, build pages, Path of Building import, the game planner, passive tracking, the tree and the dashboard.
 
 ## Install
 
-You need:
-- **Windows 10 or 11**
-- **Path of Exile 2** (Steam on any drive, or the standalone client)
-- A **Claude Pro or Max** subscription. Lifeline's AI runs on your own plan, with no API key and no extra bill.
+You need **Windows 10 or 11** and **Path of Exile 2** (Steam on any drive, or the standalone client).
 
-You don't need any developer tools.
-
-### 1. Download
-
-Go to **https://github.com/RCFromCLE/Lifeline/releases/latest**. Under **Assets**, download **`Lifeline_<version>_x64-setup.exe`**.
-
-### 2. Install
-
-1. Double-click the downloaded file.
-2. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway**. The installer isn't code-signed yet, so Windows warns about it.
+1. Go to **https://github.com/RCFromCLE/Lifeline/releases/latest**. Under **Assets**, download **`Lifeline_<version>_x64-setup.exe`**.
+2. Double-click it. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway** (the installer isn't code-signed yet).
 3. Click through the installer. It installs just for your user, so it doesn't need admin rights.
 4. Start **Lifeline** from the Start menu.
 
-### 3. The welcome takes it from there
-
-On first start, Lifeline walks you through everything:
-1. **Connect Claude:** it checks for Claude Code (Anthropic's free app that Lifeline runs your AI through) and Git for Windows. Missing pieces get **Install** buttons; then **Sign in** opens your browser to log in with your Claude account. Each step ticks off by itself.
-2. **Your game:** it finds PoE2 and asks how you play (PlayStation controller, Xbox controller, or mouse and keyboard) and your league.
-3. **How it works:** a one-page tour of the HUD, hotkeys, builds, rating, market and sounds.
-
-You can reopen the tour any time from **Settings → Welcome tour**.
+On first start, a short welcome asks how you play (PlayStation controller, Xbox controller, or mouse and keyboard) and offers to connect Claude. You can skip that step and connect later from **Settings → Welcome tour**.
 
 <details><summary>Prefer to set up Claude Code by hand?</summary>
 
@@ -60,125 +72,59 @@ irm https://claude.ai/install.ps1 | iex  # Claude Code
 claude auth login --claudeai             # sign in with your Claude account (opens the browser)
 ```
 </details>
+
 ### Good to know
 
-- **PoE2 display mode:** Options → Graphics → Display Mode → **Windowed Fullscreen**.
-  The HUD can't draw over exclusive fullscreen.
-- **Game log:** found automatically in any Steam library or the standalone folder.
-  If the HUD says it wasn't found, start the game once; the app keeps checking.
-- **League:** *Hotkeys & settings* tab (default **HC Forbidden Rites**).
-- **Trade:** on the **Play** tab, click **Trade site login** once and log in to
-  pathofexile.com. The *Travel to hideout* buttons need this.
-- **Your gear:** in game, hover each item you're wearing and press **Alt+Shift+E**.
-  This powers the ±% on market cards and the build rating.
-- **HUD:** a small bar of buttons in the top-left corner. It only shows while PoE2 is running and in front;
-  when the app is in front it shrinks to just the grade. Drag the Lifeline logo on its left to move it (remembered).
-  Buttons: grade (click to rate; hover for why), resistance penalty (▲ = the next act lowers it),
-  🔍 check item, → what next, ⚡ rotation, 🛡 record gear, 💬 open app, ✕ hide.
-- **Sounds:** short cues for a new act, entering a boss area, a resistance penalty drop and answers being ready.
-  Level-up and death sounds are off unless you turn them on. Switch each cue on or off, preview it, or change the volume in *Settings → Sounds*.
+- **Game log:** found automatically in any Steam library or the standalone folder. If Lifeline says it wasn't found, start the game once; the app keeps checking.
+- **Passives come from the log.** Lifeline sees a passive when you allocate it while the log is being written, so it knows about passives taken since you started playing that character on this PC.
+- **Gems aren't in the log.** The skills shown are the plan to socket, not what you have socketed.
+- **Your data** lives in `%APPDATA%\com.rudyc.lifeline` and is separate on each PC.
 
-### Upgrading from 0.1.x (when it was called "PathOfLeastResistance")
+### Updating and uninstalling
 
-The app is now **Lifeline**, so Windows sees it as a new program:
-1. Install Lifeline as above.
-2. Uninstall the old one: Windows Settings → Apps → Installed apps → **PathOfLeastResistance** → Uninstall.
+- **Update:** the app tells you when a new release is out. Download the newest `…_x64-setup.exe` and run it; your saved builds and settings are kept.
+- **Uninstall:** Windows Settings → Apps → Installed apps → **Lifeline** → Uninstall.
 
-On its first start, Lifeline copies your settings, chats, ratings, saved builds and recorded gear from the old app.
+### Upgrading from 0.5 or earlier
 
-### Updating
-
-Download the newest `…_x64-setup.exe` from the same Releases page and run it.
-Your settings, conversations, ratings and recorded gear are kept. They live in
-`%APPDATA%\com.rudyc.lifeline` and are separate on each PC.
-
-### Uninstalling
-
-Windows Settings → Apps → Installed apps → **Lifeline** → Uninstall.
+Version 0.6 narrowed Lifeline to builds, passives and skills. Chat, item checks, rating, the market and Travel, gear recording, zone resistances, the in-game HUD, hotkeys and sound cues were removed. Your saved builds and the build you follow carry over. Old chats, ratings and recorded gear stay on disk in `%APPDATA%\com.rudyc.lifeline` but are no longer used; you can delete `conversations.json`, `rating.json` and `equipped.json` there.
 
 ### Troubleshooting
 
-- **AI answers fail or say Claude Code isn't found:** open a new PowerShell and run
-  `claude --version`. If that fails, redo step 1. If it works, run `claude` once to make
-  sure you're still logged in.
-- **A hotkey does nothing:** another program may own it. Change it in *Hotkeys & settings*.
-- **Anything else:** the app writes a diagnostics log to
-  `%APPDATA%\com.rudyc.lifeline\debug.log`.
-## Layout
+- **Create full build or Suggest skills fails, or says Claude Code isn't found:** open a new PowerShell and run `claude --version`. If that fails, install Claude Code (Settings → Welcome tour). If it works, run `claude` once to make sure you're still logged in.
+- **Anything else:** the app writes a diagnostics log to `%APPDATA%\com.rudyc.lifeline\debug.log`.
+
+## For developers
 
 ```
-PLAN.md                    the plan (start here)
 Cargo.toml                 Rust workspace
 crates/
-  lifeline-gamefiles/          files the PoE2 client reads/writes:
-                             BuildPlanner/*.build, logs/Client.txt events,
-                             poe2_production_Config.ini
-  lifeline-pob/                Path of Building codes + share links, build XML,
-                             stage classification, PoB's level estimator
-  lifeline-ai/                 drives your own Claude Code CLI (subscription login):
-                             companion + 9 specialist agents (build architect,
-                             auditor, gear appraiser, market scout, HC safety
-                             officer, route coach, filter smith, fact checker,
-                             patch analyst), background jobs, usage meters
-  lifeline-data/               GGG's official passive-tree export
-  lifeline-model/              PoB build → stages → in-game .build files
+  lifeline-gamefiles/      files the PoE2 client reads and writes: BuildPlanner/*.build, logs/Client.txt events
+  lifeline-pob/            Path of Building codes and share links, build XML, stage classification
+  lifeline-data/           GGG's passive-tree export and RePoE game data (gems, supports, bases, mods)
+  lifeline-model/          the build list, PoB build → stages → in-game .build files, attribute picks, support rules
+  lifeline-ai/             runs your own Claude Code CLI for the two AI jobs (build architect, skill coach)
 app/
-  src-tauri/               the desktop app (Tauri 2): hotkeys, HUD overlay, log
-                             watcher, build import/export, Opus 5.5 companion
-  ui/                      main window + overlay (HTML/CSS/JS)
+  src-tauri/               the desktop app (Tauri 2): log watcher, build import and export, tool server
+  ui/                      main window and dashboard (HTML/CSS/JS)
 ```
 
-Next crates (MCP tools, filters, trade, controller input, voice, hardcore
-suite) are scheduled in PLAN.md §11 and §13.
-
-## Using it
-
-| Hotkey (default, change in *Hotkeys & settings*) | What it does |
-|---|---|
-| `Alt+Shift+D` | **Item check** — with an item hovered in PoE2, sends one Ctrl+Alt+C, the Opus 5.5 gear appraiser judges it, answer shows on the HUD |
-| `Alt+Shift+N` | **What next** — route coach's next 1–3 steps for where you are |
-| `Alt+Shift+A` | **Ask** — brings the app up with the chat focused |
-| `Alt+Shift+O` | **HUD on/off**: the small button bar. It only shows while the game is running and in front. |
-| `Alt+Shift+E` | **Record equipped** — hover an item you're wearing; used for ±% on market cards and the build rating |
-| `Alt+Shift+M` | **Move HUD**: unlock to drag, press again to lock. The ⠿ handle always drags it too. |
-
-Click the **grade** on the overlay to rate your build (F → S+ for where you are in the campaign; hover for the why). The **Rating** tab shows the breakdown and market picks for the top upgrades within your budget (market searches run on Sonnet 5.5).
-
-Tabs: **Play** (parallel conversations that know about each other, live game feed, usage meters; ask the market in plain words — the market scout searches, ranks listings for your build and gives you a **Travel to hideout** button; press **Trade site login** once first), **Builds**:
-- **Showcase:** pick a class, then an ascendancy (with the game's own portraits), then what matters (damage, balanced or tanky; style; budget; complexity). You get ranked, researched hardcore builds with rating bars. **Create full build** designs Act 1 to Endgame for the pick: passive paths fit within each stage's points, and gems and supports are checked against game data.
-- **My builds:** saved ideas and generated builds. **Use it** makes one your active build, and one click writes it to the in-game Build Planner.
-- **Import:** paste a Path of Building code or link.
-
-**Hotkeys & settings**
-(hotkeys, league — default HC Forbidden Rites). Play PoE2 in windowed fullscreen for the overlay.
-
-## Building from source (developers)
-
-- Rust (stable, via rustup) and the Visual Studio 2022 Build Tools
-  ("Desktop development with C++") — needed to compile.
-- WebView2 runtime — already present on Windows 11.
-- Claude Code CLI, logged in with your Claude Pro/Max subscription — the app
-  talks to Claude through it (PLAN.md §6).
+Building needs Rust (stable, via rustup), the Visual Studio 2022 Build Tools ("Desktop development with C++") and the WebView2 runtime (already on Windows 11).
 
 ```powershell
-cargo build --release -p lifeline-app          # dev build: .\target\release\Lifeline.exe
+cargo test --workspace                          # offline tests
+cargo build --release -p lifeline-app           # dev build: .\target\release\Lifeline.exe
 cargo install tauri-cli --version "^2" --locked
-cd app\src-tauri; cargo tauri build       # installer: target\release\bundle\nsis\*-setup.exe
-cargo test --workspace                     # offline tests
-cargo run -p lifeline-ai --example smoke       # live check against your Claude Code login (uses a little usage)
+cd app\src-tauri; cargo tauri build             # installer: target\release\bundle\nsis\*-setup.exe
 ```
 
-### Publishing a new version
+**Publishing a version:** bump `version` in `app/src-tauri/tauri.conf.json` and in `[workspace.package]` of the root `Cargo.toml`, commit, then `git tag vX.Y.Z; git push origin main --tags`. GitHub Actions builds the installer and attaches it to that tag's release, with checksums and signed build provenance.
 
-1. Bump `version` in `app/src-tauri/tauri.conf.json` and in `[workspace.package]` of the root `Cargo.toml`, then commit.
-2. `git tag v0.1.1; git push origin main --tags`.
-
-GitHub Actions (`.github/workflows/release.yml`) builds the Windows installer and attaches it to
-that tag's release. The laptop then downloads it as described above.
+[PLAN.md](PLAN.md) is the original, much broader plan and research notes; the app has since been narrowed to what's described here.
 
 ## License and disclaimer
 
-Lifeline is free software under the [MIT License](LICENSE). It is provided **as is, without warranty of any kind**, and you use it **at your own risk**. Its author isn't liable for any loss or damage from using it, including (but not limited to) dead hardcore characters, lost items or currency, trades, problems with your computer or data, or action taken against your account by Grinding Gear Games. Build data, ratings and AI answers can be wrong: check before you act on them. Using it within Path of Exile 2's terms of service is your responsibility.
+Lifeline is free software under the [MIT License](LICENSE). It is provided **as is, without warranty of any kind**, and you use it **at your own risk**. Its author isn't liable for any loss or damage from using it, including (but not limited to) dead hardcore characters, problems with your computer or data, or action taken against your account by Grinding Gear Games. Build data and AI suggestions can be wrong: check before you act on them. Using it within Path of Exile 2's terms of service is your responsibility.
 
 Found a security problem? See [SECURITY.md](SECURITY.md).
 

@@ -15,22 +15,21 @@ Fixes ship as a new release; the app tells users when one is out.
 ## What Lifeline does on your PC
 
 - Reads Path of Exile 2's log file and Build Planner folder, and writes build files into that folder when you ask.
-- Sends one copy keystroke to the game only when you press a Lifeline hotkey (item check or gear recording).
-  Nothing else can trigger it: not a button, not the AI, not a web page. It never reads or changes game memory.
-- Runs Claude Code with your own account for AI features. Its built-in tools are limited to web search and web fetch
-  plus Lifeline's own game-data tools; everything else (running commands, editing files) is denied.
-- Talks to pathofexile.com (trade site) without your session cookie, and to GitHub to check for updates.
+- Never sends input to the game, and never reads or changes game memory.
+- Runs Claude Code with your own account for two buttons only: Create full build and Suggest skills & rotations.
+  Its built-in tools are limited to web search and web fetch plus Lifeline's own game-data lookups; everything else
+  (running commands, editing files) is denied.
+- Talks to GitHub (updates, class art, game data), pobb.in-style sites when you import a build link, and the PoE2 wiki.
+  It never talks to pathofexile.com and never uses a game or trade-site login.
 
 ## How it's protected
 
 - **Strict Content Security Policy.** The app's pages can only run Lifeline's own scripts and load images from the
-  trade site's image server and GitHub. Text from trade listings, AI answers, imported builds, the clipboard and the
-  game log is always escaped before it is shown.
-- **The AI can't act on its own.** Travelling to a seller, opening a trade search, writing build files and switching
-  the build you follow each need you to press a button that says exactly what it does.
+  app itself and GitHub. Text from imported builds, AI output and the game log is always escaped before it is shown.
+- **The AI can't act on its own.** A build it designs goes to My builds; following it or writing it into the game's
+  Build Planner is a button you press.
 - **Imported data is treated as data.** Build codes and planner files have size limits, file names can't leave the
   Build Planner folder, and names from imported builds are stripped to plain text before the AI sees them.
-- **The trade window** always shows which site it is on in its title, and only pathofexile.com can report a travel result.
 - **The local tool server** listens on 127.0.0.1 only, with a random token for each launch.
 
 ## Automated scanning

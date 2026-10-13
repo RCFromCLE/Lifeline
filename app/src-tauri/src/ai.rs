@@ -1,133 +1,46 @@
-//! Turns questions (typed, or from hotkeys) into Claude companion turns.
-//! Each conversation is its own Claude session and several can run at once;
-//! every turn is told what the other open conversations are about.
+//! Claude Code for the two things Lifeline's AI does: create a full build
+//! from a showcase pick (build architect) and suggest skills and rotations
+//! (skill coach). Each is a one-shot job with its own tool scope.
 
 use std::sync::Once;
 
-use lifeline_ai::{agents, ClaudeCli, CliEvent};
-use lifeline_model::skills_for_stage;
+use lifeline_ai::{agents, ClaudeCli};
 use lifeline_pob::Stage;
-use serde_json::json;
-use tauri::{AppHandle, Emitter, Manager};
 
-use crate::state::{AppState, Message};
+use crate::state::AppState;
 
-/// Where the question came from; hotkey answers go to the in-game thread and
-/// the overlay.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Origin {
-    Chat,
-    Hotkey,
-}
-
-pub(crate) fn companion(state: &AppState, conv: u64) -> Result<ClaudeCli, String> {
+/// A Claude Code run for a job, wired to Lifeline's game-data tools under
+/// `scope` (so the tool server knows which job is calling).
+pub(crate) fn job_cli(state: &AppState, scope: u64) -> Result<ClaudeCli, String> {
     static WRITE_AGENTS: Once = Once::new();
     let work = state.data_dir.join("claude");
     std::fs::create_dir_all(&work).map_err(|e| e.to_string())?;
-    // Concurrent turns share one agents file; write it once per launch.
+    // Concurrent jobs share one agents file; write it once per launch.
     WRITE_AGENTS.call_once(|| {
         let _ = agents::write_agents_file(&work);
     });
     let mut cli = ClaudeCli::new(work.clone());
     cli.agents_file = Some(work.join(agents::AGENTS_FILE));
+    // The architect consults its two checkers through the Agent tool.
     cli.builtin_tools.push("Agent".into());
     cli.allowed_tools.push("Agent".into());
-    if let Some(config) = crate::mcp::config_for(state, conv) {
-        let path = work.join(format!("mcp-{conv}.json"));
+    if let Some(config) = crate::mcp::config_for(state, scope) {
+        let path = work.join(format!("mcp-{scope}.json"));
         std::fs::write(&path, config).map_err(|e| e.to_string())?;
         cli.mcp_config = Some(path);
-        cli.allowed_tools
-            .extend(lifeline_ai::tools::qualified(lifeline_ai::tools::IMPLEMENTED));
+        cli.allowed_tools.extend(lifeline_ai::tools::qualified(lifeline_ai::tools::ALL));
     }
     cli.disallowed_tools = agents::BUILT_IN_AGENTS.iter().map(|a| format!("Agent({a})")).collect();
     Ok(cli)
 }
+
+/// The plan stage for where the character is.
 pub fn current_stage(act: Option<u8>, area_level: u32) -> Stage {
     match act {
         Some(n) => Stage::Act(n),
         None if area_level >= 65 => Stage::Endgame,
         None => Stage::Interludes,
     }
-}
-
-/// Live context attached to every question until the MCP tools land (M3).
-fn context(state: &AppState) -> String {
-    let c = state.character.lock().unwrap().clone();
-    let (league, input) = {
-        let s = state.settings.lock().unwrap();
-        (s.league.clone(), s.input.clone())
-    };
-    let mut lines = vec![
-        "[Live context from Lifeline. The lifeline tools are connected: live character state, the imported build, \
-         game data for the current patch (gems, supports, item bases, mods, uniques, passives, areas) and the trade market. \
-         Look facts up with them first; use the web only for what they don't cover (boss mechanics, patch notes) and say \
-         what you could not verify.]"
-            .to_string(),
-        format!("League: {league}"),
-        format!("Controls: {}", crate::state::controls(&input)),
-    ];
-    match &c.name {
-        Some(name) => lines.push(format!("Character: {name} ({}) level {}", c.class, c.level)),
-        None => lines.push("Character: unknown (no level-up seen in the log yet)".into()),
-    }
-    if !c.zone.is_empty() {
-        let act = c.act.map_or("not campaign".to_string(), |a| format!("Act {a}"));
-        lines.push(format!(
-            "Zone: {} ({}, area level {}, {act})",
-            c.zone, c.area_id, c.area_level
-        ));
-    }
-    if let Some(p) = c.res_penalty {
-        lines.push(format!("Elemental resistance penalty in this area: {p}%"));
-    }
-    // What the HUD shows: the resistances that matter in this zone (researched).
-    let r = crate::resists::summary(state);
-    let focus: Vec<&str> = r["focus"]["resists"].as_array().into_iter().flatten().filter_map(|v| v.as_str()).collect();
-    if !focus.is_empty() || r["focus"]["physical"] == true {
-        lines.push(format!(
-            "Resistances that matter most in {}: {} ({})",
-            r["zone"].as_str().unwrap_or("this zone"),
-            if focus.is_empty() { "physical defences, no elemental threat".into() } else { focus.join(", ") },
-            r["focus"]["why"].as_str().unwrap_or_default()
-        ));
-    }
-    lines.push(format!("Deaths this character: {}", c.deaths));
-    if !c.buffs.is_empty() {
-        lines.push(format!("Permanent buffs collected: {}", c.buffs.join("; ")));
-    }
-    if let Some(imported) = state.imported.lock().unwrap().as_ref() {
-        let stage = current_stage(c.act, c.area_level);
-        let skills: Vec<String> = skills_for_stage(&imported.build, stage)
-            .iter()
-            .map(|s| {
-                let supports: Vec<String> = s
-                    .support_skills
-                    .iter()
-                    .map(|x| crate::gamedata::gem_display(state, &x.id))
-                    .collect();
-                if supports.is_empty() {
-                    crate::gamedata::gem_display(state, &s.id)
-                } else {
-                    format!(
-                        "{} [{}]",
-                        crate::gamedata::gem_display(state, &s.id),
-                        supports.join(", ")
-                    )
-                }
-            })
-            .collect();
-        lines.push(format!(
-            "Imported build: {} — {} plan skills: {}",
-            tidy(&imported.name, 60),
-            lifeline_model::stage_label(stage),
-            if skills.is_empty() {
-                "(none listed)".into()
-            } else {
-                skills.join("; ")
-            }
-        ));
-    }
-    lines.join("\n")
 }
 
 /// A name from outside (an imported build, a planner file, a gem id) as it
@@ -141,300 +54,9 @@ pub fn tidy(text: &str, max: usize) -> String {
     kept.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(max).collect()
 }
 
-fn clip(text: &str, max: usize) -> String {
-    let flat: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    if flat.chars().count() <= max {
-        flat
-    } else {
-        format!("{}…", flat.chars().take(max).collect::<String>())
-    }
-}
-
-/// What the other open conversations are about, so threads stay aware of
-/// one another (decisions made in one apply in the others).
-fn awareness(state: &AppState, conv_id: u64) -> String {
-    let convs = state.conversations.lock().unwrap();
-    let others: Vec<String> = convs
-        .iter()
-        .filter(|c| c.id != conv_id && !c.messages.is_empty())
-        .rev()
-        .take(6)
-        .map(|c| {
-            let last_q = c.messages.iter().rev().find(|m| m.role == "user");
-            let last_a = c.messages.iter().rev().find(|m| m.role == "ai" && !m.error);
-            let mut line = format!(
-                "- #{} \"{}\"{}",
-                c.id,
-                c.title,
-                if c.busy { " (answering right now)" } else { "" }
-            );
-            if let Some(q) = last_q {
-                line.push_str(&format!("\n  last asked: {}", clip(&q.text, 300)));
-            }
-            if let Some(a) = last_a {
-                line.push_str(&format!("\n  last answer: {}", clip(&a.text, 600)));
-            }
-            line
-        })
-        .collect();
-    if others.is_empty() {
-        return String::new();
-    }
-    format!(
-        "\n\n[Other conversations the player has open in this app. They are the same player and character: \
-         treat decisions, items and plans from them as known, refer to them by #number when relevant, and \
-         point out conflicts.]\n{}",
-        others.join("\n")
-    )
-}
-
-fn emit(app: &AppHandle, conv: u64, mut payload: serde_json::Value) {
-    payload["conv"] = json!(conv);
-    let _ = app.emit("ai", payload);
-}
-
-/// Asks in conversation `conv` (or the in-game thread for hotkeys / `None`).
-/// Plain words for what the AI is doing (tool ids aren't for players).
-fn friendly_tool(name: &str) -> &'static str {
-    let short = name.rsplit("__").next().unwrap_or(name);
-    match short {
-        "trade_search" | "trade_find_stat" | "rate_listings" => "searching the market…",
-        "price" => "checking prices…",
-        "build_plan" | "build_alignment" | "design_build" => "reading your build…",
-        "character_state" | "equipped_items" => "checking your character…",
-        "propose_action" => "preparing a button…",
-        s if s.starts_with("gem") || s.starts_with("support") || s.contains("passive") || s.contains("game_data") || s.contains("area") || s.contains("unique") || s.contains("base") || s.contains("mod") => "looking up game data…",
-        "WebSearch" | "WebFetch" => "checking the web…",
-        _ => "thinking…",
-    }
-}
-
-/// What the chat shows for a button's built-in question (the AI still gets
-/// the full instructions).
-pub fn shown(question: &str) -> &str {
-    match question {
-        q if q == BUILD_CHECK => "How well do I line up with my build?",
-        q if q == WHAT_NEXT => "What should I do next?",
-        q if q == CREATE_BUILD => "Create a full build for me.",
-        q => q,
-    }
-}
-
-pub fn ask(app: &AppHandle, conv: Option<u64>, question: String, label: &str, origin: Origin) {
-    let display = shown(&question).to_owned();
-    ask_as(app, conv, question, display, label, origin);
-}
-
-/// Like [`ask`], with the words the chat shows for the question (`display`)
-/// separate from what the AI is sent (`question`, e.g. full listing details).
-pub fn ask_as(app: &AppHandle, conv: Option<u64>, question: String, display: String, label: &str, origin: Origin) {
-    let state = app.state::<AppState>();
-    let conv_id = match (origin, conv) {
-        (Origin::Chat, Some(id)) => id,
-        _ => state.in_game_conversation(),
-    };
-    {
-        let mut convs = state.conversations.lock().unwrap();
-        let Some(c) = convs.iter_mut().find(|c| c.id == conv_id) else {
-            emit(
-                app,
-                conv_id,
-                json!({"type": "error", "text": "That conversation no longer exists."}),
-            );
-            return;
-        };
-        if c.busy {
-            let text = if origin == Origin::Hotkey {
-                "Still answering your last hotkey. Try again in a moment."
-            } else {
-                "Still answering. Wait a moment, or press + New to ask in another chat."
-            };
-            emit(app, conv_id, json!({"type": "error", "text": text}));
-            return;
-        }
-        c.busy = true;
-        if c.messages.is_empty() && !c.in_game && c.title.starts_with("New conversation") {
-            c.title = clip(&question, 40);
-        }
-        c.messages.push(Message {
-            role: "user".into(),
-            label: label.into(),
-            text: display.clone(),
-            error: false,
-        });
-    }
-    let _ = app.emit("conversations", conversation_list(&state));
-    if origin == Origin::Hotkey && state.settings.lock().unwrap().overlay_on_hotkey {
-        crate::hotkeys::remember_overlay(app, Some(true), None);
-    }
-    emit(
-        app,
-        conv_id,
-        json!({"type": "start", "label": label, "question": display, "hotkey": origin == Origin::Hotkey}),
-    );
-
-    let app = app.clone();
-    std::thread::spawn(move || {
-        let state = app.state::<AppState>();
-        // Hotkey answers land on a tiny in-game HUD.
-        let hud = if origin == Origin::Hotkey {
-            "\n\n(Shown on a tiny in-game HUD: at most 25 words, one line or up to 3 very short bullets, no headings.)"
-        } else {
-            ""
-        };
-        let prompt = format!("{}{}\n\n{question}{hud}", context(&state), awareness(&state, conv_id));
-        let resume = state
-            .conversations
-            .lock()
-            .unwrap()
-            .iter()
-            .find(|c| c.id == conv_id)
-            .and_then(|c| c.session.clone());
-        let run = |resume: Option<&str>| companion(&state, conv_id).and_then(|cli| {
-            cli.run_turn(&prompt, resume, |event| match event {
-                CliEvent::TextDelta(text) => emit(&app, conv_id, json!({"type": "delta", "text": text})),
-                CliEvent::Assistant { tool_uses, .. } => {
-                    for t in tool_uses {
-                        let agent = t.input.get("subagent_type").and_then(|v| v.as_str());
-                        let what = agent.map_or_else(|| friendly_tool(&t.name).to_owned(), |a| format!("asking the {}", a.replace('-', " ")));
-                        emit(&app, conv_id, json!({"type": "tool", "text": what}));
-                    }
-                }
-                CliEvent::RateLimit(info) => {
-                    let windows: Vec<_> = info
-                        .windows
-                        .iter()
-                        .map(|w| json!({"name": w.name, "pct": (w.utilization * 100.0).round(), "resets_at": w.resets_at}))
-                        .collect();
-                    let _ = app.emit("usage", json!({"status": info.status, "windows": windows}));
-                }
-                CliEvent::ApiRetry { attempt, error, .. } => emit(
-                    &app,
-                    conv_id,
-                    json!({"type": "tool", "text": format!("retrying ({attempt}) {}", error.clone().unwrap_or_default())}),
-                ),
-                _ => {}
-            })
-            .map_err(|e| e.to_string())
-        });
-        let mut result = run(resume.as_deref());
-        // Claude Code deletes old sessions (about 30 days); start fresh then.
-        let expired = |r: &Result<lifeline_ai::TurnOutcome, String>| match r {
-            Ok(o) => o.result.is_error && o.result.result.as_deref().is_some_and(|t| t.contains("No conversation found")),
-            Err(e) => e.contains("No conversation found"),
-        };
-        if resume.is_some() && expired(&result) {
-            result = run(None);
-        }
-        let (text, error, session) = match result {
-            Ok(outcome) => (
-                outcome.result.result.clone().filter(|t| !t.trim().is_empty()).unwrap_or_else(|| {
-                    if outcome.result.is_error {
-                        format!("Claude stopped before answering ({}). Try again.", outcome.result.subtype.replace('_', " "))
-                    } else {
-                        "(no answer)".into()
-                    }
-                }),
-                outcome.result.is_error,
-                outcome.session_id,
-            ),
-            Err(e) => (e, true, None),
-        };
-        {
-            let mut convs = state.conversations.lock().unwrap();
-            if let Some(c) = convs.iter_mut().find(|c| c.id == conv_id) {
-                c.busy = false;
-                if session.is_some() {
-                    c.session = session;
-                }
-                c.messages.push(Message {
-                    role: "ai".into(),
-                    label: "Companion".into(),
-                    text: text.clone(),
-                    error,
-                });
-            }
-        }
-        state.save_conversations();
-        emit(&app, conv_id, json!({"type": "done", "text": text, "error": error}));
-        if origin == Origin::Hotkey {
-            crate::sound::play_with(&app, crate::sound::Cue::Ready, if error { "Answer failed" } else { "Answer ready" });
-        }
-        let _ = app.emit("conversations", conversation_list(&state));
-    });
-}
-
-/// Sidebar view: id, title, busy, in-game flag, message count.
-pub fn conversation_list(state: &AppState) -> serde_json::Value {
-    let convs = state.conversations.lock().unwrap();
-    json!(convs
-        .iter()
-        .map(|c| json!({"id": c.id, "title": c.title, "busy": c.busy, "in_game": c.in_game, "count": c.messages.len()}))
-        .collect::<Vec<_>>())
-}
-pub fn item_question(item: &str) -> String {
-    format!(
-        "Item check — I copied this item in game:\n```\n{item}\n```\n\
-         Equip, keep or sell for my current stage? Delegate to the gear-appraiser. \
-         Verdict first, then the one or two numbers that decide it."
-    )
-}
-
-pub const BUILD_CHECK: &str = "How well does my character line up with the build I'm following right now? Use build_alignment, \
-     character_state and equipped_items. Lead with how aligned I am, then the biggest gaps (passives, gear, \
-     skills) and what to do next, most important first. Ask me which skills and supports I have socketed if \
-     you need that.";
-
-pub const CREATE_BUILD: &str = "Create a complete build for me, Act 1 to Endgame, that I can follow in the game's \
-     Build Planner. Ask me what you need first.";
-
-pub const WHAT_NEXT: &str = "What should I do next? Delegate to the route-coach. At most three steps of a few words \
-     each, safety first if anything is pressing.";
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn each_conversation_sees_the_others_but_not_itself() {
-        let dir = std::env::temp_dir().join(format!("lifeline-aware-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let state = AppState::new(dir.clone());
-        let boots = state.new_conversation("Boots for Act 3", false);
-        let ring = state.new_conversation("Ring upgrade", false);
-        {
-            let mut convs = state.conversations.lock().unwrap();
-            for c in convs.iter_mut() {
-                let (q, a) = if c.id == boots {
-                    (
-                        "Find boots with cold res",
-                        "Bought Stormrider Boots: 25% MS, +32% cold res.",
-                    )
-                } else {
-                    ("Is this ring good?", "Keep it: +40 life, +20% fire.")
-                };
-                c.messages.push(Message {
-                    role: "user".into(),
-                    label: "Chat".into(),
-                    text: q.into(),
-                    error: false,
-                });
-                c.messages.push(Message {
-                    role: "ai".into(),
-                    label: "Companion".into(),
-                    text: a.into(),
-                    error: false,
-                });
-            }
-            convs.iter_mut().find(|c| c.id == boots).unwrap().busy = true;
-        }
-        let seen_from_ring = awareness(&state, ring);
-        assert!(seen_from_ring.contains("\"Boots for Act 3\" (answering right now)"));
-        assert!(seen_from_ring.contains("+32% cold res"));
-        assert!(!seen_from_ring.contains("Ring upgrade"));
-        assert!(awareness(&state, boots).contains("+40 life"));
-        std::fs::remove_dir_all(&dir).ok();
-    }
 
     #[test]
     fn names_from_outside_cannot_carry_instructions() {
@@ -442,5 +64,12 @@ mod tests {
         assert!(!t.contains([':', '.', '{', '}', '"', '<', '>', '\n']), "{t}");
         assert!(t.chars().count() <= 60);
         assert_eq!(tidy("Flameblast Ignite Chronomancer (CI)", 60), "Flameblast Ignite Chronomancer (CI)");
+    }
+
+    #[test]
+    fn stages_follow_the_campaign() {
+        assert_eq!(current_stage(Some(2), 20), Stage::Act(2));
+        assert_eq!(current_stage(None, 60), Stage::Interludes);
+        assert_eq!(current_stage(None, 70), Stage::Endgame);
     }
 }

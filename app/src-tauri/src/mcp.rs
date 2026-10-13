@@ -1,51 +1,44 @@
-//! The app's MCP server: the tools Claude (the companion and its specialist
-//! agents) can call. Streamable-HTTP transport answering with plain JSON, on
-//! 127.0.0.1 with a per-launch bearer token. Each conversation gets its own
-//! path (`/mcp/<conversation id>`) so proposed actions land in the right chat.
+//! The app's MCP server: the game-data tools Claude's two jobs can call
+//! (creating a build, suggesting skills). Streamable-HTTP transport answering
+//! with plain JSON, on 127.0.0.1 with a per-launch bearer token. Each job gets
+//! its own path (`/mcp/<scope>`) so the server knows which one is calling.
 
 use std::sync::Arc;
 
 use lifeline_ai::tools;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
-use crate::state::{AppState, PendingAction};
+use crate::state::AppState;
 
 /// Starts the server (`lifeline_ai::mcp_server`); returns (port, token).
 pub fn start(app: AppHandle) -> Result<(u16, String), String> {
     let server = lifeline_ai::mcp_server::serve(
         "lifeline",
         tool_definitions(),
-        Arc::new(move |conv, name, args| {
-            let result = call(&app, conv, name, args);
+        Arc::new(move |scope, name, args| {
+            let result = call(&app, scope, name, args);
             let preview = match &result {
                 Ok(v) => v.to_string().chars().take(160).collect::<String>(),
                 Err(e) => format!("ERROR {e}"),
             };
-            crate::debug_log(
-                &app.state::<AppState>(),
-                &format!("tool {name} (scope {conv}) → {preview}"),
-            );
+            crate::debug_log(&app.state::<AppState>(), &format!("tool {name} (scope {scope}) → {preview}"));
             result
         }),
     )?;
     Ok((server.port, server.token))
 }
+
 fn tool_definitions() -> Value {
     json!([
         {
             "name": tools::CHARACTER_STATE,
-            "description": "The player's live state from the game log: character, class, level, zone, area level, act, resistance penalty there, deaths, permanent buffs, league.",
+            "description": "The player's character from the game log: name, class, level, zone, area level and act.",
             "inputSchema": {"type": "object", "properties": {}}
         },
         {
             "name": tools::BUILD_PLAN,
-            "description": "The imported build: its stages (Act 1–4, Interludes, Endgame) and the skills with supports planned for the current stage.",
-            "inputSchema": {"type": "object", "properties": {}}
-        },
-        {
-            "name": tools::BUILD_ALIGNMENT,
-            "description": "How the character lines up with the build being followed, for the stage that fits its level: planned vs allocated passives (from the game log: percent, missing with notables first, off-plan), the stage's skills and supports, and each gear slot's goal vs the item the player recorded. The game doesn't log gems; ask the player what's socketed.",
+            "description": "The build being followed: its stages (Act 1–4, Interludes, Endgame) and the skills with supports planned for the current stage.",
             "inputSchema": {"type": "object", "properties": {}}
         },
         {
@@ -87,49 +80,10 @@ fn tool_definitions() -> Value {
             "name": tools::SEARCH_GAME_DATA,
             "description": "Search gems, item bases, uniques, areas and passives at once by name.",
             "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
-        },        {
-            "name": tools::EQUIPPED_ITEMS,
-            "description": "Items the player recorded as currently equipped (hotkey on the hovered item), keyed by item class, with full item text. Empty slots mean nothing was recorded — fall back to the build plan.",
-            "inputSchema": {"type": "object", "properties": {}}
-        },
-        {
-            "name": tools::RATE_LISTINGS,
-            "description": "Show trade listings to the player as cards with the item image, price, mods, a colour-coded badge with your delta_pct (how much better + or worse − the item is for the current build than the reference) and a Travel button. Use after trade_search, rating every listing it returned (up to 20).",
-            "inputSchema": {"type": "object", "properties": {
-                "search_id": {"type": "string"},
-                "compared_to": {"type": "string", "description": "what the percentages compare against, e.g. 'your equipped Hunting Shoes'"},
-                "ratings": {"type": "array", "items": {"type": "object", "properties": {
-                    "listing_id": {"type": "string"},
-                    "delta_pct": {"type": "number"},
-                    "verdict": {"type": "string"}
-                }, "required": ["listing_id", "delta_pct", "verdict"]}}
-            }, "required": ["compared_to", "ratings"]}
-        },        {
-            "name": tools::TRADE_FIND_STAT,
-            "description": "Find trade-site stat ids by text, e.g. 'cold res', 'maximum life', 'movement speed'. Pseudo ids (pseudo.pseudo_total_*) sum every source on the item.",
-            "inputSchema": {"type": "object", "properties": {
-                "query": {"type": "string"},
-                "limit": {"type": "integer", "minimum": 1, "maximum": 15}
-            }, "required": ["query"]}
-        },
-        {
-            "name": tools::TRADE_SEARCH,
-            "description": "Search the PoE2 trade market in the player's league and return listings (price, seller, mods with tiers). Pass the trade site's `query` object (stats, filters, optional type/name). Instant Buyout only unless instant_buyout_only is false. Each listing has a listing_id; the result has a search_id.",
-            "inputSchema": {"type": "object", "properties": {
-                "query": {"type": "object", "description": "trade2 query object, e.g. {\"stats\":[{\"type\":\"and\",\"filters\":[{\"id\":\"pseudo.pseudo_total_cold_resistance\",\"value\":{\"min\":20}}]}],\"filters\":{\"type_filters\":{\"filters\":{\"category\":{\"option\":\"armour.boots\"}}}}}"},
-                "sort": {"type": "object", "description": "default {\"price\":\"asc\"}"},
-                "instant_buyout_only": {"type": "boolean"},
-                "max_listings": {"type": "integer", "minimum": 1, "maximum": 20}
-            }, "required": ["query"]}
-        },
-        {
-            "name": tools::PRICE,
-            "description": "poe.ninja price in the player's league for currency, fragments, runes, essences, soul cores, uncut/lineage gems and uniques, matched by name. Values in divine and exalted.",
-            "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}
         },
         {
             "name": tools::DESIGN_BUILD,
-            "description": "Make a designed build the player's build. The app computes the passive paths from your ordered target passives within each stage's points (cumulative: later stages keep earlier picks), checks every gem and support against game data and the game's support rules, and returns a report per stage: points used/budget/unspent, ascendancy points, reached and missed targets, problems. Budgets at stage end: Act 1 lvl 13/16 pts/0 asc, Act 2 lvl 29/36/2, Act 3 lvl 45/56/4, Act 4 lvl 52/67/4, Interludes lvl 65/86/4, Endgame lvl 90/113/8. Use exact names (lookup_passive, lookup_gem, lookup_supports_for). Fix what the report lists and call again until it's clean and most points are spent. Calling again replaces the build.",
+            "description": "Save the build you designed. The app computes the passive paths from your ordered target passives within each stage's points (cumulative: later stages keep earlier picks), checks every gem and support against game data and the game's support rules, and returns a report per stage: points used/budget/unspent, ascendancy points, reached and missed targets, problems. Budgets at stage end: Act 1 lvl 13/16 pts/0 asc, Act 2 lvl 29/36/2, Act 3 lvl 45/56/4, Act 4 lvl 52/67/4, Interludes lvl 65/86/4, Endgame lvl 90/113/8. Use exact names (lookup_passive, lookup_gem, lookup_supports_for). Fix what the report lists and call again until it's clean and most points are spent. Calling again replaces the design.",
             "inputSchema": {"type": "object", "properties": {
                 "name": {"type": "string", "description": "short build name, e.g. 'Storm Spear Amazon'"},
                 "class": {"type": "string", "description": "the character's class, e.g. 'Huntress'"},
@@ -153,34 +107,22 @@ fn tool_definitions() -> Value {
                     "notes": {"type": "string"}
                 }, "required": ["stage"]}}
             }, "required": ["name", "class", "stages"]}
-        },        {
-            "name": tools::PROPOSE_ACTION,
-            "description": "Offer the player an action as a button in the chat; it only happens if they press it. kind 'travel' = travel to the seller's hideout for a listing (needs listing_id and search_id from trade_search); kind 'open_search' = open the search on the trade site (needs search_id); kind 'write_planner' = write the current build's stages into the game's Build Planner (after design_build or an import).",
-            "inputSchema": {"type": "object", "properties": {
-                "kind": {"type": "string", "enum": ["travel", "open_search", "write_planner"]},
-                "summary": {"type": "string", "description": "one line shown on the button card, e.g. 'Hypnotic Tread — 37% cold, 86 life — 1 alch'"},
-                "listing_id": {"type": "string"},
-                "search_id": {"type": "string"}
-            }, "required": ["kind", "summary"]}
         }
     ])
 }
 
-fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, String> {
+fn call(app: &AppHandle, scope: u64, name: &str, args: &Value) -> Result<Value, String> {
     let state = app.state::<AppState>();
-    let league = state.settings.lock().unwrap().league.clone();
     match name {
         n if n == tools::CHARACTER_STATE => {
             let c = state.character.lock().unwrap().clone();
-            let mut v = serde_json::to_value(&c).map_err(|e| e.to_string())?;
-            v["league"] = json!(league);
-            Ok(v)
+            serde_json::to_value(&c).map_err(|e| e.to_string())
         }
         n if n == tools::BUILD_PLAN => {
             let data = crate::gamedata::load(&state).ok();
             let imported = state.imported.lock().unwrap();
             let Some(i) = imported.as_ref() else {
-                return Ok(json!("No build yet. Point the player to the Builds tab: the Showcase guides them to a researched hardcore build and creates it (or Import for a Path of Building link)."));
+                return Ok(json!("The player isn't following a build yet."));
             };
             let c = state.character.lock().unwrap().clone();
             let stage = crate::ai::current_stage(c.act, c.area_level);
@@ -192,16 +134,12 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 })
                 .collect();
             Ok(json!({
-                "name": i.name,
+                "name": crate::ai::tidy(&i.name, 60),
                 "class": i.build.class_name, "ascendancy": i.build.ascend_class_name,
                 "current_stage": lifeline_model::stage_label(stage),
-                "stages": i.stages.iter().filter(|s| s.chosen).map(|s| json!({"stage": s.stage, "spec": s.title, "levels": format!("{}-{}", s.level_from, s.level_to), "passives": s.main_points})).collect::<Vec<_>>(),
+                "stages": i.stages.iter().filter(|s| s.chosen).map(|s| json!({"stage": s.stage, "levels": format!("{}-{}", s.level_from, s.level_to), "passives": s.main_points})).collect::<Vec<_>>(),
                 "current_stage_skills": skills
             }))
-        }
-        n if n == tools::BUILD_ALIGNMENT => {
-            let _ = crate::builds::load_tree(&state);
-            Ok(crate::alignment::for_ai(crate::alignment::alignment(&state)))
         }
         n if n == tools::LOOKUP_GEM => {
             let d = crate::gamedata::load(&state)?;
@@ -242,11 +180,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
         n if n == tools::LOOKUP_MOD => {
             let d = crate::gamedata::load(&state)?;
             let text = args["text"].as_str().ok_or("text is required")?;
-            let mods = d.find_mods(
-                text,
-                args["slot"].as_str(),
-                args["limit"].as_u64().unwrap_or(15) as usize,
-            );
+            let mods = d.find_mods(text, args["slot"].as_str(), args["limit"].as_u64().unwrap_or(15) as usize);
             Ok(json!({"version": d.version, "mods": mods}))
         }
         n if n == tools::LOOKUP_PASSIVE => {
@@ -264,12 +198,7 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             let d = crate::gamedata::load(&state)?;
             let q = args["query"].as_str().ok_or("query is required")?;
             let passives: Vec<Value> = crate::builds::load_tree(&state)
-                .map(|t| {
-                    t.find_passives(q, 5)
-                        .iter()
-                        .map(|n| json!({"id": n.id, "name": n.name}))
-                        .collect()
-                })
+                .map(|t| t.find_passives(q, 5).iter().map(|n| json!({"id": n.id, "name": n.name})).collect())
                 .unwrap_or_default();
             Ok(json!({
                 "gems": d.find_gems(q, 5).iter().map(|g| json!({"name": g.name, "kind": g.kind})).collect::<Vec<_>>(),
@@ -279,218 +208,32 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 "passives": passives
             }))
         }
-        n if n == tools::EQUIPPED_ITEMS => {
-            let equipped = state.equipped.lock().unwrap().clone();
-            if equipped.is_empty() {
-                Ok(json!("Nothing recorded yet. The player records equipped items by hovering them in game and pressing the record-equipped hotkey."))
-            } else {
-                Ok(json!(equipped))
-            }
-        }
-        n if n == tools::RATE_LISTINGS => {
-            let compared_to = args["compared_to"].as_str().unwrap_or("your current item").to_owned();
-            let data = state.listing_data.lock().unwrap().clone();
-            let searches = state.listings.lock().unwrap().clone();
-            let mut cards = Vec::new();
-            for r in args["ratings"].as_array().into_iter().flatten() {
-                let Some(id) = r["listing_id"].as_str() else { continue };
-                let Some(l) = data.get(id) else { continue };
-                // The whole listing (item box, price, currency art) plus the rating.
-                let mut card = serde_json::to_value(l).unwrap_or_default();
-                card["listing_id"] = json!(l.id);
-                card["delta_pct"] = json!(r["delta_pct"].as_f64().unwrap_or(0.0));
-                card["verdict"] = r["verdict"].clone();
-                card["search_id"] = json!(searches.get(id));
-                cards.push(card);
-            }
-            // Best for the build first.
-            cards.sort_by(|a, b| b["delta_pct"].as_f64().unwrap_or(0.0).total_cmp(&a["delta_pct"].as_f64().unwrap_or(0.0)));
-            if cards.is_empty() {
-                return Err("none of those listing_ids are from a recent trade_search".into());
-            }
-            let payload = json!({"compared_to": compared_to, "cards": cards});
-            {
-                let mut convs = state.conversations.lock().unwrap();
-                if let Some(c) = convs.iter_mut().find(|c| c.id == conv) {
-                    c.messages.push(crate::state::Message {
-                        role: "market".into(),
-                        label: "Market".into(),
-                        text: payload.to_string(),
-                        error: false,
-                    });
-                }
-            }
-            if (crate::rating::MARKET_SCOPE_BASE..crate::rating::MARKET_SCOPE_BASE + crate::rating::MARKET_PICKS as u64).contains(&conv) {
-                let index = (conv - crate::rating::MARKET_SCOPE_BASE) as usize;
-                state.rating_cards.lock().unwrap().insert(index, payload.clone());
-                state.save_rating();
-            }
-            let _ = app.emit("market", json!({"conv": conv, "market": payload}));
-            Ok(json!(format!(
-                "Shown {} listing cards with images, ±% badges and Travel buttons.",
-                cards.len()
-            )))
-        }
-        n if n == tools::TRADE_FIND_STAT => {
-            let query = args["query"].as_str().ok_or("query is required")?;
-            let limit = args["limit"].as_u64().unwrap_or(8) as usize;
-            let found = state.market.find_stats(query, limit)?;
-            Ok(json!(found))
-        }
-        n if n == tools::TRADE_SEARCH => {
-            let mut query = args["query"].clone();
-            if !query.is_object() {
-                return Err("query must be the trade site's query object".into());
-            }
-            if query.get("status").is_none() {
-                let ib = args["instant_buyout_only"].as_bool().unwrap_or(true);
-                query["status"] = json!({"option": if ib { "securable" } else { "available" }});
-            }
-            let mut body = json!({"query": query});
-            if args["sort"].is_object() {
-                body["sort"] = args["sort"].clone();
-            }
-            let max = (args["max_listings"].as_u64().unwrap_or(20) as usize).clamp(1, 20);
-            let _ = app.emit(
-                "ai",
-                json!({"conv": conv, "type": "tool", "text": "searching market…"}),
-            );
-            let outcome = state.market.search(&league, &body, max)?;
-            {
-                let mut map = state.listings.lock().unwrap();
-                for l in &outcome.listings {
-                    map.insert(l.id.clone(), outcome.query_id.clone());
-                }
-                let mut data = state.listing_data.lock().unwrap();
-                for l in &outcome.listings {
-                    data.insert(l.id.clone(), l.clone());
-                }
-            }
-            Ok(json!({
-                "league": league,
-                "total": outcome.total,
-                "search_id": outcome.query_id,
-                "url": outcome.url,
-                "listings": outcome.listings.iter().map(|l| json!({
-                    "listing_id": l.id, "price": l.price, "seller": l.seller, "instant_buyout": l.instant_buyout,
-                    "name": l.name, "base": l.base, "item_level": l.item_level, "requires": l.requires, "corrupted": l.corrupted, "mods": l.mods
-                })).collect::<Vec<_>>()
-            }))
-        }
-        n if n == tools::PRICE => {
-            let name = args["name"].as_str().ok_or("name is required")?;
-            let hits = state.market.price(&league, name)?;
-            if hits.is_empty() {
-                Ok(json!(format!("No poe.ninja price found for '{name}' in {league}. For rares, search comparable items with trade_search.")))
-            } else {
-                Ok(json!({"league": league, "source": "poe.ninja", "prices": hits}))
-            }
-        }
         n if n == tools::DESIGN_BUILD => {
+            // Only the build the player asked for ("Create full build") can
+            // be saved, and it goes to My builds: nothing here changes the
+            // build being followed.
+            if scope != crate::wizard::BUILD_SCOPE {
+                return Err("design_build is only available while creating a build".into());
+            }
             let design: lifeline_model::BuildDesign =
                 serde_json::from_value(args.clone()).map_err(|e| format!("design doesn't match the schema: {e}"))?;
-            // Wizard runs (the player pressed "Create full build") fill the
-            // library. A chat can't change the followed build by itself: text
-            // in a web page or an imported build could have asked for it, so
-            // the design waits behind a button the player presses.
-            let wizard = conv == crate::wizard::BUILD_SCOPE;
-            let (imported, report) = crate::builds::realize_design(&state, &design)?;
-            if wizard {
-                crate::wizard::attempt(app, &report);
-                *state.last_design.lock().unwrap() = Some((design.clone(), report.clone()));
-            } else {
-                *state.staged_design.lock().unwrap() = Some((conv, design.clone()));
-                let summary = format!("{} ({} stages)", crate::ai::tidy(&imported.name, 60), imported.stages.len());
-                let action = {
-                    let mut actions = state.actions.lock().unwrap();
-                    // A redesign in the same chat reuses its card.
-                    match actions.iter_mut().find(|a| a.kind == "use_build" && a.conv == conv) {
-                        Some(a) => {
-                            a.summary = summary;
-                            a.clone()
-                        }
-                        None => {
-                            let id = actions.iter().map(|a| a.id).max().unwrap_or(0) + 1;
-                            let a = PendingAction {
-                                id,
-                                conv,
-                                kind: "use_build".into(),
-                                summary,
-                                listing_id: None,
-                                search_id: None,
-                            };
-                            actions.push(a.clone());
-                            a
-                        }
-                    }
-                };
-                let _ = app.emit("action", &action);
-            }
+            let (_, report) = crate::builds::realize_design(&state, &design)?;
+            crate::wizard::attempt(app, &report);
+            *state.last_design.lock().unwrap() = Some((design, report.clone()));
             let unspent: u32 = report.stages.last().map_or(0, |s| s.points_unspent);
-            let clean = report.is_clean() && unspent <= 10;
-            let next = match (clean, wizard) {
-                (true, true) => "Clean. Saved. Finish up as your instructions say.",
-                (true, false) => "Clean. The player now sees a button to follow this build; it isn't their build until they press it. Finish up as your instructions say.",
-                (false, _) => "Checked, but fix what's listed (missed targets, problems, unspent points) and call design_build again.",
+            let next = if report.is_clean() && unspent <= 10 {
+                "Clean. Saved. Finish up as your instructions say."
+            } else {
+                "Saved, but fix what's listed (missed targets, problems, unspent points) and call design_build again."
             };
             Ok(json!({"report": report, "next": next}))
-        }
-        n if n == tools::PROPOSE_ACTION => {
-            let kind = args["kind"].as_str().unwrap_or("");
-            let summary = args["summary"].as_str().unwrap_or("").to_owned();
-            let listing_id = args["listing_id"].as_str().map(str::to_owned);
-            let mut search_id = args["search_id"].as_str().map(str::to_owned);
-            // Ids end up in trade-site addresses: only the site's own short ids.
-            if listing_id.iter().chain(&search_id).any(|id| !crate::market::plain_id(id)) {
-                return Err("listing_id and search_id must be the ids trade_search returned".into());
-            }
-            match kind {
-                "travel" => {
-                    let lid = listing_id.as_deref().ok_or("travel needs listing_id")?;
-                    if search_id.is_none() {
-                        search_id = state.listings.lock().unwrap().get(lid).cloned();
-                    }
-                    if search_id.is_none() {
-                        return Err("unknown listing — run trade_search first".into());
-                    }
-                }
-                "open_search" if search_id.is_none() => return Err("open_search needs search_id".into()),
-                "open_search" => {}
-                "write_planner"
-                    if state.imported.lock().unwrap().is_none()
-                        && !state.staged_design.lock().unwrap().as_ref().is_some_and(|(c, _)| *c == conv) =>
-                {
-                    return Err("no build yet — call design_build (or have the player import one) first".into())
-                }
-                "write_planner" => {}
-                _ => return Err("kind must be 'travel', 'open_search' or 'write_planner'".into()),
-            }
-            let action = {
-                let mut actions = state.actions.lock().unwrap();
-                let id = actions.iter().map(|a| a.id).max().unwrap_or(0) + 1;
-                let a = PendingAction {
-                    id,
-                    conv,
-                    kind: kind.to_owned(),
-                    summary,
-                    listing_id,
-                    search_id,
-                };
-                actions.push(a.clone());
-                a
-            };
-            let _ = app.emit("action", &action);
-            Ok(json!("Shown to the player as a button in the chat. It only happens if they press it; don't claim it happened."))
         }
         _ => Err(format!("unknown tool {name}")),
     }
 }
 
-/// MCP config for one conversation's Claude turn.
-pub fn config_for(state: &AppState, conv: u64) -> Option<String> {
+/// MCP config for one job's Claude run.
+pub fn config_for(state: &AppState, scope: u64) -> Option<String> {
     let (port, token) = state.mcp.lock().unwrap().clone()?;
-    Some(lifeline_ai::mcp_config_json(
-        &format!("http://127.0.0.1:{port}/mcp/{conv}"),
-        &token,
-    ))
+    Some(lifeline_ai::mcp_config_json(&format!("http://127.0.0.1:{port}/mcp/{scope}"), &token))
 }

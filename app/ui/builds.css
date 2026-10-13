@@ -1,0 +1,43 @@
+/* Build pages and the Builds tab (builds.js). */
+
+/* Search box above the showcase; while searching, the pick steps fold away. */
+.build-search { padding: 10px 12px; }
+.build-search input { width: 100%; font-size: 16px; padding: 10px 12px; }
+#sub-showcase.searching .wiz-step { display: none; }
+
+/* Build card: which patch the guide is for, when, and how many versions. */
+.ver { font-size: 12.5px; color: var(--muted); margin: 4px 0 2px; letter-spacing: .2px; }
+.ver.old { color: #e0a85a; }
+
+/* Build details: act by act (actPlan) and the boss rotation. */
+.act-plan { margin: 12px 0; }
+.ap-step { border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; margin-bottom: 6px; background: rgba(33, 25, 19, 0.6); }
+.ap-step summary { cursor: pointer; font-size: 15px; }
+.ap-step summary b { color: var(--gold-2); }
+.ap-lvl { color: var(--muted); font-size: 13px; }
+.ap-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; margin-top: 8px; font-size: 14px; }
+.ap-row p { margin: 0; }
+.ap-row ul { margin: 0; padding-left: 18px; }
+.ap-k { color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-size: 12.5px; padding-top: 2px; }
+.ap-sup { color: var(--gold-2); font-size: 13.5px; }
+.ap-note { color: var(--muted); font-size: 13px; }
+.boss-rot ol { margin: 0; padding-left: 22px; font-size: 14px; }
+.boss-rot li { margin-bottom: 4px; }
+
+/* Build details: guide versions. */
+.versions table { width: 100%; font-size: 13.5px; border-collapse: collapse; }
+.versions td, .versions th { padding: 4px 8px 4px 0; text-align: left; vertical-align: top; }
+.versions th { color: var(--muted); font-weight: normal; font-size: 12.5px; text-transform: uppercase; letter-spacing: .5px; }
+.versions small { color: var(--muted); }
+
+/* Import result. */
+.import-title { margin-top: 14px; }
+.import-note { margin-top: 8px; }
+
+/* Passive tree legend: the stat to pick on attribute nodes. */
+.tree-legend .at-s { color: #e58a6e; }
+.tree-legend .at-d { color: #8fd17a; }
+.tree-legend .at-i { color: #79b2e8; }
+
+/* Settings → About. */
+.about-version { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 6px 0 12px; }

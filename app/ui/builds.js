@@ -1,5 +1,6 @@
 // Builds tab: guided showcase (class → ascendancy → priorities → builds),
-// My builds (saved ideas and generated builds), generating a full build.
+// My builds (saved ideas and created builds), creating a full build, and the
+// build being followed (passives against the plan, skills for the stage).
 // Uses $, invoke, listen, escapeHtml, toast, renderImport from the other scripts.
 
 let ART = {};
@@ -468,7 +469,7 @@ function renderMine() {
   }));
 }
 
-// Play tab's "Create build" opens the guided showcase.
+// The welcome's last step opens the guided showcase.
 function openShowcase() {
   document.querySelector('.tab[data-tab="build"]').click();
   showSub("showcase");
@@ -500,17 +501,11 @@ function renderCurrent(v) {
       <div class="sub2">${esc(cls)}${asc ? " · " + esc(asc) : ""} · ${chosen.length} stages</div>
       <div class="cur-stages">${chosen.map(s => `<button class="cstage" data-stage="${esc(s.stage)}" title="Show this stage on the tree">${esc(s.stage)} <small>${s.level_to >= 100 ? `levels ${s.level_from}+` : `levels ${s.level_from}–${s.level_to}`}</small></button>`).join("")}</div></div></div>
     <div class="d-actions">
-      <button class="primary" id="cur-check">Check my build with AI</button>
-      <button id="cur-write" title="Write this build's stages into the game's Build Planner">Send to game planner</button>
+      <button class="primary" id="cur-write" title="Write this build's stages into the game's Build Planner">Send to game planner</button>
       <button id="cur-planner" title="See, follow or delete the builds in the game's Build Planner">Manage game planner</button>
       <button class="ghost" id="cur-change">Change build</button>
     </div>`;
   $("cur-planner").addEventListener("click", openGamePlanner);
-  $("cur-check").addEventListener("click", async () => {
-    const id = await invoke("build_check_chat");
-    document.querySelector('.tab[data-tab="play"]').click();
-    if (typeof selectConv === "function") selectConv(id);
-  });
   $("cur-write").addEventListener("click", async () => {
     try {
       const files = await invoke("write_stages");
@@ -527,47 +522,6 @@ function renderCurrent(v) {
   refreshAlignment();
 }
 
-// What Lifeline knows you wear. The game doesn't share gear, so each piece
-// comes from its copied text: the Record gear hotkey, or Ctrl+C mode (copy
-// with the game's own Ctrl+C while Lifeline listens).
-let GEAR_WATCH = 0;
-function wornChecklist(worn) {
-  const key = settings?.hotkeys?.record_equipped || "Alt+Shift+E";
-  const done = worn.filter(w => w.recorded).length;
-  const watching = GEAR_WATCH > 0;
-  return `<div class="d-sec worn" style="margin-top:12px">
-    <h3>Your gear <span class="hint">${done} of ${worn.length} recorded</span></h3>
-    <ul class="item-grid" style="margin-bottom:10px">${worn.map(w => `<li><div class="slot-row"><span class="slot-l">${esc(w.slot)}</span></div>
-      ${w.text ? itemCardFromText(w.text, { equipped: true }) : `<div class="item-empty">Not recorded</div>`}</li>`).join("")}</ul>
-    <div class="worn-how">
-      <div class="worn-way">
-        <b>Record my gear</b> <span class="hint">easiest</span>
-        <div>Turn it on, then in game open your inventory (<kbd>I</kbd>), point at each worn item and press <kbd>Ctrl+C</kbd>. Each one ticks off here.</div>
-        <button class="${watching ? "" : "primary"}" id="gear-watch">${watching ? `Stop recording (on until ${new Date(Date.now() + GEAR_WATCH * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})` : "Record my gear"}</button>
-      </div>
-      <div class="worn-way">
-        <b>Hotkey</b>
-        <div>Point at a worn item in game and press <kbd>${esc(key)}</kbd>.</div>
-      </div>
-    </div>
-    <div class="hint">Record again whenever you swap an item. On a controller, map a spare button to Ctrl+C in Steam's controller settings for the game.</div>
-  </div>`;
-}
-function wireWorn() {
-  $("gear-watch")?.addEventListener("click", async () => {
-    GEAR_WATCH = await invoke("gear_watch", { on: GEAR_WATCH === 0 });
-    renderGearHow();
-    toast(GEAR_WATCH ? "Recording for 10 minutes. In game, point at each worn item and press Ctrl+C." : "Stopped recording gear.", GEAR_WATCH ? "ok" : "info");
-    refreshAlignment();
-  });
-}
-listen("gear-watch", ({ payload }) => {
-  const was = GEAR_WATCH;
-  GEAR_WATCH = payload.seconds;
-  if (!!was !== !!GEAR_WATCH && CURRENT) refreshAlignment();
-});
-(async () => { try { GEAR_WATCH = await invoke("gear_watch_left"); } catch (_) { GEAR_WATCH = 0; } renderGearHow(); })();
-
 let alignTimer = null;
 function refreshAlignment() {
   clearTimeout(alignTimer);
@@ -579,9 +533,6 @@ function refreshAlignment() {
     $("align-stage").textContent = `${a.stage} plan · ${a.character.name || "character"} level ${a.character.level}`;
     document.querySelectorAll(".cstage").forEach(s => s.classList.toggle("on", s.dataset.stage === a.stage));
     const p = a.passives;
-    const gear = a.gear.map(g => `<div class="gs">${esc(g.slot)}</div>
-      <div>${g.goal_text ? itemCardFromText(g.goal_text, { slot: g.slot.replace(/ \d$/, "") }) : `<div class="item-empty">No goal</div>`}</div>
-      <div>${g.recorded_text ? itemCardFromText(g.recorded_text, { equipped: true }) : `<div class="item-empty">Not recorded</div>`}</div>`).join("");
     $("align-body").innerHTML = `
       <div class="align-top"><div class="align-pct">${p.percent}<small>%</small></div>
         <div class="grow"><div class="bars" style="grid-template-columns:110px 1fr"><span>Passives</span><div class="b"><i class="hc" style="width:${p.percent}%"></i></div></div>
@@ -590,12 +541,8 @@ function refreshAlignment() {
         <div class="d-sec"><h3>Take next</h3><ul>${p.missing.slice(0, 10).map(m => `<li class="${m.notable ? "notable" : ""}">${esc(m.name)}</li>`).join("") || "<li>Nothing — on plan</li>"}</ul>${p.missing.length > 10 ? `<div class="hint">+${p.missing.length - 10} more</div>` : ""}</div>
         <div class="d-sec"><h3>Off-plan passives</h3><ul>${p.off_plan.slice(0, 10).map(n => `<li>${esc(n)}</li>`).join("") || "<li>None</li>"}</ul></div>
         <div class="d-sec"><h3>Skills for this stage</h3><ul class="gem-list">${a.skills.map(s => `<li>${gemDot(s.attr)}<span class="gem">${esc(s.skill)}</span>${s.supports.length ? `<div class="sups">${s.supports.map((x, i) => `${gemDot(s.support_attrs?.[i])}${esc(x)}`).join(" ")}</div>` : ""}</li>`).join("") || "<li>—</li>"}</ul>
-          <div class="hint">The game doesn't log gems; the AI will ask what you have socketed.</div></div>
-      </div>
-      ${wornChecklist(a.worn || [])}
-      <div class="d-sec" style="margin-top:12px"><h3>Gear goals</h3>${gear ? `<div class="goal-grid"><span class="gh"></span><span class="gh">Goal</span><span class="gh">You</span>${gear}</div>` : `<p class="hint">This build has no gear goals.</p>`}
-</div>`;
-    wireWorn();
+          <div class="hint">The game doesn't log gems, so this is the plan to socket.</div></div>
+      </div>`;
     if (typeof refreshTree === "function") refreshTree();
   }, 250);
 }
@@ -605,7 +552,6 @@ $("align-refresh").addEventListener("click", refreshAlignment);
 listen("imported", ({ payload }) => { const first = !CURRENT; renderCurrent(payload); if (first && !userPickedSub) showSub("current"); });
 let alignThrottle = 0;
 listen("character", () => { if (CURRENT && Date.now() - alignThrottle > 5000) { alignThrottle = Date.now(); refreshAlignment(); } });
-listen("equipped", () => CURRENT && refreshAlignment());
 (async () => {
   const snap = await invoke("snapshot");
   if (snap.imported) { renderCurrent(snap.imported); showSub("current"); }

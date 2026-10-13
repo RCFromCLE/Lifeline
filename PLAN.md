@@ -1,5 +1,7 @@
 # Lifeline — Plan
 
+> **Historical document.** This is the original, much broader plan and its research notes. Since version 0.6 Lifeline does three things only (builds, passives and skills); chat, item checks, rating, the market, the HUD, hotkeys and sound cues described below were removed. See [README.md](README.md) for what the app is now.
+
 *An AI-assisted, hardcore-first, controller-first playthrough companion for Path of Exile 2, written in Rust.*
 
 Plan date: **2026-10-01**. Game state at that date: PoE2 Early Access **0.5.5d** (league *Forbidden Rites*, plus *Runes of Aldur*), with **1.0 releasing 2026-12-11**. Every game fact below comes from a cited source, or is marked **(verified locally)** when it was checked against this PC's own PoE2 install. Anything not confirmed is marked **UNVERIFIED** and listed in §12 with how to settle it.

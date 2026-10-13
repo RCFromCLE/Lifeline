@@ -24,12 +24,12 @@ body.dash::after { display: none; }
 .dstat .l { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
 #d-full { font-size: 1.4rem; padding: 0.3rem 0.7rem; }
 
-/* ---- three columns: skills, passives, log ---- */
+/* ---- two columns: skills, passives ---- */
 .dgrid {
   position: relative; z-index: 1; flex: 1; min-height: 0; padding: 1rem 1.4rem 1.2rem;
-  display: grid; grid-template-columns: minmax(0, 30fr) minmax(0, 44fr) minmax(0, 26fr); gap: 1.2rem;
+  display: grid; grid-template-columns: minmax(0, 38fr) minmax(0, 62fr); gap: 1.2rem;
 }
-@media (max-width: 1200px) { .dgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .d-log { grid-column: 1 / -1; max-height: 30vh; } body.dash { overflow-y: auto; } }
+@media (max-width: 1200px) { .dgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } body.dash { overflow-y: auto; } }
 .dcol {
   min-height: 0; display: flex; flex-direction: column; padding: 1rem 1.1rem;
   background: rgba(24, 18, 14, 0.82); border: 1px solid var(--line); border-radius: var(--radius);
@@ -75,12 +75,6 @@ body.dash::after { display: none; }
 .d-asc li { margin-bottom: 0.3rem; color: var(--muted); }
 .d-asc li.done { color: var(--green); font-weight: 700; }
 
-/* ---- log ---- */
-.d-feed { font-size: 0.95rem; }
-.d-feed li { padding: 0.35rem 0; gap: 0.6rem; }
-.d-feed li:first-child { animation: d-new 2.5s ease-out; }
-@keyframes d-new { from { background: rgba(217, 169, 87, 0.22); } to { background: transparent; } }
-
 /* Plain text, no chips or gem dots (owner's request). */
 .sk-key { color: var(--gold-2); font-weight: 700; font-size: 0.95rem; }
 .d-next li[data-tip], .tk[data-tip] { cursor: help; }
@@ -97,4 +91,3 @@ body.dash::after { display: none; }
   background: rgba(14, 10, 7, 0.97); border: 1px solid rgba(217, 169, 87, 0.55); font-size: 0.95rem; pointer-events: none;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6); }
 .d-tip b { display: block; color: var(--gold-2); margin-bottom: 0.2rem; }
-#d-market { font-size: 1rem; padding: 0.35rem 0.9rem; }

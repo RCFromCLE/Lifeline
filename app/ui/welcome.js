@@ -1,10 +1,10 @@
-// First-run welcome: what Lifeline is, connect Claude (install + sign in),
-// your game and controls, a short tour, then straight into a build.
-// Reopen any time from Settings → Welcome tour. Keyboard: Enter/→ next,
-// ← back, Esc close.
+// First-run welcome: what Lifeline is, connect Claude (optional: it only
+// powers two buttons), your game and controls, a short tour, then straight
+// into picking a build. Reopen any time from Settings → Welcome tour.
+// Keyboard: Enter/→ next, ← back, Esc close.
 
 (() => {
-  const W = { step: 0, status: null, input: null, league: "", poll: null };
+  const W = { step: 0, status: null, input: null, poll: null };
   const STEPS = 5;
   const esc = s => escapeHtml(s ?? "");
   const ok = (good, yes, no) => `<span class="wl-ok ${good ? "yes" : "no"}">${good ? "✓" : "○"}</span><span>${good ? yes : no}</span>`;
@@ -23,12 +23,12 @@
 
   const ready = () => W.status && W.status.claude.installed && W.status.claude.logged_in;
 
-  // Redraw only when a check changes, so typing in the page isn't interrupted.
+  // Redraw only when a check changes, so the page isn't interrupted.
   const checks = s => s ? JSON.stringify([s.claude, s.git, s.game_log]) : "";
   async function refresh() {
     const before = checks(W.status);
     W.status = await invoke("setup_status");
-    if (W.input === null) { W.input = W.status.input; W.league = W.status.league; }
+    if (W.input === null) W.input = W.status.input;
     if ((W.step === 1 || W.step === 2) && checks(W.status) !== before) render();
     banner();
   }
@@ -39,20 +39,19 @@
     if (W.step === 0) {
       body.innerHTML = `<div class="wl-hero"><img src="logo.svg" alt="" class="wl-logo">
         <h1 id="wl-title">Welcome to Lifeline</h1>
-        <p class="wl-tag">Your lifeline through Path of Exile 2, built for hardcore.</p>
-        <p class="wl-note">Lifeline reads your game log and Build Planner folder and never touches the game itself. Your chats go to Claude through your own account.</p></div>
+        <p class="wl-tag">Builds, passives and skills for Path of Exile 2, built for hardcore.</p>
+        <p class="wl-note">Lifeline reads your game log and Build Planner folder and never touches the game itself.</p></div>
         <div class="wl-grid">
-          <div><h3>Ask anything</h3><p>Gear, gems, bosses, what to buy. Answers come from current game data, not guesses.</p></div>
-          <div><h3>Builds that work</h3><p>Pick from researched hardcore builds and get a full Act 1 to Endgame plan in the game's Build Planner.</p></div>
-          <div><h3>A HUD over the game</h3><p>Your build grade, resistance warnings and one-click checks, without leaving the game.</p></div>
-          <div><h3>Market and travel</h3><p>Find upgrades for your budget and jump to the seller's hideout.</p></div>
+          <div><h3>Builds</h3><p>Researched builds for every class, with what each is good at and which patch its guide is for.</p></div>
+          <div><h3>Passives</h3><p>The next passives to take, in order, and which stat to pick on every attribute node.</p></div>
+          <div><h3>Skills</h3><p>The skills and support gems for each stage of the campaign, and rotations for your controls.</p></div>
         </div>`;
     } else if (W.step === 1) {
       const c = s ? s.claude : {};
       const plan = c.subscription ? `${c.subscription[0].toUpperCase()}${c.subscription.slice(1)} plan` : "Claude plan";
-      body.innerHTML = `<h1 id="wl-title">Connect Claude</h1>
-        <p>Lifeline's AI runs on <b>your own Claude Pro or Max plan</b> through Claude Code, Anthropic's free app.
-           There's no API key and no extra bill; answers use your plan's normal usage.</p>
+      body.innerHTML = `<h1 id="wl-title">Connect Claude <small>optional</small></h1>
+        <p>Two buttons use AI: <b>Create full build</b> and <b>Suggest skills &amp; rotations</b>. They run on <b>your own Claude Pro or Max plan</b>
+           through Claude Code, Anthropic's free app. There's no API key and no extra bill. Everything else works without it.</p>
         <ul class="wl-checks">
           <li>${ok(c.installed, `Claude Code installed <small>${esc(c.version || "")}</small>`, "Install Claude Code")}
               ${c.installed ? "" : `<button class="primary" data-act="install_claude">Install</button>`}</li>
@@ -74,37 +73,32 @@
         <h3>How do you play?</h3>
         <div class="wl-inputs">${[["playstation", "PlayStation controller"], ["xbox", "Xbox controller"], ["keyboard", "Mouse and keyboard"]].map(([v, n]) =>
           `<button class="wl-input ${W.input === v ? "on" : ""}" data-v="${v}">${ICON[v]}<span>${n}</span></button>`).join("")}</div>
-        <h3>League</h3>
-        <input id="wl-league" list="leagues" value="${esc(W.league)}" placeholder="HC Forbidden Rites">
-        <p class="wl-note">Set the game to <b>Windowed Fullscreen</b> (Options → Graphics) so the HUD can sit on top.</p>`;
+        <p class="wl-note">Skill buttons in rotations are named for these controls. Change it any time in Settings.</p>`;
       body.querySelectorAll(".wl-input").forEach(b => b.addEventListener("click", () => { W.input = b.dataset.v; render(); }));
-      $("wl-league").addEventListener("input", e => { W.league = e.target.value; });
     } else if (W.step === 3) {
-      const k = (settings && settings.hotkeys) || {};
       body.innerHTML = `<h1 id="wl-title">How it works</h1>
         <div class="wl-grid">
-          <div><h3>HUD</h3><p>A small bar over the game, only while PoE2 is in front. Shows your grade (click to rate), resistance penalty, check item, what next, rotation and record gear. Drag the logo to move it.</p></div>
-          <div><h3>Your gear</h3><p>The game doesn't share what you wear, so record it once: Play → Your gear → <b>Record my gear</b>, then in game point at each worn item and press <kbd>Ctrl+C</kbd>. Ratings and checks use it.</p></div>
-          <div><h3>Hotkeys</h3><p><kbd>${esc(k.item_check)}</kbd> check the hovered item · <kbd>${esc(k.what_next)}</kbd> what next · <kbd>${esc(k.record_equipped)}</kbd> record worn gear · <kbd>${esc(k.toggle_overlay)}</kbd> HUD on/off. Change them in Settings.</p></div>
-          <div><h3>Builds</h3><p>Builds → Showcase: pick class, ascendancy and what matters. <b>Create full build</b> plans every stage, and one click writes it into the game's Build Planner.</p></div>
-          <div><h3>Rating and Skills</h3><p>A strict F to S+ grade for where you are, plus skills, supports and rotations for your controls.</p></div>
-          <div><h3>Market</h3><p>Ask in chat ("find boots with life and cold res under 5 ex"). Press <b>Trade login</b> once so <b>Travel</b> can take you to the seller.</p></div>
-          <div><h3>Sounds</h3><p>Cues for a new act, boss areas, resistance drops and answers being ready. Level-up and death sounds are optional. Turn each on or off in Settings → Sounds.</p></div>
+          <div><h3>Pick a build</h3><p>Builds → Showcase: search, or pick class, ascendancy and what matters. Open a build for its plan, sources and versions.</p></div>
+          <div><h3>Follow it in game</h3><p><b>Create full build</b> plans every stage, and one click writes it into the game's Build Planner. A Path of Building link works too (Import).</p></div>
+          <div><h3>Passives</h3><p>Builds → Current shows how far you are, the next passives to take and the tree numbered in order.</p></div>
+          <div><h3>Skills</h3><p>The skills and supports for your stage are on Current. The Skills tab adds buttons and rotations for your controls.</p></div>
+          <div><h3>Dashboard</h3><p>A second-screen view of your skills, supports and next passives. Open it with the Dashboard button at the top.</p></div>
         </div>
-        <p class="wl-note">Keyboard: <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>5</kbd> switch tabs · <kbd>/</kbd> jump to chat · <kbd>Esc</kbd> closes panels · <kbd>Tab</kbd> moves between controls.</p>`;
+        <p class="wl-note">Keyboard: <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>3</kbd> switch tabs · <kbd>Esc</kbd> closes panels · <kbd>Tab</kbd> moves between controls.</p>`;
     } else {
       body.innerHTML = `<div class="wl-hero"><img src="logo.svg" alt="" class="wl-logo">
         <h1 id="wl-title">You're set</h1>
-        <p class="wl-tag">Pick a build to follow, or just start playing. Lifeline watches your game log and keeps up.</p></div>`;
+        <p class="wl-tag">Pick a build to follow. Lifeline watches your game log and keeps up.</p></div>`;
     }
     dots();
   }
 
+  const saveAnswers = () => invoke("finish_setup", { input: W.input || "keyboard" });
+
   async function finish() {
     try {
-      const s = await invoke("finish_setup", { league: W.league, input: W.input || "keyboard" });
-      settings = s;
-      if (typeof fillSettings === "function") fillSettings(s);
+      settings = await saveAnswers();
+      if (typeof fillSettings === "function") fillSettings(settings);
     } catch (e) { toast(e, "err"); }
     close();
   }
@@ -129,15 +123,14 @@
     clearInterval(W.poll);
     $("welcome").classList.add("hidden");
     if (W.status && !W.status.onboarded) {
-      invoke("finish_setup", { league: W.league, input: W.input || "keyboard" })
-        .then(() => invoke("snapshot"))
-        .then(snap => { settings = snap.settings; fillSettings(snap.settings); })
+      saveAnswers()
+        .then(s => { settings = s; fillSettings(s); })
         .catch(e => toast(`Couldn't save the welcome answers: ${e}`, "err"));
     }
     refresh();
   }
 
-  // Play tab banner when the AI can't run yet.
+  // Skills tab banner when Claude isn't connected (its button needs it).
   function banner() {
     $("setup-banner").classList.toggle("hidden", !W.status || ready());
   }
@@ -160,17 +153,12 @@
   })();
 })();
 
-// ---- app-wide keyboard shortcuts ----
+// ---- app-wide keyboard shortcuts: Ctrl+1–3 switch tabs ----
 document.addEventListener("keydown", ev => {
   if (!$("welcome").classList.contains("hidden")) return;
-  const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(ev.target.tagName);
-  if (ev.ctrlKey && !ev.altKey && ev.key >= "1" && ev.key <= "5") {
+  if (ev.ctrlKey && !ev.altKey && ev.key >= "1" && ev.key <= "3") {
     const tab = document.querySelectorAll(".tab")[Number(ev.key) - 1];
     if (tab) { ev.preventDefault(); tab.click(); tab.focus(); }
-  } else if (ev.key === "/" && !typing) {
-    ev.preventDefault();
-    document.querySelector('.tab[data-tab="play"]').click();
-    $("ask-input").focus();
   }
 });
 

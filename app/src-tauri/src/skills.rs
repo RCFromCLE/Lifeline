@@ -1,5 +1,5 @@
 //! Skills, supports, buttons and rotations for the current stage (skill-coach
-//! on Opus 5.5). Shown on the Skills tab and, as a rotation, on the HUD.
+//! on Opus 5.5). Shown on the Skills tab and the dashboard.
 
 use std::sync::atomic::Ordering;
 
@@ -33,7 +33,7 @@ pub fn run(app: AppHandle) {
         let input = state.settings.lock().unwrap().input.clone();
         let context = json!({"character": c.name, "class": c.class, "level": c.level, "act": c.act, "area_level": c.area_level,
                              "controls": crate::state::controls(&input)});
-        let result = crate::ai::companion(&state, SKILLS_SCOPE).and_then(|cli| {
+        let result = crate::ai::job_cli(&state, SKILLS_SCOPE).and_then(|cli| {
             cli.for_job(Job::Skills)
                 .run_turn(&Job::Skills.prompt(&context.to_string()), None, |e| {
                     if let CliEvent::RateLimit(info) = e {

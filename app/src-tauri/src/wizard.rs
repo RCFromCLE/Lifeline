@@ -270,15 +270,14 @@ pub fn generate(app: AppHandle, archetype_id: String, prefs: Preferences) -> Res
     std::thread::spawn(move || {
         let state = app.state::<AppState>();
         let c = state.character.lock().unwrap().clone();
-        let league = state.settings.lock().unwrap().league.clone();
         let for_new = !c.class.eq_ignore_ascii_case(&archetype.class);
         let context = json!({
-            "character": {"class": c.class, "level": c.level, "league": league},
+            "character": {"class": c.class, "level": c.level},
             "for_new_character": for_new,
             "archetype": archetype,
             "preferences": prefs,
         });
-        let result = crate::ai::companion(&state, BUILD_SCOPE).and_then(|cli| {
+        let result = crate::ai::job_cli(&state, BUILD_SCOPE).and_then(|cli| {
             cli.for_job(Job::DesignBuild)
                 .run_turn(&Job::DesignBuild.prompt(&context.to_string()), None, |e| match e {
                     CliEvent::Assistant { tool_uses, .. } => {
@@ -324,7 +323,6 @@ pub fn generate(app: AppHandle, archetype_id: String, prefs: Preferences) -> Res
             (Err(e), _) => json!({"ok": false, "error": e}),
         };
         state.build_busy.store(false, Ordering::SeqCst);
-        crate::sound::play_with(&app, crate::sound::Cue::Ready, if outcome["ok"].as_bool() == Some(true) { "Build ready in My builds" } else { "Build failed" });
         let _ = app.emit("build-done", outcome);
         let _ = app.emit("library", library(&state));
     });

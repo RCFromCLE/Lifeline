@@ -1,6 +1,6 @@
-// Playthrough dashboard (second screen): skills and their supports, the
-// next passives to take and those taken, and the live game log. Plain text:
-// no tree drawing, no chips; hover a notable or keystone to see what it does.
+// Playthrough dashboard (second screen): skills and their supports, and the
+// next passives to take and those taken. Plain text: no tree drawing, no
+// chips; hover a notable or keystone to see what it does.
 const $ = id => document.getElementById(id);
 const esc = s => escapeHtml(s ?? "");
 
@@ -16,12 +16,6 @@ function renderHeader(c) {
   const where = c.zone ? `${c.zone} · area ${c.area_level}${c.act ? ` · Act ${c.act}` : ""}` : "";
   $("d-meta").textContent = [c.class, where, FOLLOWING ? `Following ${FOLLOWING}` : ""].filter(Boolean).join(" · ");
   $("d-level").textContent = c.name ? c.level : "—";
-  const res = $("d-res");
-  res.textContent = c.res_penalty === null || c.res_penalty === undefined ? "—" : `${c.res_penalty}%`;
-  res.className = `v ${penaltyClass(c.res_penalty)}`;
-  const deaths = $("d-deaths");
-  deaths.textContent = c.deaths ?? 0;
-  deaths.className = `v ${c.deaths ? "bad" : ""}`;
 }
 
 // ---- skills and supports ----
@@ -138,27 +132,12 @@ async function refresh() {
   renderHeader(await invoke("snapshot").then(s => s.character).catch(() => null));
 }
 
-// ---- log ----
-function feedLine(item) {
-  const li = document.createElement("li");
-  const d = new Date(), today = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-  const when = item.time.startsWith(today) ? item.time.slice(11, 16) : `${item.time.slice(5, 10).replace("/", "-")} ${item.time.slice(11, 16)}`;
-  li.innerHTML = `<time>${esc(when)}</time><span class="k-${esc(item.kind)}">${esc(item.text)}</span>`;
-  return li;
-}
-function renderFeed(items) {
-  const ul = $("d-feed");
-  ul.innerHTML = "";
-  items.slice(-200).reverse().forEach(i => ul.appendChild(feedLine(i)));
-}
-
 // ---- full screen ----
 async function toggleFullscreen() {
   const w = window.__TAURI__.window.getCurrentWindow();
   await w.setFullscreen(!(await w.isFullscreen()));
 }
 $("d-full").addEventListener("click", () => toggleFullscreen().catch(() => {}));
-$("d-market").addEventListener("click", () => invoke("overlay_action", { action: "open_market" }).catch(() => {}));
 document.addEventListener("keydown", ev => {
   if (ev.key === "F11") { ev.preventDefault(); toggleFullscreen().catch(() => {}); }
 });
@@ -182,21 +161,13 @@ document.addEventListener("mouseover", ev => {
 });
 
 listen("character", ({ payload }) => { renderHeader(payload); scheduleRefresh(3000); });
-listen("feed", ({ payload }) => {
-  const ul = $("d-feed");
-  ul.prepend(feedLine(payload));
-  while (ul.children.length > 200) ul.lastChild.remove();
-});
-listen("feed-all", ({ payload }) => renderFeed(payload));
 listen("imported", () => scheduleRefresh());
 listen("skills", () => scheduleRefresh());
-listen("equipped", () => scheduleRefresh());
 
 // Start once the page has loaded.
 document.addEventListener("DOMContentLoaded", async () => {
   const snap = await invoke("snapshot");
   FOLLOWING = snap.imported?.name || null;
   renderHeader(snap.character);
-  renderFeed(snap.feed || []);
   refresh();
 });

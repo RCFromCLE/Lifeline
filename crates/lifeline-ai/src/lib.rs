@@ -17,14 +17,15 @@ use std::process::{Command, Stdio};
 use serde_json::json;
 
 pub use agents::{roster, write_agents_file, AgentSpec};
-pub use jobs::{cap_grade, parse_rating, parse_report, structured, Finding, Job, JobReport, Rating, RatingPiece, Severity, GEAR_SLOTS, PIECE_GROUPS};
+pub use jobs::{parse_report, structured, Finding, Job, JobReport, Severity};
 pub use stream::{parse_event, CliEvent, RunResult, ToolUse};
 
 /// Name our MCP server is registered under; tools appear to Claude as
 /// `mcp__lifeline__<tool>`.
 pub const MCP_SERVER_NAME: &str = "lifeline";
 
-pub const SYSTEM_PROMPT: &str = include_str!("../prompts/companion.md");
+/// Used only for a run without an agent (both jobs run one).
+pub const SYSTEM_PROMPT: &str = include_str!("../prompts/system.md");
 
 #[derive(Debug, Clone)]
 pub struct ClaudeCli {
@@ -43,7 +44,7 @@ pub struct ClaudeCli {
     /// Used when no `main_agent` is set.
     pub system_prompt: String,
     /// Run a specialist as the main session (`--agent <name>`) instead of the
-    /// companion system prompt; background jobs do this.
+    /// system prompt; both jobs do this.
     pub main_agent: Option<String>,
     /// `--agents <file>`: the specialist roster, see [`agents::write_agents_file`].
     pub agents_file: Option<PathBuf>,
@@ -90,9 +91,9 @@ impl ClaudeCli {
         }
     }
 
-    /// The full companion: our MCP tools, the specialist roster, and the
-    /// `Agent` tool so it can delegate to them.
-    pub fn companion(working_dir: PathBuf, mcp_config: PathBuf, agents_file: PathBuf) -> Self {
+    /// With our MCP tools, the specialist roster, and the `Agent` tool so a
+    /// job's agent can consult the others.
+    pub fn with_roster(working_dir: PathBuf, mcp_config: PathBuf, agents_file: PathBuf) -> Self {
         let mut cli = Self::new(working_dir);
         cli.mcp_config = Some(mcp_config);
         cli.agents_file = Some(agents_file);
@@ -102,7 +103,7 @@ impl ClaudeCli {
             .map(str::to_owned)
             .chain(tools::qualified(tools::ALL))
             .collect();
-        // Claude Code's own coding agents are no use in a game companion.
+        // Claude Code's own coding agents are no use here.
         cli.disallowed_tools = agents::BUILT_IN_AGENTS.iter().map(|a| format!("Agent({a})")).collect();
         cli
     }
@@ -340,9 +341,9 @@ mod tests {
     }
 
     #[test]
-    fn companion_gets_agents_tools_and_isolation() {
+    fn roster_runs_get_agents_tools_and_isolation() {
         let dir = std::env::temp_dir();
-        let cli = ClaudeCli::companion(dir.clone(), dir.join("mcp.json"), dir.join("agents.json"));
+        let cli = ClaudeCli::with_roster(dir.clone(), dir.join("mcp.json"), dir.join("agents.json"));
         let a = args(&cli.command(None));
         assert!(a.windows(2).any(|w| w == ["--tools", "WebSearch,WebFetch,Agent"]));
         assert!(a
@@ -357,7 +358,8 @@ mod tests {
             .find(|w| w[0] == "--allowedTools")
             .map(|w| w[1].clone())
             .unwrap();
-        assert!(allowed.contains("Agent") && allowed.contains("mcp__lifeline__propose_action"));
+        assert!(allowed.contains("Agent") && allowed.contains("mcp__lifeline__design_build"));
+        assert!(!allowed.contains("propose_action") && !allowed.contains("trade_search"));
     }
 
     #[test]

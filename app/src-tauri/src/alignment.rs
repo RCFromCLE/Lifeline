@@ -1,37 +1,13 @@
 //! How the character lines up with the build being followed, for the stage
 //! that fits its level: passives allocated (from the game log) against the
-//! plan, recorded gear against the stage's gear goals, and the planned
-//! skills and supports (the game doesn't log gems, so those are listed for
-//! the player and the AI to check).
+//! plan, and the skills and supports planned for the stage (the game doesn't
+//! log gems, so those are the plan to socket).
 
 use std::collections::HashSet;
 
 use serde_json::{json, Value};
 
 use crate::state::AppState;
-
-/// Gear goal slot (PoB name) → the item classes a recorded item may have.
-fn classes_for(slot: &str) -> &'static [&'static str] {
-    match slot {
-        "Helmet" => &["Helmets"],
-        "Body Armour" => &["Body Armours"],
-        "Gloves" => &["Gloves"],
-        "Boots" => &["Boots"],
-        "Amulet" => &["Amulets"],
-        "Ring 1" => &["Rings"],
-        "Ring 2" => &[crate::state::SECOND_RING],
-        "Belt" => &["Belts"],
-        "Weapon 2" => &["Shields", "Bucklers", "Quivers", "Foci", "Sceptres", "Wands"],
-        _ => &[],
-    }
-}
-
-/// First line of item text after the header lines (the item's name or base).
-fn item_title(text: &str) -> String {
-    let lines: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with("--------")).collect();
-    let start = lines.iter().position(|l| l.starts_with("Rarity:")).map_or(0, |i| i + 1);
-    lines.get(start).copied().unwrap_or("item").to_owned()
-}
 
 pub fn alignment(state: &AppState) -> Value {
     // Load (maybe download) game data before taking the build lock.
@@ -73,7 +49,7 @@ pub fn alignment(state: &AppState) -> Value {
         .iter()
         .flat_map(|s| s.nodes.iter().filter_map(|&n| tree.node_for(n, s.ascendancy_internal_id.as_deref()).map(|x| x.id.clone())))
         .collect();
-    let have: Vec<(u32, &String)> = planned.iter().filter(|(_, id)| c.allocated.contains(id)).map(|(n, id)| (*n, id)).collect();
+    let done = planned.iter().filter(|(_, id)| c.allocated.contains(id)).count();
     // In the order they're taken (outward from the class start), with the
     // stat to pick on each "+5 to any Attribute" node.
     let main_planned: HashSet<u32> = planned
@@ -111,7 +87,7 @@ pub fn alignment(state: &AppState) -> Value {
         .filter(|n| !n.is_empty())
         .collect();
 
-    // Skills planned for this stage (names), to compare with what's socketed.
+    // Skills planned for this stage, with supports the player can use by then.
     let skills: Vec<Value> = lifeline_model::usable_skills(&imported.build, current.stage_key, data.as_deref())
         .iter()
         .map(|s| {
@@ -124,45 +100,6 @@ pub fn alignment(state: &AppState) -> Value {
         })
         .collect();
 
-    // Gear goals vs recorded items.
-    let equipped = state.equipped.lock().unwrap().clone();
-    let item_set = lifeline_model::items_for_stage(&imported.build, current.stage_key);
-    let gear: Vec<Value> = item_set
-        .map(|set| {
-            set.slots
-                .iter()
-                .filter(|s| !s.slot.contains("Swap") && !s.slot.starts_with("Flask") && !s.slot.starts_with("Charm"))
-                .map(|s| {
-                    let goal = imported.build.items.get(&s.item_id).cloned().unwrap_or_default();
-                    let goal_lines: Vec<&str> = goal.lines().skip_while(|l| !l.starts_with("Implicits:")).skip(1).collect();
-                    let unique = goal.starts_with("Rarity: UNIQUE").then(|| goal.lines().nth(1).unwrap_or_default().to_owned());
-                    let worn = classes_for(&s.slot).iter().find_map(|cl| equipped.get(*cl)).or_else(|| {
-                        (s.slot == "Weapon 1")
-                            .then(|| equipped.iter().find(|(k, _)| crate::state::WEAPON_CLASSES.contains(&k.as_str())).map(|(_, v)| v))
-                            .flatten()
-                    });
-                    json!({"slot": s.slot, "goal_unique": unique, "goal": goal_lines, "goal_text": goal,
-                           "recorded": worn.map(|t| item_title(t)), "recorded_text": worn})
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-
-    // Every worn slot, recorded or not (the "Record your gear" checklist).
-    let worn: Vec<Value> = ["Weapon 1", "Weapon 2", "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Belt"]
-        .iter()
-        .map(|slot| {
-            let item = if *slot == "Weapon 1" {
-                equipped.iter().find(|(k, _)| crate::state::WEAPON_CLASSES.contains(&k.as_str())).map(|(_, v)| v)
-            } else {
-                classes_for(slot).iter().find_map(|cl| equipped.get(*cl))
-            };
-            let label = match *slot { "Weapon 1" => "Weapon", "Weapon 2" => "Off-hand", s => s };
-            json!({"slot": label, "recorded": item.map(|t| item_title(t)), "text": item})
-        })
-        .collect();
-
-    let done = have.len();
     let total = planned.len();
     json!({
         "build": imported.name,
@@ -178,38 +115,6 @@ pub fn alignment(state: &AppState) -> Value {
             "allocated_total": c.allocated.len(),
         },
         "skills": skills,
-        "gear": gear,
-        "worn": worn,
-        "note": "Allocated passives come from the game log (only allocations Lifeline has seen). The game doesn't log gems; ask the player what's socketed.",
+        "note": "Allocated passives come from the game log (only allocations Lifeline has seen). The game doesn't log gems, so the skills are the plan to socket.",
     })
-}
-
-/// The alignment without the full item texts the screens draw as tooltips;
-/// the AI reads items through its own tools.
-pub fn for_ai(mut v: Value) -> Value {
-    for g in v["gear"].as_array_mut().into_iter().flatten() {
-        if let Some(o) = g.as_object_mut() {
-            o.remove("goal_text");
-            o.remove("recorded_text");
-        }
-    }
-    for w in v["worn"].as_array_mut().into_iter().flatten() {
-        if let Some(o) = w.as_object_mut() {
-            o.remove("text");
-        }
-    }
-    v
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn item_titles_and_slot_classes() {
-        assert_eq!(item_title("Item Class: Boots\nRarity: Rare\nGale Stride\nThreaded Shoes\n--------\n+20 life"), "Gale Stride");
-        assert_eq!(classes_for("Ring 1"), &["Rings"]);
-        assert_eq!(classes_for("Ring 2"), &[crate::state::SECOND_RING]);
-        assert!(classes_for("Weapon 1").is_empty());
-    }
 }

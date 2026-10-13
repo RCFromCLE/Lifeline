@@ -114,7 +114,7 @@ function renderTreeSide() {
   const asc = p.ascendancy.map(a => `<li class="${a.taken ? "done" : ""}">${a.taken ? "✓ " : ""}${esc(a.name)}</li>`).join("");
   $("tree-side").innerHTML = `
     <div class="d-sec"><h3>Attribute nodes</h3><ul class="t-attrs">${attrs}</ul>
-      <div class="hint">Every "+5 to any Attribute" node: pick this stat. Lifeline works it out from your gems and gear.</div></div>
+      <div class="hint">Every "+5 to any Attribute" node: pick this stat. Lifeline works it out from the plan's gems and gear goals.</div></div>
     <div class="d-sec"><h3>Take in this order</h3>${next ? `<ol class="t-next">${next}</ol>` : "<p class='hint'>All planned passives for this stage are taken.</p>"}
       ${p.allocated_seen ? "" : "<div class='hint'>Nothing seen in the game log yet; allocate a point in game and it shows here.</div>"}</div>
     ${asc ? `<div class="d-sec"><h3>Ascendancy</h3><ul class="t-asc">${asc}</ul></div>` : ""}`;

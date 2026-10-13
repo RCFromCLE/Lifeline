@@ -1,7 +1,7 @@
 //! Only one Lifeline at a time: the copy that starts closes every other
 //! running Lifeline (an older installed version, a dev build) first, so the
-//! newest launch wins and two copies never fight over hotkeys, the HUD,
-//! the game log or the tool server.
+//! newest launch wins and two copies never fight over the game log, the
+//! saved builds or the tool server.
 
 /// Closes other running `Lifeline.exe` processes and waits briefly for them
 /// to exit. Returns how many were closed.
@@ -27,7 +27,7 @@ pub fn close_other_copies() -> usize {
             if entry.th32ProcessID != me && name.eq_ignore_ascii_case("Lifeline.exe") {
                 if let Ok(process) = OpenProcess(PROCESS_TERMINATE | PROCESS_SYNCHRONIZE, false, entry.th32ProcessID) {
                     if TerminateProcess(process, 0).is_ok() {
-                        // Let it release hotkeys and the tool server's port.
+                        // Let it release the tool server's port.
                         WaitForSingleObject(process, 3000);
                         closed += 1;
                     }

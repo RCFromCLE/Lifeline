@@ -47,7 +47,7 @@ body::after {
 header, nav, main { position: relative; z-index: 1; }
 
 /* ---- type ---- */
-h1, h2, h3, .tab, .subtab, .brand .word, .step-n, .grade, .match, button.primary {
+h1, h2, h3, .tab, .subtab, .brand .word, .step-n, .match, button.primary {
   font-family: var(--display);
 }
 h2 {
@@ -75,10 +75,6 @@ h2 small { -webkit-text-fill-color: var(--muted); font-family: "Segoe UI", syste
 }
 .char-name { font-family: var(--display); font-weight: 700; letter-spacing: 0.5px; }
 .stats { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-.stat { font-family: var(--display); font-weight: 700; font-size: 16px; color: var(--text); }
-.stat.warn { color: var(--gold-2); }
-.stat.bad { color: var(--red); }
-.stat.danger { color: #e9a094; }
 #embers { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 .topbar > *:not(#embers) { position: relative; z-index: 1; }
 
@@ -153,9 +149,6 @@ input[type=checkbox] { accent-color: var(--gold); }
   font-size: 13.5px; letter-spacing: 0.5px; text-transform: uppercase;
 }
 .btnchip { border-color: #34507a; color: #9fc4f0; }
-.badge { border-radius: 4px; }
-.convs li { border-radius: 4px; }
-.msg { border-radius: 6px; }
 
 /* ---- portraits and art cards ---- */
 .portrait {
@@ -197,12 +190,6 @@ input[type=checkbox] { accent-color: var(--gold); }
 .bars .b { height: 5px; background: rgba(0, 0, 0, 0.45); box-shadow: inset 0 0 0 1px rgba(59, 44, 31, 0.6); }
 .bars .b i { background: linear-gradient(90deg, #6e4c22, var(--gold-2)); box-shadow: 0 0 8px rgba(244, 208, 140, 0.35); }
 .bars .b i.hc { background: linear-gradient(90deg, #2f5a26, #a8f08e); box-shadow: 0 0 8px rgba(134, 196, 110, 0.4); }
-
-/* ---- grade: glows; S grades shimmer ---- */
-.grade { border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 22px rgba(0, 0, 0, 0.5); }
-.grade.g-S { background: linear-gradient(110deg, #6b4a12 0%, #e9c46a 40%, #fff3c6 50%, #e9c46a 60%, #6b4a12 100%); background-size: 250% 100%; animation: shimmer 3.5s linear infinite; }
-.grade.g-A { box-shadow: 0 0 22px rgba(120, 220, 100, 0.25); }
-@keyframes shimmer { to { background-position: -250% 0; } }
 
 /* ---- modal ---- */
 .modal { background: rgba(5, 3, 2, 0.72); backdrop-filter: blur(4px); }
@@ -322,8 +309,6 @@ button.danger { border-color: var(--red) !important; color: #ffb3a8 !important; 
 .align-pct { font-family: var(--display); font-size: 44px; font-weight: 800; color: var(--green); text-shadow: 0 0 16px rgba(134, 196, 110, 0.35); }
 .align-pct small { font-size: 18px; color: var(--muted); }
 .d-sec li.notable { color: var(--gold-2); }
-.gear-align td.okc { color: var(--green); }
-.gear-align td.noc { color: var(--muted); font-style: italic; }
 
 /* My builds: header tools, per-card delete, followed build */
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -333,20 +318,6 @@ button.danger { border-color: var(--red) !important; color: #ffb3a8 !important; 
 .mine-item.is-followed > .bcard { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(217, 169, 87, 0.5), 0 0 18px rgba(217, 169, 87, 0.18); }
 .card-del { position: absolute; top: 8px; right: 8px; padding: 3px 8px; min-width: 0; font-size: 13.5px; line-height: 1.2; opacity: 0.55; background: rgba(15, 11, 8, 0.85); }
 .mine-item:hover .card-del, .card-del:focus-visible, .card-del.danger { opacity: 1; }
-
-/* Rating: every piece, grouped */
-.r-group + .r-group { margin-top: 14px; }
-.r-group h3 { font-family: var(--display); font-size: 14px; letter-spacing: 1px; color: var(--gold-2); margin: 0 0 8px; }
-.r-group h3 .hint { font-family: "Segoe UI", system-ui, sans-serif; font-size: 13.5px; margin-left: 4px; }
-.r-pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 8px; }
-.r-piece { display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; border-radius: var(--radius); border: 1px solid rgba(59, 44, 31, 0.9); background: linear-gradient(180deg, rgba(33, 25, 19, 0.85), rgba(19, 14, 10, 0.85)); min-width: 0; }
-.r-piece .body { min-width: 0; }
-.r-piece .n { font-weight: 600; }
-.r-piece .have { font-size: 14px; color: var(--gold-2); overflow-wrap: anywhere; }
-.r-piece .t { font-size: 13.5px; color: var(--muted); }
-.r-piece.unverified { border-style: dashed; }
-.r-piece .unv { font-size: 13.5px; font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); margin-left: 4px; }
-.market-more { margin-top: 10px; }
 
 /* Passive tree */
 .tree-stages { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
@@ -409,36 +380,22 @@ button.danger { border-color: var(--red) !important; color: #ffb3a8 !important; 
 .t-num { min-width: 22px; color: var(--muted); font-size: 13.5px; text-align: right; }
 .t-asc li.done { color: var(--green); }
 
-/* Your gear checklist */
-.worn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr)); gap: 6px; margin-bottom: 8px; }
-.worn-slot { display: flex; flex-direction: column; padding: 6px 9px; border-radius: var(--radius); border: 1px dashed rgba(120, 95, 60, 0.6); min-width: 0; }
-.worn-slot.ok { border-style: solid; border-color: rgba(134, 196, 110, 0.55); }
-.worn-slot .ws { font-size: 13.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
-.worn-slot .wi { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.worn-slot.ok .wi { color: var(--green); }
-.worn-steps { margin: 4px 0 6px; padding-left: 20px; font-size: 14.5px; }
+/* Keys named in hints */
 kbd { font: 600 12px "Segoe UI", system-ui, sans-serif; padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(217, 169, 87, 0.5); background: rgba(217, 169, 87, 0.12); color: var(--gold-2); }
-.r-nudge { margin-bottom: 12px; padding: 8px 10px; border-radius: var(--radius); border: 1px solid rgba(217, 169, 87, 0.45); background: rgba(217, 169, 87, 0.08); font-size: 14.5px; }
-.worn-how { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 10px; margin: 6px 0 8px; }
-.worn-way { padding: 10px 12px; border-radius: var(--radius); border: 1px solid rgba(217, 169, 87, 0.3); background: rgba(217, 169, 87, 0.05); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 
 /* Settings layout */
 .settings h2:first-child { margin-top: 0; }
 .set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 12px 16px; margin-bottom: 10px; }
 .set-grid label small { color: var(--muted); font-size: 13.5px; }
-.set-grid.keys input { font-family: "Segoe UI", system-ui, sans-serif; }
 .set-save { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
 .set-save .status { margin: 0; }
 
-/* Play: room for the conversation; compact quick actions */
+/* Compact quick actions */
 .quick { gap: 6px; margin: 8px 0; }
 .quick button { padding: 6px 11px; font-size: 14px; }
 .quick button.primary { font-size: 13.5px; padding: 6px 14px; }
-.quick #btn-delete-conv { margin-left: auto; }
-.convs { width: 190px; }
-.chat { min-height: 260px; }
 
-/* Notifications: top of the window (never over the chat box), click to dismiss */
+/* Notifications: top of the window, click to dismiss */
 .toast { top: 18px; bottom: auto; transform: translateX(-50%) translateY(-160px); cursor: pointer; transition: transform .25s, opacity .25s; opacity: 0; }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
@@ -447,9 +404,5 @@ button.primary, .d-actions button, .quick button.primary { font-family: "Segoe U
 h2 { background: none; -webkit-text-fill-color: currentColor; color: var(--gold-2); }
 .cstage small { color: #c9b496; }
 .cstage { font-family: inherit; }
-.gear-how { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.starters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.starters .starter { font-size: 14px; padding: 6px 12px; }
-.chat { min-height: 140px; }
 .quick { flex-wrap: wrap; }
 .quick button { white-space: nowrap; }

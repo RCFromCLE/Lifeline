@@ -56,7 +56,6 @@ pub fn status(state: &AppState) -> Value {
         },
         "git": quiet("git", &["--version"]).is_some(),
         "game_log": lifeline_gamefiles::paths::find_client_log().is_some(),
-        "league": settings.league,
         "input": settings.input,
         "onboarded": settings.onboarded,
     })
@@ -106,11 +105,8 @@ pub fn login_claude() -> Result<(), String> {
 }
 
 /// Saves the welcome answers and marks setup done.
-pub fn finish(state: &AppState, league: String, input: String) -> Result<(), String> {
+pub fn finish(state: &AppState, input: String) -> Result<(), String> {
     let mut s = state.settings.lock().unwrap();
-    if !league.trim().is_empty() {
-        s.league = league.trim().to_owned();
-    }
     if matches!(input.as_str(), "playstation" | "xbox" | "keyboard") {
         s.input = input;
     }
