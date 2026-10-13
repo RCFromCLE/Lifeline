@@ -27,6 +27,9 @@ const PADDED: GeneralPurpose = GeneralPurpose::new(&alphabet::URL_SAFE, GeneralP
 
 /// Build code → PoB XML. Whitespace is ignored and both base64 alphabets are
 /// accepted, matching PoB's own tolerance.
+/// The most a build code may inflate to.
+const MAX_XML_BYTES: u64 = 16 << 20;
+
 pub fn decode(code: &str) -> Result<String, Error> {
     let cleaned: String = code
         .chars()
@@ -39,14 +42,25 @@ pub fn decode(code: &str) -> Result<String, Error> {
         .collect();
     let bytes = LENIENT.decode(cleaned.as_bytes())?;
     let mut xml = String::new();
+    // Real builds inflate to well under a megabyte; a crafted code could
+    // otherwise expand to gigabytes.
+    let limit = MAX_XML_BYTES + 1;
     if bytes.starts_with(&[0x1f, 0x8b]) {
         MultiGzDecoder::new(bytes.as_slice())
+            .take(limit)
             .read_to_string(&mut xml)
             .map_err(Error::Inflate)?;
     } else {
         ZlibDecoder::new(bytes.as_slice())
+            .take(limit)
             .read_to_string(&mut xml)
             .map_err(Error::Inflate)?;
+    }
+    if xml.len() as u64 > MAX_XML_BYTES {
+        return Err(Error::Inflate(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "the build code expands to more than 16 MB",
+        )));
     }
     Ok(xml)
 }
@@ -255,5 +269,13 @@ mod tests {
             resolve("https://www.youtube.com/redirect?event=video_description&q=https%3A%2F%2Fpobb.in%2FzR3rtheeI4fI"),
             BuildSource::CodeUrl("https://pobb.in/pob/zR3rtheeI4fI".into())
         );
+    }
+
+    #[test]
+    fn a_code_that_inflates_past_the_limit_is_refused() {
+        let bomb = encode(&"A".repeat((MAX_XML_BYTES + 1024) as usize));
+        assert!(bomb.len() < 100_000, "the code itself is small");
+        assert!(matches!(decode(&bomb), Err(Error::Inflate(_))));
+        assert!(decode(&encode("<PathOfBuilding2/>")).is_ok());
     }
 }

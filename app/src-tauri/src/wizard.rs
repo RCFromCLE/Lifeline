@@ -82,6 +82,9 @@ pub fn art(state: &AppState) -> Value {
     let mut out = serde_json::Map::new();
     for class in tree.classes().iter().filter(|c| c.ascendancies.iter().any(|a| !a.name.is_empty())) {
         let lower = class.name.to_lowercase();
+        if lower.is_empty() || !lower.chars().all(|c| c.is_ascii_lowercase()) {
+            continue;
+        }
         let cache = dir.join(format!("background-{lower}.json"));
         let text = std::fs::read_to_string(&cache).ok().or_else(|| {
             let t = crate::builds::http_get(&format!("{ART_BASE}/background-{lower}.json")).ok()?;

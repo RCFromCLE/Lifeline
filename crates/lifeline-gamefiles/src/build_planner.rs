@@ -269,6 +269,19 @@ pub fn file_name_for(name: &str) -> String {
 /// One file from [`read_dir`] with its parse result.
 pub type ScannedBuild = (PathBuf, Result<PlannerBuild, Error>);
 
+/// The most a planner file may weigh; real ones are a few kilobytes.
+pub const MAX_FILE_BYTES: u64 = 2 << 20;
+
+/// Reads a planner file, refusing one too big to be a build.
+pub fn read_capped(path: &Path) -> Result<String, Error> {
+    let size = fs::metadata(path).map_err(|source| Error::io(path, source))?.len();
+    if size > MAX_FILE_BYTES {
+        let too_big = std::io::Error::new(std::io::ErrorKind::InvalidData, "too large to be a build file");
+        return Err(Error::io(path, too_big));
+    }
+    fs::read_to_string(path).map_err(|source| Error::io(path, source))
+}
+
 /// Reads every `.build` file in `dir`. A file that fails to parse is reported
 /// alongside the others instead of aborting the whole scan.
 pub fn read_dir(dir: &Path) -> Result<Vec<ScannedBuild>, Error> {
@@ -279,9 +292,7 @@ pub fn read_dir(dir: &Path) -> Result<Vec<ScannedBuild>, Error> {
         if path.extension().and_then(|e| e.to_str()) != Some(FILE_EXTENSION) {
             continue;
         }
-        let parsed = fs::read_to_string(&path)
-            .map_err(|source| Error::io(&path, source))
-            .and_then(|text| PlannerBuild::from_json(&text));
+        let parsed = read_capped(&path).and_then(|text| PlannerBuild::from_json(&text));
         out.push((path, parsed));
     }
     out.sort_by(|a, b| a.0.cmp(&b.0));

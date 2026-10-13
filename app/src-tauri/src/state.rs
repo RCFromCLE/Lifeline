@@ -420,7 +420,7 @@ impl AppState {
 pub struct PendingAction {
     pub id: u64,
     pub conv: u64,
-    /// `travel` or `open_search`.
+    /// `travel`, `open_search`, `write_planner` or `use_build`.
     pub kind: String,
     pub summary: String,
     pub listing_id: Option<String>,
@@ -467,6 +467,10 @@ pub struct AppState {
     /// The wizard's latest design_build result (design, report), before it
     /// goes into the library.
     pub last_design: Mutex<Option<(lifeline_model::BuildDesign, lifeline_model::DesignReport)>>,
+    /// A build a chat designed, waiting for the player to press "Follow this
+    /// build": (conversation, design). A chat can't change the followed build
+    /// by itself.
+    pub staged_design: Mutex<Option<(u64, lifeline_model::BuildDesign)>>,
     /// A wizard build is being generated.
     pub build_busy: std::sync::atomic::AtomicBool,
     /// Steps shown while a wizard build is generated.
@@ -508,6 +512,7 @@ impl AppState {
             mcp: Mutex::new(None),
             settings: Mutex::new(settings),
             last_design: Mutex::new(None),
+            staged_design: Mutex::new(None),
             build_busy: std::sync::atomic::AtomicBool::new(false),
             build_steps: Mutex::new(Vec::new()),
             data_dir,

@@ -188,7 +188,7 @@ fn mark_own_copy(for_ms: u64) {
 
 /// Whether clipboard text is a copied Path of Exile item.
 pub fn is_item_text(text: &str) -> bool {
-    text.starts_with("Item Class:") || (text.starts_with("Rarity:") && text.contains("--------"))
+    text.len() <= 8192 && (text.starts_with("Item Class:") || (text.starts_with("Rarity:") && text.contains("--------")))
 }
 
 /// Waits up to `ms` for item text to land on the clipboard.

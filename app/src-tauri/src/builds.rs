@@ -19,6 +19,7 @@ pub fn web() -> &'static ureq::Agent {
     static AGENT: std::sync::OnceLock<ureq::Agent> = std::sync::OnceLock::new();
     AGENT.get_or_init(|| {
         ureq::Agent::config_builder()
+            .https_only(true)
             .timeout_connect(Some(std::time::Duration::from_secs(15)))
             .timeout_recv_response(Some(std::time::Duration::from_secs(30)))
             .timeout_recv_body(Some(std::time::Duration::from_secs(180)))
@@ -230,10 +231,10 @@ pub fn follow_planner(state: &AppState, files: &[String]) -> Result<ImportView, 
     let mut stages = Vec::new();
     let mut name = String::new();
     for f in files {
-        if f.contains(['/', '\\']) || !f.ends_with(".build") {
+        if !plain_planner_name(f) {
             continue;
         }
-        let Ok(text) = std::fs::read_to_string(dir.join(f)) else { continue };
+        let Ok(text) = build_planner::read_capped(&dir.join(f)) else { continue };
         let Ok(b) = build_planner::PlannerBuild::from_json(&text) else { continue };
         let (label, build_name) = lifeline_model::split_file_name(f);
         if build_name.len() > name.len() {
@@ -336,14 +337,19 @@ pub fn planner_list() -> Vec<PlannerFile> {
     out
 }
 
+/// A plain `.build` file name inside the planner folder: no folders, drive
+/// letters, parent links or alternate data streams.
+fn plain_planner_name(f: &str) -> bool {
+    !f.contains(['/', '\\', ':']) && !f.contains("..") && f.ends_with(".build")
+}
+
 /// Deletes planner files by file name. Only plain `.build` names inside the
 /// planner folder are accepted.
 pub fn delete_planner_files(files: &[String]) -> Result<usize, String> {
     let dir = planner_dir().ok_or("Couldn't find the Build Planner folder.")?;
     let mut deleted = 0;
     for f in files {
-        let plain = !f.contains(['/', '\\', ':']) && !f.contains("..") && f.ends_with(".build");
-        if !plain {
+        if !plain_planner_name(f) {
             return Err(format!("Not a Build Planner file: {f}"));
         }
         let path = dir.join(f);
@@ -360,4 +366,17 @@ pub fn open_planner_folder() -> Result<(), String> {
     let dir = planner_dir().ok_or("Couldn't find the Build Planner folder.")?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::process::Command::new("explorer.exe").arg(&dir).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn planner_names_stay_inside_the_folder() {
+        assert!(plain_planner_name("Act 1 - Flameblast.build"));
+        for bad in ["..\\x.build", "a/b.build", "D:x.build", "notes.txt:s.build", "x.txt", "C:\\Windows\\x.build"] {
+            assert!(!plain_planner_name(bad), "{bad}");
+        }
+    }
 }

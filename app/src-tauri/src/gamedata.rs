@@ -35,6 +35,14 @@ pub fn load(state: &AppState) -> Result<Arc<GameData>, String> {
             Err(e) => cached_version.clone().ok_or(e)?,
         },
     };
+    // The version becomes a folder name: a plain version string only.
+    let plain = !version.is_empty()
+        && version.len() <= 32
+        && !version.contains("..")
+        && version.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'));
+    if !plain {
+        return Err(format!("game data version looks wrong: {}", crate::ai::tidy(&version, 40)));
+    }
     let dir = root.join(&version);
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let mut files = HashMap::new();
@@ -147,7 +155,14 @@ pub fn gem_display(state: &AppState, id: &str) -> String {
     let loaded = state.game.lock().unwrap().clone();
     loaded
         .and_then(|d| d.gem_name(id).map(str::to_owned))
-        .unwrap_or_else(|| lifeline_gamefiles::build_planner::gem_short_name(id).to_owned())
+        .unwrap_or_else(|| {
+            // An id the game data doesn't know (from an imported file): an identifier at most.
+            lifeline_gamefiles::build_planner::gem_short_name(id)
+                .chars()
+                .filter(char::is_ascii_alphanumeric)
+                .take(48)
+                .collect()
+        })
 }
 
 /// A gem's colour by its attribute requirement: "str", "dex", "int", a mix

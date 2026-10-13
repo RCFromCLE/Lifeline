@@ -551,6 +551,10 @@ fn open_in_game_chat(app: AppHandle) {
 pub fn debug_log(state: &AppState, msg: &str) {
     use std::io::Write;
     let path = state.data_dir.join("debug.log");
+    if std::fs::metadata(&path).is_ok_and(|m| m.len() > 5 << 20) {
+        let _ = std::fs::rename(&path, state.data_dir.join("debug.old.log"));
+    }
+    let msg: String = msg.chars().filter(|c| !c.is_control()).take(600).collect();
     if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
         let t = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

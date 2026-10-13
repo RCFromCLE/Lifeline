@@ -47,7 +47,7 @@ pub fn run(app: AppHandle) {
                 })
                 .map_err(|e| e.to_string())
         });
-        let text = match result.as_ref().ok().and_then(|o| structured(&o.result)) {
+        let text = match result.as_ref().ok().and_then(|o| structured(&o.result)).filter(|p| p.is_object()) {
             Some(mut plan) => {
                 plan["level"] = json!(c.level);
                 plan["stage"] = json!(match c.act {

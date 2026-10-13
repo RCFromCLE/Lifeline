@@ -10,13 +10,16 @@ const W = { class: null, ascendancy: null, focus: "balanced", styles: [], budget
 const esc = s => escapeHtml(s ?? "");
 const prefs = () => ({ ...W });
 
+/** An image address safe inside CSS url('…'). */
+const cssUrl = u => encodeURI(u || "").replace(/'/g, "%27");
+
 /** A class or ascendancy portrait cropped from GGG's art atlas. */
 function portrait(cls, asc, size) {
   const a = ART[cls];
   const f = a && (a.frames[asc || ""] || a.frames[""]);
   if (!f) return `<div class="portrait" style="width:${size}px;height:${size}px"></div>`;
   const sx = size / f.w, sy = size / f.h;
-  return `<div class="portrait" style="width:${size}px;height:${size}px;background-image:url('${a.url}');` +
+  return `<div class="portrait" style="width:${size}px;height:${size}px;background-image:url('${esc(cssUrl(a.url))}');` +
     `background-size:${a.w * sx}px ${a.h * sy}px;background-position:-${f.x * sx}px -${f.y * sy}px"></div>`;
 }
 
@@ -98,7 +101,7 @@ function setBackdrop(name) {
   if (!f) return;
   const size = 720, sx = size / f.w, sy = size / f.h;
   const root = document.documentElement.style;
-  root.setProperty("--art-url", `url('${a.url}')`);
+  root.setProperty("--art-url", `url('${cssUrl(a.url)}')`);
   root.setProperty("--art-size", `${a.w * sx}px ${a.h * sy}px`);
   root.setProperty("--art-pos", `-${f.x * sx}px -${f.y * sy}px`);
 }

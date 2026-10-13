@@ -279,6 +279,7 @@ fn launcher() -> (PathBuf, Vec<PathBuf>) {
         let node = std::env::var_os("PATH")
             .into_iter()
             .flat_map(|p| std::env::split_paths(&p).collect::<Vec<_>>())
+            .filter(|d| d.is_absolute())
             .map(|d| d.join("node.exe"))
             .chain(std::env::var_os("ProgramFiles").map(|p| PathBuf::from(p).join("nodejs").join("node.exe")))
             .find(|p| p.is_file());

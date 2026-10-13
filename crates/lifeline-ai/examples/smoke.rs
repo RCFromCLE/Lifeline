@@ -9,13 +9,13 @@ use lifeline_ai::{agents, parse_report, ClaudeCli, CliEvent};
 fn print(event: &CliEvent) {
     match event {
         CliEvent::Init {
-            session_id,
+            session_id: _,
             model,
             tools,
             mcp_servers,
             agents,
         } => println!(
-            "init  session={session_id} model={model:?}\n      tools={tools:?}\n      mcp={mcp_servers:?}\n      agents={agents:?}"
+            "init  model={model:?}\n      tools={tools:?}\n      mcp={mcp_servers:?}\n      agents={agents:?}"
         ),
         CliEvent::RateLimit(info) => {
             let windows: Vec<String> = info
@@ -54,7 +54,7 @@ fn main() {
 
     println!("\n== companion turn (--restricted, strict MCP, specialists only) ==");
     match cli.run_turn("Reply with exactly the word: ready", None, print) {
-        Ok(outcome) => println!("ok, session {:?}", outcome.session_id),
+        Ok(_) => println!("ok"),
         Err(e) => println!("ERROR {e}"),
     }
 

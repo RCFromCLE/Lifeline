@@ -18,6 +18,8 @@ use serde_json::{json, Value};
 
 const BASE: &str = "https://www.pathofexile.com";
 const USER_AGENT: &str = "Lifeline/0.1 (personal PoE2 companion)";
+/// The longest the site may make this client wait between requests.
+const MAX_BACKOFF_SECS: u64 = 600;
 const NINJA_TTL: Duration = Duration::from_secs(15 * 60);
 
 const EXCHANGE_TYPES: &[&str] = &[
@@ -192,6 +194,7 @@ impl Market {
     }
 
     fn pace(&self, policy: &'static str) {
+        // (Waits are capped where they're recorded: MAX_BACKOFF_SECS.)
         let until = self.next_allowed.lock().unwrap().get(policy).copied();
         if let Some(until) = until {
             let now = Instant::now();
@@ -223,7 +226,7 @@ impl Market {
         let wait = backoff_from_headers(header);
         let retry_after: Option<u64> = header("Retry-After").and_then(|v| v.parse().ok());
         if wait > 0 || retry_after.is_some() {
-            let secs = wait.max(retry_after.unwrap_or(0));
+            let secs = wait.max(retry_after.unwrap_or(0)).min(MAX_BACKOFF_SECS);
             self.next_allowed
                 .lock()
                 .unwrap()
@@ -286,7 +289,13 @@ impl Market {
             .flat_map(|g| g["entries"].as_array().cloned().unwrap_or_default())
             .filter_map(|e| {
                 let image = e["image"].as_str()?;
-                let image = if image.starts_with("http") { image.to_owned() } else { format!("https://web.poecdn.com{image}") };
+                let image = if image.starts_with("https://web.poecdn.com/") {
+                    image.to_owned()
+                } else if image.starts_with('/') && !image.starts_with("//") {
+                    format!("https://web.poecdn.com{image}")
+                } else {
+                    return None;
+                };
                 Some((e["id"].as_str()?.to_owned(), (e["text"].as_str()?.to_owned(), image)))
             })
             .collect();

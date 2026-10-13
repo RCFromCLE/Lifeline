@@ -389,23 +389,49 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
         n if n == tools::DESIGN_BUILD => {
             let design: lifeline_model::BuildDesign =
                 serde_json::from_value(args.clone()).map_err(|e| format!("design doesn't match the schema: {e}"))?;
-            // Wizard runs fill the library; chat runs make the build active.
-            let report = if conv == crate::wizard::BUILD_SCOPE {
-                let (_, report) = crate::builds::realize_design(&state, &design)?;
+            // Wizard runs (the player pressed "Create full build") fill the
+            // library. A chat can't change the followed build by itself: text
+            // in a web page or an imported build could have asked for it, so
+            // the design waits behind a button the player presses.
+            let wizard = conv == crate::wizard::BUILD_SCOPE;
+            let (imported, report) = crate::builds::realize_design(&state, &design)?;
+            if wizard {
                 crate::wizard::attempt(app, &report);
                 *state.last_design.lock().unwrap() = Some((design.clone(), report.clone()));
-                report
             } else {
-                let (report, view) = crate::builds::create(&state, &design)?;
-                state.set_active_saved(None);
-                let _ = app.emit("imported", &view);
-                report
-            };
+                *state.staged_design.lock().unwrap() = Some((conv, design.clone()));
+                let summary = format!("{} ({} stages)", crate::ai::tidy(&imported.name, 60), imported.stages.len());
+                let action = {
+                    let mut actions = state.actions.lock().unwrap();
+                    // A redesign in the same chat reuses its card.
+                    match actions.iter_mut().find(|a| a.kind == "use_build" && a.conv == conv) {
+                        Some(a) => {
+                            a.summary = summary;
+                            a.clone()
+                        }
+                        None => {
+                            let id = actions.iter().map(|a| a.id).max().unwrap_or(0) + 1;
+                            let a = PendingAction {
+                                id,
+                                conv,
+                                kind: "use_build".into(),
+                                summary,
+                                listing_id: None,
+                                search_id: None,
+                            };
+                            actions.push(a.clone());
+                            a
+                        }
+                    }
+                };
+                let _ = app.emit("action", &action);
+            }
             let unspent: u32 = report.stages.last().map_or(0, |s| s.points_unspent);
-            let next = if report.is_clean() && unspent <= 10 {
-                "Clean. Saved. Finish up as your instructions say."
-            } else {
-                "Saved, but fix what's listed (missed targets, problems, unspent points) and call design_build again."
+            let clean = report.is_clean() && unspent <= 10;
+            let next = match (clean, wizard) {
+                (true, true) => "Clean. Saved. Finish up as your instructions say.",
+                (true, false) => "Clean. The player now sees a button to follow this build; it isn't their build until they press it. Finish up as your instructions say.",
+                (false, _) => "Checked, but fix what's listed (missed targets, problems, unspent points) and call design_build again.",
             };
             Ok(json!({"report": report, "next": next}))
         }
@@ -414,6 +440,10 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
             let summary = args["summary"].as_str().unwrap_or("").to_owned();
             let listing_id = args["listing_id"].as_str().map(str::to_owned);
             let mut search_id = args["search_id"].as_str().map(str::to_owned);
+            // Ids end up in trade-site addresses: only the site's own short ids.
+            if listing_id.iter().chain(&search_id).any(|id| !crate::market::plain_id(id)) {
+                return Err("listing_id and search_id must be the ids trade_search returned".into());
+            }
             match kind {
                 "travel" => {
                     let lid = listing_id.as_deref().ok_or("travel needs listing_id")?;
@@ -426,7 +456,10 @@ fn call(app: &AppHandle, conv: u64, name: &str, args: &Value) -> Result<Value, S
                 }
                 "open_search" if search_id.is_none() => return Err("open_search needs search_id".into()),
                 "open_search" => {}
-                "write_planner" if state.imported.lock().unwrap().is_none() => {
+                "write_planner"
+                    if state.imported.lock().unwrap().is_none()
+                        && !state.staged_design.lock().unwrap().as_ref().is_some_and(|(c, _)| *c == conv) =>
+                {
                     return Err("no build yet — call design_build (or have the player import one) first".into())
                 }
                 "write_planner" => {}

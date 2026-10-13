@@ -37,7 +37,7 @@ function feedItem(item) {
   // Log times are "YYYY/MM/DD HH:MM:SS"; show the date too when it isn't today.
   const d = new Date(), today = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
   const when = item.time.startsWith(today) ? item.time.slice(11, 16) : `${item.time.slice(5, 10).replace("/", "-")} ${item.time.slice(11, 16)}`;
-  li.innerHTML = `<time>${escapeHtml(when)}</time><span class="k-${item.kind}">${escapeHtml(item.text)}</span>`;
+  li.innerHTML = `<time>${escapeHtml(when)}</time><span class="k-${escapeHtml(item.kind)}">${escapeHtml(item.text)}</span>`;
   return li;
 }
 
@@ -52,7 +52,7 @@ function renderUsage(u) {
   const names = { five_hour: "5-hour", seven_day: "7-day" };
   $("usage").innerHTML = (u.windows || []).map(w => {
     const cls = w.pct >= 80 ? "high" : w.pct >= 50 ? "mid" : "";
-    return `<div class="meter"><span>${names[w.name] || w.name}</span><span class="bar"><i class="${cls}" style="width:${Math.min(100, w.pct)}%"></i></span><span>${w.pct}%</span></div>`;
+    return `<div class="meter"><span>${escapeHtml(names[w.name] || w.name)}</span><span class="bar"><i class="${cls}" style="width:${Math.min(100, Number(w.pct) || 0)}%"></i></span><span>${Number(w.pct) || 0}%</span></div>`;
   }).join("");
 }
 
@@ -163,15 +163,23 @@ listen("ai", ({ payload: e }) => {
   }
 });
 
-// ---- proposed actions (travel / open search) — only happen on a press ----
+// ---- proposed actions — only happen on a press ----
 const actions = new Map(); // id -> action
+// What each kind of action is called on its card: [heading, button]. The
+// button always says what pressing it does, whatever the summary claims.
+const ACTION_KINDS = {
+  travel: ["Buy", "Travel to hideout"],
+  open_search: ["Trade search", "Open search"],
+  write_planner: ["Build Planner", "Write build to game planner"],
+  use_build: ["New build", "Follow this build"],
+};
 
 function actionCard(a) {
+  const [heading, label] = ACTION_KINDS[a.kind];
   const div = document.createElement("div");
   div.className = "action-card";
   div.dataset.action = a.id;
-  const label = a.kind === "travel" ? "Travel to hideout" : "Open search";
-  div.innerHTML = `<div class="s"><div class="k">${a.kind === "travel" ? "Buy" : "Trade search"}</div>${escapeHtml(a.summary)}</div>
+  div.innerHTML = `<div class="s"><div class="k">${heading}</div>${escapeHtml(a.summary)}</div>
     <button class="primary go">${label}</button><button class="ghost no">Dismiss</button>`;
   div.querySelector(".go").addEventListener("click", async () => {
     try { toast(await invoke("confirm_action", { id: a.id })); } catch (e) { toast(e, "err"); }
@@ -183,7 +191,7 @@ function actionCard(a) {
 
 function renderActions(conv) {
   for (const a of actions.values()) {
-    if (a.conv === conv && !$("chat").querySelector(`[data-action="${a.id}"]`)) {
+    if (a.conv === conv && ACTION_KINDS[a.kind] && !$("chat").querySelector(`[data-action="${a.id}"]`)) {
       const live = liveMessage();
       if (live) $("chat").insertBefore(actionCard(a), live); else $("chat").appendChild(actionCard(a));
     }

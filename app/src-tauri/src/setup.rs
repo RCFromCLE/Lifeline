@@ -120,7 +120,7 @@ pub fn finish(state: &AppState, league: String, input: String) -> Result<(), Str
 
 /// Opens an https link in the default browser (build sources, video guides).
 pub fn open_url(url: &str) -> Result<(), String> {
-    if !url.starts_with("https://") || url.chars().any(|c| c.is_whitespace() || c == '"') {
+    if !url.starts_with("https://") || url.len() > 2000 || url.chars().any(|c| c.is_whitespace() || c.is_control() || matches!(c, '"' | ',' | '\\')) {
         return Err("Only https links can be opened.".into());
     }
     Command::new("explorer.exe").arg(url).spawn().map(|_| ()).map_err(|e| e.to_string())

@@ -41,10 +41,19 @@ fn trade_window(app: &AppHandle, url: Option<&str>, show: bool) -> Result<Webvie
     }
     let parsed = target.parse().map_err(|e| format!("bad url: {e}"))?;
     WebviewWindowBuilder::new(app, TRADE_LABEL, WebviewUrl::External(parsed))
-        .title("pathofexile.com trade — log in here once")
+        .title("pathofexile.com trade (log in here once)")
         .inner_size(1180.0, 820.0)
         .visible(show)
         .on_page_load(|window, payload| {
+            // The window has no address bar, so its title always names the
+            // site actually showing: a page that isn't pathofexile.com can't
+            // pass for its sign-in.
+            let host = payload.url().host_str().unwrap_or("unknown site");
+            let _ = window.set_title(&if on_trade_site(payload.url()) {
+                "pathofexile.com trade (log in here once)".to_owned()
+            } else {
+                format!("{host} (not the trade site)")
+            });
             // A Travel waiting on the page (first load, or back from signing in).
             if payload.event() != PageLoadEvent::Finished || !on_trade_site(payload.url()) {
                 return;
@@ -97,7 +106,7 @@ fn travel_script(listing_id: &str, search_id: &str) -> String {
 }
 
 /// Trade ids are short alphanumeric strings.
-fn plain_id(s: &str) -> bool {
+pub(crate) fn plain_id(s: &str) -> bool {
     !s.is_empty() && s.len() <= 128 && s.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
@@ -156,9 +165,11 @@ fn watch_travel(app: &AppHandle, window: WebviewWindow) {
     std::thread::spawn(move || {
         for _ in 0..80 {
             std::thread::sleep(std::time::Duration::from_millis(250));
+            // Only the trade site's own page may report a result.
             let Some(result) = window
                 .url()
                 .ok()
+                .filter(on_trade_site)
                 .and_then(|u| u.fragment().and_then(|f| f.strip_prefix("lifeline=")).map(str::to_owned))
                 .filter(|r| r != "busy")
             else {
@@ -173,7 +184,11 @@ fn watch_travel(app: &AppHandle, window: WebviewWindow) {
                     let _ = window.set_focus();
                     "Sign in to pathofexile.com in the trade window (only once), then press Travel again.".to_owned()
                 }
-                other => format!("Travel failed ({other}). You must be in game, in the same league."),
+                other => {
+                    // Shown as-is on the HUD: keep it to a short code such as "fail400".
+                    let code: String = other.chars().filter(char::is_ascii_alphanumeric).take(16).collect();
+                    format!("Travel failed ({code}). You must be in game, in the same league.")
+                }
             };
             let _ = app.emit("notice", message);
             return;
@@ -204,13 +219,35 @@ pub fn confirm(app: &AppHandle, action_id: u64) -> Result<String, String> {
     result
 }
 
+/// Makes the build this conversation designed the followed one (the player
+/// pressed its button). None when nothing is waiting.
+fn follow_staged(app: &AppHandle, conv: u64) -> Result<Option<String>, String> {
+    let state = app.state::<AppState>();
+    let Some(design) = state
+        .staged_design
+        .lock()
+        .unwrap()
+        .as_ref()
+        .filter(|(c, _)| *c == conv)
+        .map(|(_, d)| d.clone())
+    else {
+        return Ok(None);
+    };
+    let (_, view) = crate::builds::create(&state, &design)?;
+    *state.staged_design.lock().unwrap() = None;
+    state.actions.lock().unwrap().retain(|a| !(a.kind == "use_build" && a.conv == conv));
+    state.set_active_saved(None);
+    let _ = app.emit("imported", &view);
+    Ok(Some(format!("Now following {}.", crate::ai::tidy(&design.name, 60))))
+}
+
 fn run_confirmed(app: &AppHandle, action: &crate::state::PendingAction) -> Result<String, String> {
     let state = app.state::<AppState>();
     let league = state.settings.lock().unwrap().league.clone();
     match action.kind.as_str() {
         "travel" => {
-            let lid = action.listing_id.as_deref().ok_or("no listing")?;
-            let qid = action.search_id.as_deref().ok_or("no search")?;
+            let lid = action.listing_id.as_deref().filter(|s| plain_id(s)).ok_or("no listing")?;
+            let qid = action.search_id.as_deref().filter(|s| plain_id(s)).ok_or("no search")?;
             run_travel(app, lid, qid)?;
             Ok(format!(
                 "Travel requested: {}. Watch the game (and the banner in the trade window).",
@@ -218,7 +255,7 @@ fn run_confirmed(app: &AppHandle, action: &crate::state::PendingAction) -> Resul
             ))
         }
         "open_search" => {
-            let qid = action.search_id.as_deref().ok_or("no search")?;
+            let qid = action.search_id.as_deref().filter(|s| plain_id(s)).ok_or("no search")?;
             let url = format!(
                 "https://www.pathofexile.com/trade2/search/poe2/{}/{qid}",
                 lifeline_trade::encode_segment(&league)
@@ -226,7 +263,12 @@ fn run_confirmed(app: &AppHandle, action: &crate::state::PendingAction) -> Resul
             open_trade_window(app, Some(&url))?;
             Ok("Opened the search in the trade window.".into())
         }
+        "use_build" => {
+            follow_staged(app, action.conv)?.ok_or_else(|| "That build is no longer waiting. Ask for it again.".to_owned())
+        }
         "write_planner" => {
+            // Writing a build this chat just designed follows it first.
+            follow_staged(app, action.conv)?;
             let files = crate::builds::write_stages(&state)?;
             let _ = app.emit("planner-files", crate::builds::planner_files());
             Ok(format!(

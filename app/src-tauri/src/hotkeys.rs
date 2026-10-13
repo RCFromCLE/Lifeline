@@ -46,6 +46,14 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
         .build()
 }
 
+/// "F1" … "F24": fine as a hotkey without a modifier.
+fn is_function_key(text: &str) -> bool {
+    let t = text.trim();
+    t.len() >= 2
+        && t.as_bytes()[0].eq_ignore_ascii_case(&b'f')
+        && t[1..].parse::<u8>().is_ok_and(|n| (1..=24).contains(&n))
+}
+
 /// (Re)registers all hotkeys; returns the ones that failed to parse/register.
 pub fn register(app: &AppHandle, hotkeys: &Hotkeys) -> Vec<String> {
     let gs = app.global_shortcut();
@@ -53,6 +61,9 @@ pub fn register(app: &AppHandle, hotkeys: &Hotkeys) -> Vec<String> {
     let mut failed = Vec::new();
     for (_, text) in bindings(hotkeys) {
         match text.parse::<Shortcut>() {
+            Ok(s) if s.mods.is_empty() && !is_function_key(text) => {
+                failed.push(format!("{text}: add Ctrl, Alt, Shift or Win (a bare key would be taken from the game)"));
+            }
             Ok(s) => {
                 if let Err(e) = gs.register(s) {
                     failed.push(format!("{text}: {e}"));
@@ -117,14 +128,14 @@ pub fn toggle_move_mode(app: &AppHandle) {
     let _ = app.emit("overlay-mode", unlock);
 }
 
-/// Runs a hotkey action by name (overlay buttons).
+/// Runs a hotkey action by name (overlay buttons). Item check and gear
+/// recording aren't here: they send a copy keystroke to the game, which only
+/// a physical hotkey press may do.
 pub fn run_named(app: &AppHandle, name: &str) -> Result<(), String> {
     let action = match name {
-        "item_check" => Action::ItemCheck,
         "what_next" => Action::WhatNext,
         "ask" => Action::Ask,
         "toggle_overlay" => Action::ToggleOverlay,
-        "record_equipped" => Action::RecordEquipped,
         "move_overlay" => Action::MoveOverlay,
         "skills" => {
             crate::skills::run(app.clone());
@@ -211,5 +222,25 @@ fn run(app: &AppHandle, action: Action) {
         Action::ToggleOverlay => toggle_overlay(app),
         Action::RecordEquipped => crate::gear::record_hovered(app),
         Action::MoveOverlay => toggle_move_mode(app),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_function_keys_work_without_a_modifier() {
+        assert!(is_function_key("F5") && is_function_key("f12") && is_function_key(" F24 "));
+        assert!(!is_function_key("F25") && !is_function_key("F0") && !is_function_key("Space") && !is_function_key("Q") && !is_function_key("F"));
+        assert!("Space".parse::<Shortcut>().is_ok_and(|s| s.mods.is_empty()), "bare keys parse, so register must refuse them");
+        assert!("Alt+Shift+D".parse::<Shortcut>().is_ok_and(|s| !s.mods.is_empty()));
+    }
+
+    #[test]
+    fn pages_cannot_trigger_the_keystroke_actions() {
+        let source = include_str!("hotkeys.rs");
+        let body = &source[source.find("pub fn run_named").unwrap()..source.find("fn run(app").unwrap()];
+        assert!(!body.contains("Action::ItemCheck") && !body.contains("Action::RecordEquipped"));
     }
 }
