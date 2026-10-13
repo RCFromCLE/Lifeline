@@ -176,4 +176,10 @@ cargo run -p lifeline-ai --example smoke       # live check against your Claude 
 GitHub Actions (`.github/workflows/release.yml`) builds the Windows installer and attaches it to
 that tag's release. The laptop then downloads it as described above.
 
+## License and disclaimer
+
+Lifeline is free software under the [MIT License](LICENSE). It is provided **as is, without warranty of any kind**, and you use it **at your own risk**. Its author isn't liable for any loss or damage from using it, including (but not limited to) dead hardcore characters, lost items or currency, trades, problems with your computer or data, or action taken against your account by Grinding Gear Games. Build data, ratings and AI answers can be wrong: check before you act on them. Using it within Path of Exile 2's terms of service is your responsibility.
+
+Found a security problem? See [SECURITY.md](SECURITY.md).
+
 *This product isn't affiliated with or endorsed by Grinding Gear Games in any way.*
