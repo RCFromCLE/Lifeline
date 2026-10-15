@@ -10,7 +10,7 @@ rust-version = "1.80"
 # Versions checked on crates.io 2026-10-01 (PLAN.md §11).
 [workspace.dependencies]
 base64 = "0.22"
-dirs = "6"
+dirs = "7"
 flate2 = "1"
 regex = "1"
 roxmltree = "0.21"
