@@ -1806,7 +1806,7 @@ dependencies = [
 name = "lifeline-pob"
 version = "0.6.2"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "flate2",
  "regex",
  "roxmltree",
