@@ -1,0 +1,74 @@
+/* The overlay (overlay.html): the next passive, and a Skills button that
+   opens the skills and supports for the current stage. */
+@font-face { font-family: "Cinzel"; src: url("fonts/Cinzel.ttf") format("truetype"); font-weight: 400 900; }
+html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; cursor: default; }
+body { font: 17px/1.3 "Segoe UI", system-ui, sans-serif; color: #ece2d0; }
+#root { position: absolute; left: 3px; top: 3px; width: max-content; max-width: 600px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; align-items: stretch; }
+.pill, .skills-btn, .panel {
+  background: linear-gradient(180deg, rgba(30, 22, 15, 0.93), rgba(16, 12, 8, 0.93));
+  border: 1px solid rgba(217, 169, 87, 0.55);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.pill {
+  display: inline-flex; align-items: baseline; gap: 10px; min-width: 0; max-width: 420px;
+  padding: 7px 14px 8px; border-radius: 6px 0 0 6px; transition: border-color .25s, box-shadow .25s;
+}
+.k { font-family: Cinzel, serif; font-size: 12.5px; letter-spacing: 1px; text-transform: uppercase; color: #b89a6a; white-space: nowrap; }
+.name { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.name.notable { color: #f0c46a; }
+.name .str { color: #e58a6e; } .name .dex { color: #8fd17a; } .name .int { color: #79b2e8; }
+/* Just took a planned passive: a short green confirmation. */
+.pill.done { border-color: rgba(134, 196, 110, 0.85); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 16px rgba(134, 196, 110, 0.45); }
+.pill.done .k, .pill.done .name, .pill.complete .name { color: #a8f08e; }
+
+/* Skills button: big enough to tap on a handheld's touchscreen. */
+.skills-btn {
+  font: 650 15px "Segoe UI", system-ui, sans-serif; color: #f0c46a; cursor: pointer;
+  border-left: none; border-radius: 0; padding: 0 14px; min-height: 40px; display: inline-flex; align-items: center; gap: 6px;
+}
+.skills-btn:hover, .skills-btn[aria-expanded="true"] { background: linear-gradient(180deg, rgba(74, 53, 28, 0.95), rgba(40, 28, 16, 0.95)); }
+.skills-btn .chev { font-size: 11px; transition: transform .15s; }
+.skills-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.skills-btn:focus-visible { outline: 2px solid #f0c46a; outline-offset: -2px; }
+
+/* Lock: unlock to drag the overlay anywhere, lock to keep it there. */
+.lock-btn {
+  border-left: none; border-radius: 0 6px 6px 0; padding: 0 11px; min-height: 40px; cursor: pointer;
+  background: linear-gradient(180deg, rgba(30, 22, 15, 0.93), rgba(16, 12, 8, 0.93));
+  border: 1px solid rgba(217, 169, 87, 0.55); border-left: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.lock-btn svg { width: 17px; height: 17px; fill: none; stroke: #b89a6a; stroke-width: 2; display: block; }
+.lock-btn:hover svg { stroke: #f0c46a; }
+.lock-btn[aria-pressed="false"] svg { stroke: #f0c46a; }
+.lock-btn[aria-pressed="false"] .shackle { transform: translate(5px, -2px); }
+.lock-btn:focus-visible { outline: 2px solid #f0c46a; outline-offset: -2px; }
+/* Unlocked: the passive pill is the handle. */
+#root.unlocked .pill { cursor: grab; border-style: dashed; border-color: #f0c46a; }
+#root.unlocked .pill:active { cursor: grabbing; }
+
+/* The passive's kind: a small dot (minor), a ringed circle (major / notable), a hexagon (keystone). */
+.sym { flex: none; width: 16px; height: 16px; align-self: center; display: inline-flex; align-items: center; justify-content: center; }
+.sym svg { width: 16px; height: 16px; display: block; }
+.sym .minor { fill: #c9b48a; }
+.sym .major { fill: #3a2a16; stroke: #f0c46a; stroke-width: 2.2; }
+.sym .major-core { fill: #f0c46a; }
+.sym .keystone { fill: #2a1d10; stroke: #ffd98a; stroke-width: 2; }
+.sym .keystone-core { fill: #ffd98a; }
+.sym.str .minor { fill: #e58a6e; } .sym.dex .minor { fill: #8fd17a; } .sym.int .minor { fill: #79b2e8; }
+
+.panel { border-radius: 6px; padding: 8px 12px 10px; max-height: 620px; overflow-y: auto; }
+.ph { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 4px; }
+.ph #stage { font-family: Cinzel, serif; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #d9a957; }
+.hint { font-size: 12.5px; color: #a8977f; }
+.sk { list-style: none; margin: 0; padding: 0; }
+.sk li { padding: 6px 0; border-top: 1px solid rgba(217, 169, 87, 0.15); }
+.sk li:first-child { border-top: none; }
+.sk .gem { font-weight: 650; color: #f3e6cf; }
+.sk .sups { margin: 3px 0 0 18px; font-size: 14.5px; color: #cdbfa8; display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.sk .sups span { white-space: nowrap; }
+.sk .none { color: #a8977f; font-style: italic; }
+/* Gem dots coloured by the gem's attribute (common.js gemDot). */
+.gd { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: #7a6a55; box-shadow: 0 0 6px var(--gem, transparent); }
+.hidden { display: none !important; }

@@ -15,7 +15,7 @@
 **Builds, passives and skills for Path of Exile 2**, built for hardcore. Lifeline does three things:
 
 - **Builds.** 165 researched builds across all 8 classes, sourced from guides, videos and Path of Building and checked against the current game data. Search them, read each one's plan and sources, and send a build straight into the game's own **Build Planner**.
-- **Passives.** It reads your game log, so it knows which passives you've taken. It shows the next ones to take, in order, on a numbered tree, and which stat to pick on every attribute node.
+- **Passives.** It reads your game log, so it knows which passives you've taken. It shows the next ones to take, in order, on a numbered tree, and which stat to pick on every attribute node. An optional overlay shows the next passive over the game and chimes when you take one on your plan.
 - **Skills.** The skills and support gems for each stage of the campaign: only supports you can cut at that point and that fit your weapon. Plus rotations named for your controller or keys.
 
 It never touches the game. It reads the game's log file and Build Planner folder, and writes build files into that folder only when you ask.
@@ -43,6 +43,12 @@ It never touches the game. It reads the game's log file and Build Planner folder
 
 **Dashboard**
 - A second-screen view of your skills, supports and next passives. Hover a notable to see what it does.
+
+**In game** (optional, Settings → In game)
+- A small overlay shows the next passive to take while Path of Exile 2 is in front, with a symbol for minor, major (notable) and keystone passives and the stat to pick on attribute nodes.
+- Its **Skills** button opens the skills and supports for your current stage.
+- A chime plays when you take a passive on your plan (with a preview button in Settings).
+- Unlock it to drag it anywhere, then lock it: it stays there, even after a restart. It never takes focus from the game.
 
 ## Do I need a Claude subscription?
 
@@ -78,6 +84,7 @@ claude auth login --claudeai             # sign in with your Claude account (ope
 - **Game log:** found automatically in any Steam library or the standalone folder. If Lifeline says it wasn't found, start the game once; the app keeps checking.
 - **Passives come from the log.** Lifeline sees a passive when you allocate it while the log is being written, so it knows about passives taken since you started playing that character on this PC.
 - **Gems aren't in the log.** The skills shown are the plan to socket, not what you have socketed.
+- **The overlay** shows only while the game is the window in front. Play in Windowed Fullscreen; exclusive fullscreen hides it.
 - **Your data** lives in `%APPDATA%\com.rudyc.lifeline` and is separate on each PC.
 
 ### Updating and uninstalling
@@ -87,7 +94,7 @@ claude auth login --claudeai             # sign in with your Claude account (ope
 
 ### Upgrading from 0.5 or earlier
 
-Version 0.6 narrowed Lifeline to builds, passives and skills. Chat, item checks, rating, the market and Travel, gear recording, zone resistances, the in-game HUD, hotkeys and sound cues were removed. Your saved builds and the build you follow carry over. Old chats, ratings and recorded gear stay on disk in `%APPDATA%\com.rudyc.lifeline` but are no longer used; you can delete `conversations.json`, `rating.json` and `equipped.json` there.
+Version 0.6 narrowed Lifeline to builds, passives and skills. Chat, item checks, rating, the market and Travel, gear recording, zone resistances, the in-game HUD, hotkeys and sound cues were removed (0.6.1 brings back a small next-passive overlay and a chime; both can be turned off in Settings). Your saved builds and the build you follow carry over. Old chats, ratings and recorded gear stay on disk in `%APPDATA%\com.rudyc.lifeline` but are no longer used; you can delete `conversations.json`, `rating.json` and `equipped.json` there.
 
 ### Troubleshooting
 

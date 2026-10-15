@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Lifeline next passive</title>
+  <link rel="stylesheet" href="overlay.css">
+</head>
+<body>
+  <div id="root" class="hidden">
+    <div class="bar">
+      <div class="pill" id="pill">
+        <span class="sym" id="sym" aria-hidden="true"></span>
+        <span class="k" id="k">Next passive</span>
+        <span class="name" id="name"></span>
+      </div>
+      <button class="skills-btn" id="skills-btn" aria-expanded="false" title="Skills and supports for where you are">Skills <span class="chev">▾</span></button>
+      <button class="lock-btn" id="lock-btn" aria-pressed="true" title="Unlock to move the overlay; lock to keep it there">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path class="shackle" d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      </button>
+    </div>
+    <div class="panel hidden" id="panel">
+      <div class="ph"><span id="stage"></span><span class="hint">plan to socket</span></div>
+      <ul class="sk" id="skills"></ul>
+    </div>
+  </div>
+  <script src="common.js"></script>
+  <script src="overlay.js"></script>
+</body>
+</html>

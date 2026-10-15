@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use lifeline_gamefiles::client_log::{self, EventKind, LogEvent, LogTailer};
+use lifeline_gamefiles::client_log::{self, plain_text, EventKind, LogEvent, LogTailer};
 use lifeline_gamefiles::paths;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -65,6 +65,18 @@ fn apply(c: &mut Character, e: &LogEvent) -> bool {
     true
 }
 
+/// A passive was just taken in game: when it's on the plan, the chime plays
+/// and the overlay shows it as done.
+fn passive_taken(app: &AppHandle, state: &AppState, id: &str, name: &str) {
+    if !crate::alignment::on_plan(state, id) {
+        return;
+    }
+    if state.settings.lock().unwrap().passive_sound {
+        crate::chime::play();
+    }
+    let _ = app.emit("passive-taken", plain_text(name));
+}
+
 pub fn spawn_log_watcher(app: AppHandle) {
     std::thread::spawn(move || {
         // Keep looking (every 15 s) in case the game is installed or moved later.
@@ -90,6 +102,10 @@ pub fn spawn_log_watcher(app: AppHandle) {
                 for line in lines {
                     if let Some(event) = client_log::parse_line(&line) {
                         changed |= apply(&mut state.character.lock().unwrap(), &event);
+                        // Live play only: the first read of the log is history.
+                        if let (true, EventKind::PassiveAllocated { id, name }) = (backfilled, &event.kind) {
+                            passive_taken(&app, &state, id, name);
+                        }
                     }
                 }
                 if changed || !backfilled {

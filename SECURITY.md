@@ -16,6 +16,7 @@ Fixes ship as a new release; the app tells users when one is out.
 
 - Reads Path of Exile 2's log file and Build Planner folder, and writes build files into that folder when you ask.
 - Never sends input to the game, and never reads or changes game memory.
+- Checks which window is in front (its window class and title, nothing else), so the overlay shows only over the game.
 - Runs Claude Code with your own account for two buttons only: Create full build and Suggest skills & rotations.
   Its built-in tools are limited to web search and web fetch plus Lifeline's own game-data lookups; everything else
   (running commands, editing files) is denied.

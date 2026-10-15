@@ -12,9 +12,11 @@
 mod ai;
 mod alignment;
 mod builds;
+mod chime;
 mod game;
 mod gamedata;
 mod mcp;
+mod overlay;
 mod setup;
 mod single;
 mod skills;
@@ -234,6 +236,24 @@ async fn check_update() -> serde_json::Value {
     tauri::async_runtime::spawn_blocking(setup::update_available).await.ok().flatten().unwrap_or_default()
 }
 
+/// The overlay page's content size; its window hugs it.
+#[tauri::command]
+fn fit_overlay(app: AppHandle, width: f64, height: f64) {
+    overlay::fit(&app, width, height);
+}
+
+/// The overlay's lock: unlocked it can be dragged; locking remembers where.
+#[tauri::command]
+fn overlay_lock(app: AppHandle, locked: bool) -> Result<(), String> {
+    overlay::set_locked(&app, locked)
+}
+
+/// Settings: hear the "right passive" chime.
+#[tauri::command]
+fn preview_chime() {
+    chime::play();
+}
+
 #[tauri::command]
 fn open_url(url: String) -> Result<(), String> {
     setup::open_url(&url)
@@ -261,9 +281,10 @@ pub fn debug_log(state: &AppState, msg: &str) {
 fn save_settings(app: AppHandle, mut settings: Settings) -> Result<(), String> {
     let state = app.state::<AppState>();
     {
-        // Owned by the welcome and My builds, not the form.
+        // Owned by the welcome, My builds and the overlay, not the form.
         let current = state.settings.lock().unwrap();
         settings.active_saved = current.active_saved;
+        settings.overlay_pos = current.overlay_pos;
         settings.onboarded = settings.onboarded || current.onboarded;
     }
     if !matches!(settings.input.as_str(), "playstation" | "xbox" | "keyboard") {
@@ -356,6 +377,8 @@ fn main() {
                         .push(format!("The AI's game-data link didn't start ({e}). Restart Lifeline."));
                 }
             }
+            overlay::create(&handle)?;
+            overlay::spawn_visibility(handle.clone());
             gamedata::preload(handle.clone());
             {
                 // The last imported or created build survives restarts.
@@ -396,6 +419,9 @@ fn main() {
             finish_setup,
             check_update,
             open_url,
+            preview_chime,
+            fit_overlay,
+            overlay_lock,
             open_dashboard,
             save_settings
         ])

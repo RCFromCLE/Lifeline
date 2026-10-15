@@ -9,6 +9,19 @@ use serde_json::{json, Value};
 
 use crate::state::AppState;
 
+/// Whether a passive (its game id, as the log names it) is in the followed
+/// build's plan, in any stage.
+pub fn on_plan(state: &AppState, id: &str) -> bool {
+    let Ok(tree) = crate::builds::load_tree(state) else { return false };
+    let guard = state.imported.lock().unwrap();
+    let Some(imported) = guard.as_ref() else { return false };
+    imported.build.specs.iter().any(|s| {
+        s.nodes
+            .iter()
+            .any(|&n| tree.node_for(n, s.ascendancy_internal_id.as_deref()).is_some_and(|x| x.id == id))
+    })
+}
+
 pub fn alignment(state: &AppState) -> Value {
     // Load (maybe download) game data before taking the build lock.
     let data = crate::gamedata::load(state).ok();
@@ -62,20 +75,25 @@ pub fn alignment(state: &AppState) -> Value {
     let needs = lifeline_model::attributes::stage_needs(&tree, &imported.build, current.stage_key, data.as_deref());
     let picks = lifeline_model::attributes::plan(&tree, &order, &needs).choices;
     let id_of = |n: u32| planned.iter().find(|(m, _)| *m == n).map(|(_, id)| id.clone()).unwrap_or_default();
-    let missing: Vec<(bool, String)> = order
+    // Each with its kind: "keystone", "notable" (a major passive), or "minor".
+    let missing: Vec<(&str, String)> = order
         .iter()
         .chain(planned.iter().map(|(n, _)| n).filter(|n| !main_planned.contains(n)))
         .copied()
         .filter(|n| !c.allocated.contains(&id_of(*n)))
         .map(|n| {
-            let notable = tree.node(n).is_some_and(|x| x.is_notable || x.is_keystone);
+            let kind = match tree.node(n) {
+                Some(x) if x.is_keystone => "keystone",
+                Some(x) if x.is_notable => "notable",
+                _ => "minor",
+            };
             let name = match picks.get(&n) {
                 Some(lifeline_model::attributes::Attr::Str) => "Attribute → Strength".to_owned(),
                 Some(lifeline_model::attributes::Attr::Dex) => "Attribute → Dexterity".to_owned(),
                 Some(lifeline_model::attributes::Attr::Int) => "Attribute → Intelligence".to_owned(),
                 None => name_of(n),
             };
-            (notable, name)
+            (kind, name)
         })
         .filter(|(_, name)| !name.is_empty())
         .collect();
@@ -110,7 +128,7 @@ pub fn alignment(state: &AppState) -> Value {
             "planned": total,
             "allocated_of_plan": done,
             "percent": (done * 100).checked_div(total).unwrap_or(0),
-            "missing": missing.iter().map(|(n, name)| json!({"name": name, "notable": n})).collect::<Vec<_>>(),
+            "missing": missing.iter().map(|(kind, name)| json!({"name": name, "kind": kind, "notable": *kind != "minor"})).collect::<Vec<_>>(),
             "off_plan": off_plan,
             "allocated_total": c.allocated.len(),
         },

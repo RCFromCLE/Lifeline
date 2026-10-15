@@ -41,3 +41,7 @@
 
 /* Settings → About. */
 .about-version { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 6px 0 12px; }
+
+/* Settings → In game: the chime switch with its preview button. */
+.cue-row { display: flex; align-items: center; gap: 10px; }
+.cue-row button { padding: 4px 10px; }

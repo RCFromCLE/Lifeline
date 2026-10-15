@@ -158,18 +158,23 @@ async function refreshPlannerFiles() {
 $("planner-open").addEventListener("click", () => invoke("open_planner_folder").catch(e => toast(e, "err")));
 $("planner-refresh").addEventListener("click", refreshPlannerFiles);
 
-// ---- settings: controls and text size; every change saves on its own ----
+// ---- settings: controls, text size and the overlay; every change saves on its own ----
 function fillSettings(s) {
   const f = $("settings-form");
   f.elements.input.value = s.input || "keyboard";
   f.elements.text_size.value = s.text_size || "auto";
+  f.elements.overlay.checked = s.overlay !== false;
+  f.elements.passive_sound.checked = s.passive_sound !== false;
   applyTextSize(s.text_size);
 }
 
 $("settings-form").addEventListener("submit", async ev => {
   ev.preventDefault();
   const f = ev.target;
-  const next = { ...settings, input: f.elements.input.value, text_size: f.elements.text_size.value };
+  const next = {
+    ...settings, input: f.elements.input.value, text_size: f.elements.text_size.value,
+    overlay: f.elements.overlay.checked, passive_sound: f.elements.passive_sound.checked,
+  };
   try {
     await invoke("save_settings", { settings: next });
     settings = next;
@@ -181,6 +186,7 @@ $("settings-form").addEventListener("submit", async ev => {
   }
 });
 $("settings-form").addEventListener("change", () => { if (settings) $("settings-form").requestSubmit(); });
+$("chime-test").addEventListener("click", () => invoke("preview_chime").catch(e => toast(e, "err")));
 
 // Text size: the whole app scales; Auto grows with the window.
 let TEXT_SIZE = "auto";

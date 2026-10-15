@@ -48,6 +48,13 @@ pub struct Settings {
     pub text_size: String,
     /// The My builds entry being followed, if the current build came from there.
     pub active_saved: Option<u64>,
+    /// Show the next passive over the game.
+    pub overlay: bool,
+    /// Chime when a passive on the plan is taken.
+    pub passive_sound: bool,
+    /// Where the player left the overlay (logical px, top-left); None: the
+    /// top-left corner of the game's screen.
+    pub overlay_pos: Option<(f64, f64)>,
 }
 
 /// How to name controls for this player, for the skill coach.
@@ -66,6 +73,9 @@ impl Default for Settings {
             onboarded: false,
             text_size: "auto".into(),
             active_saved: None,
+            overlay: true,
+            passive_sound: true,
+            overlay_pos: None,
         }
     }
 }
@@ -127,6 +137,8 @@ pub struct AppState {
     pub build_busy: std::sync::atomic::AtomicBool,
     /// Steps shown while a build is created.
     pub build_steps: Mutex<Vec<String>>,
+    /// The overlay is unlocked for dragging (it stays where it's dropped).
+    pub overlay_unlocked: std::sync::atomic::AtomicBool,
 }
 
 impl AppState {
@@ -145,6 +157,7 @@ impl AppState {
             last_design: Mutex::new(None),
             build_busy: std::sync::atomic::AtomicBool::new(false),
             build_steps: Mutex::new(Vec::new()),
+            overlay_unlocked: std::sync::atomic::AtomicBool::new(false),
             data_dir,
         }
     }
@@ -173,6 +186,7 @@ mod tests {
                       "sound":true,"input":"playstation","onboarded":true,"text_size":"large","active_saved":7}"#;
         let s: Settings = serde_json::from_str(old).unwrap();
         assert_eq!((s.input.as_str(), s.onboarded, s.text_size.as_str(), s.active_saved), ("playstation", true, "large", Some(7)));
+        assert!(s.overlay && s.passive_sound, "new switches start on");
         let fresh: Settings = serde_json::from_str("{}").unwrap();
         assert_eq!(fresh, Settings::default());
     }

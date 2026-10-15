@@ -1745,7 +1745,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-ai"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1755,7 +1755,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-app"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "lifeline-ai",
  "lifeline-data",
@@ -1772,7 +1772,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-data"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "regex",
  "serde",
@@ -1781,7 +1781,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-gamefiles"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "dirs 6.0.0",
  "regex",
@@ -1792,7 +1792,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-model"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "lifeline-data",
  "lifeline-gamefiles",
@@ -1804,7 +1804,7 @@ dependencies = [
 
 [[package]]
 name = "lifeline-pob"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "base64 0.22.1",
  "flate2",
