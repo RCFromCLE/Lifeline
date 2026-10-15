@@ -125,6 +125,22 @@ pub fn open_url(url: &str) -> Result<(), String> {
 /// A newer release on GitHub, if any: (version, page). Quietly None when
 /// offline or the repository isn't public.
 pub fn update_available() -> Option<Value> {
+    let latest = latest_release()?;
+    (latest["newer"] == true).then(|| json!({"version": latest["version"], "url": latest["url"]}))
+}
+
+/// The newest release on GitHub: version, name, date, its notes (Markdown,
+/// capped) and whether it's newer than this copy. Fetched at most every ten
+/// minutes; None when offline.
+pub fn latest_release() -> Option<Value> {
+    use std::sync::Mutex;
+    use std::time::{Duration, Instant};
+    static CACHE: Mutex<Option<(Instant, Value)>> = Mutex::new(None);
+    if let Some((at, v)) = CACHE.lock().unwrap().as_ref() {
+        if at.elapsed() < Duration::from_secs(600) {
+            return Some(v.clone());
+        }
+    }
     let mut resp = crate::builds::web()
         .get("https://api.github.com/repos/RCFromCLE/Lifeline/releases/latest")
         .header("User-Agent", "Lifeline update check")
@@ -132,8 +148,44 @@ pub fn update_available() -> Option<Value> {
         .call()
         .ok()?;
     let body: Value = serde_json::from_str(&resp.body_mut().read_to_string().ok()?).ok()?;
+    let v = release_info(&body, env!("CARGO_PKG_VERSION"))?;
+    *CACHE.lock().unwrap() = Some((Instant::now(), v.clone()));
+    Some(v)
+}
+
+/// The fields the app shows from a GitHub release (`installed`: this copy's version).
+fn release_info(body: &Value, installed: &str) -> Option<Value> {
     let tag = body["tag_name"].as_str()?.trim_start_matches('v').to_owned();
     let parse = |v: &str| v.split('.').map(|p| p.parse::<u32>().unwrap_or(0)).collect::<Vec<_>>();
-    (parse(&tag) > parse(env!("CARGO_PKG_VERSION")))
-        .then(|| json!({"version": tag, "url": body["html_url"].as_str().unwrap_or("https://github.com/RCFromCLE/Lifeline/releases/latest")}))
+    // Always this repository's release page, whatever the response says.
+    let url = format!("https://github.com/RCFromCLE/Lifeline/releases/tag/v{}", tag.replace(|c: char| !c.is_ascii_alphanumeric() && c != '.', ""));
+    let notes: String = body["body"].as_str().unwrap_or_default().chars().take(20_000).collect();
+    Some(json!({
+        "version": tag,
+        "newer": parse(&tag) > parse(installed),
+        "name": body["name"].as_str().unwrap_or_default(),
+        "published": body["published_at"].as_str().unwrap_or_default(),
+        "notes": notes,
+        "url": url,
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn release_fields_and_newer() {
+        let body = json!({"tag_name": "v0.6.2", "name": "v0.6.2", "published_at": "2026-10-15T12:00:00Z",
+                          "body": "**Dashboard**
+- The playthrough log is back.", "html_url": "https://evil.example/x"});
+        let r = release_info(&body, "0.6.1").unwrap();
+        assert_eq!(r["version"], "0.6.2");
+        assert_eq!(r["newer"], true);
+        assert_eq!(r["url"], "https://github.com/RCFromCLE/Lifeline/releases/tag/v0.6.2", "the link is always this repo's");
+        assert!(r["notes"].as_str().unwrap().contains("playthrough log"));
+        assert_eq!(release_info(&body, "0.6.2").unwrap()["newer"], false);
+        assert_eq!(release_info(&body, "0.10.0").unwrap()["newer"], false, "versions compare as numbers");
+        assert!(release_info(&json!({}), "0.6.1").is_none());
+    }
 }

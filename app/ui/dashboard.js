@@ -1,6 +1,7 @@
-// Playthrough dashboard (second screen): skills and their supports, and the
-// next passives to take and those taken. Plain text: no tree drawing, no
-// chips; hover a notable or keystone to see what it does.
+// Playthrough dashboard (second screen): skills and their supports, the
+// next passives to take and those taken, and the playthrough log from the
+// game. Plain text: no tree drawing, no chips; hover a notable or keystone
+// to see what it does.
 const $ = id => document.getElementById(id);
 const esc = s => escapeHtml(s ?? "");
 
@@ -132,6 +133,23 @@ async function refresh() {
   renderHeader(await invoke("snapshot").then(s => s.character).catch(() => null));
 }
 
+// ---- playthrough log: newest first ----
+const FEED_SHOWN = 200;
+function feedLine(item) {
+  const li = document.createElement("li");
+  // Log times are "YYYY/MM/DD HH:MM:SS"; show the date too when it isn't today.
+  const d = new Date(), today = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  const when = item.time.startsWith(today) ? item.time.slice(11, 16) : `${item.time.slice(5, 10).replace("/", "-")} ${item.time.slice(11, 16)}`;
+  li.innerHTML = `<time>${esc(when)}</time><span class="k-${esc(item.kind)}">${esc(item.text)}</span>`;
+  return li;
+}
+function renderFeed(items) {
+  const ul = $("d-feed");
+  ul.innerHTML = "";
+  items.slice(-FEED_SHOWN).reverse().forEach(i => ul.appendChild(feedLine(i)));
+  if (!items.length) ul.innerHTML = `<li class="empty">Nothing in the game log yet. Play a bit and it shows here.</li>`;
+}
+
 // ---- full screen ----
 async function toggleFullscreen() {
   const w = window.__TAURI__.window.getCurrentWindow();
@@ -161,6 +179,13 @@ document.addEventListener("mouseover", ev => {
 });
 
 listen("character", ({ payload }) => { renderHeader(payload); scheduleRefresh(3000); });
+listen("feed", ({ payload }) => {
+  const ul = $("d-feed");
+  ul.querySelector(".empty")?.remove();
+  ul.prepend(feedLine(payload));
+  while (ul.children.length > FEED_SHOWN) ul.lastChild.remove();
+});
+listen("feed-all", ({ payload }) => renderFeed(payload));
 listen("imported", () => scheduleRefresh());
 listen("skills", () => scheduleRefresh());
 
@@ -169,5 +194,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const snap = await invoke("snapshot");
   FOLLOWING = snap.imported?.name || null;
   renderHeader(snap.character);
+  if (snap.feed?.length) renderFeed(snap.feed);
   refresh();
 });

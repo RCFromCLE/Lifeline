@@ -27,11 +27,12 @@ mod wizard;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
-use crate::state::{AppState, Character, Settings};
+use crate::state::{AppState, Character, FeedItem, Settings};
 
 #[derive(Serialize)]
 struct Snapshot {
     character: Character,
+    feed: Vec<FeedItem>,
     settings: Settings,
     imported: Option<builds::ImportView>,
     planner_files: Vec<String>,
@@ -42,6 +43,7 @@ struct Snapshot {
 fn snapshot(state: tauri::State<'_, AppState>) -> Snapshot {
     Snapshot {
         character: state.character.lock().unwrap().clone(),
+        feed: state.feed.lock().unwrap().clone(),
         settings: state.settings.lock().unwrap().clone(),
         imported: state.imported.lock().unwrap().as_ref().map(|i| builds::view(i, None)),
         planner_files: builds::planner_files(),
@@ -254,6 +256,12 @@ fn preview_chime() {
     chime::play();
 }
 
+/// The newest release on GitHub with its notes (Settings → About).
+#[tauri::command]
+async fn latest_release() -> serde_json::Value {
+    tauri::async_runtime::spawn_blocking(setup::latest_release).await.ok().flatten().unwrap_or_default()
+}
+
 #[tauri::command]
 fn open_url(url: String) -> Result<(), String> {
     setup::open_url(&url)
@@ -418,6 +426,7 @@ fn main() {
             setup_action,
             finish_setup,
             check_update,
+            latest_release,
             open_url,
             preview_chime,
             fit_overlay,

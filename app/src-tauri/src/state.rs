@@ -26,6 +26,16 @@ pub struct Character {
     pub others: std::collections::HashMap<String, std::collections::HashSet<String>>,
 }
 
+/// One line of the playthrough log (shown on the dashboard).
+#[derive(Debug, Clone, Serialize)]
+pub struct FeedItem {
+    /// As the game logs it: "YYYY/MM/DD HH:MM:SS".
+    pub time: String,
+    /// "level", "zone", "death", "passive", "reward" or "planner".
+    pub kind: String,
+    pub text: String,
+}
+
 pub struct Imported {
     pub build: PobBuild,
     pub stages: Vec<SpecStage>,
@@ -119,6 +129,8 @@ pub fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> {
 pub struct AppState {
     pub data_dir: PathBuf,
     pub character: Mutex<Character>,
+    /// The playthrough log, newest last (capped).
+    pub feed: Mutex<Vec<FeedItem>>,
     pub imported: Mutex<Option<Imported>>,
     pub tree: Mutex<Option<Arc<PassiveTree>>>,
     pub game: Mutex<Option<Arc<lifeline_data::GameData>>>,
@@ -146,6 +158,7 @@ impl AppState {
         let settings = Settings::load(&data_dir);
         Self {
             character: Mutex::new(Character::default()),
+            feed: Mutex::new(Vec::new()),
             imported: Mutex::new(None),
             tree: Mutex::new(None),
             game: Mutex::new(None),

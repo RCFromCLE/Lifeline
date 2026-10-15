@@ -45,3 +45,17 @@
 /* Settings → In game: the chime switch with its preview button. */
 .cue-row { display: flex; align-items: center; gap: 10px; }
 .cue-row button { padding: 4px 10px; }
+
+/* Settings → About: the latest release's notes. */
+.release-notes { margin-top: 4px; border-top: 1px solid var(--line); padding-top: 10px; }
+.rn-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rn-head h3 { margin: 0; font-size: 15px; color: var(--gold-2); }
+.rn-head .hint { margin: 0; }
+.rn-ok { color: var(--green); font-size: 14px; }
+.rn-new { color: var(--gold-2); font-weight: 600; font-size: 14px; }
+.rn-body { margin-top: 8px; max-height: 46vh; overflow-y: auto; padding-right: 6px; font-size: 14.5px; line-height: 1.45; }
+.rn-body h4 { margin: 12px 0 4px; font-size: 14.5px; color: var(--gold-2); }
+.rn-body p { margin: 6px 0; }
+.rn-body ul { margin: 4px 0 8px; padding-left: 20px; }
+.rn-body li { margin-bottom: 3px; }
+.rn-body code { font-size: 13px; }

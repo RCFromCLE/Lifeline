@@ -200,7 +200,38 @@ applyTextSize("auto");
 window.addEventListener("resize", () => { if (TEXT_SIZE === "auto") applyTextSize("auto"); });
 $("settings-form").elements.text_size.addEventListener("change", ev => applyTextSize(ev.target.value));
 
-// ---- About: this version, and the newest release on GitHub ----
+// ---- About: this version, and the newest release on GitHub with its notes ----
+/** Release notes (GitHub Markdown) as HTML: escaped first, then headings,
+ *  bullets, bold and code. Links show as their text. */
+function renderNotes(md) {
+  const inline = t => escapeHtml(t)
+    .replace(/\[([^\]]+)\]\((?:[^()]|\([^)]*\))*\)/g, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+  let html = "", list = false;
+  for (const raw of String(md || "").split(/\r?\n/)) {
+    const line = raw.trimEnd();
+    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
+    if (bullet) { if (!list) { html += "<ul>"; list = true; } html += `<li>${inline(bullet[1])}</li>`; continue; }
+    if (list) { html += "</ul>"; list = false; }
+    const heading = line.match(/^#{1,4}\s+(.*)$/);
+    if (heading) html += `<h4>${inline(heading[1])}</h4>`;
+    else if (line.trim()) html += `<p>${inline(line)}</p>`;
+  }
+  return html + (list ? "</ul>" : "");
+}
+
+async function showReleaseNotes() {
+  const r = await invoke("latest_release").catch(() => null);
+  const box = $("release-notes");
+  if (!r || !r.version) { box.innerHTML = `<p class="hint">Couldn't reach GitHub for the release notes.</p>`; return; }
+  const when = r.published ? new Date(r.published).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+  const status = r.newer ? `<span class="rn-new">New: update available</span>` : `<span class="rn-ok">✓ You're on the latest version</span>`;
+  box.innerHTML = `<div class="rn-head"><h3>What's new in ${escapeHtml(r.version)}</h3><span class="hint">${escapeHtml(when)}</span></div>
+    ${status}<div class="rn-body">${renderNotes(r.notes) || `<p class="hint">No notes for this release.</p>`}</div>`;
+}
+showReleaseNotes();
+
 const LATEST_RELEASE = "https://github.com/RCFromCLE/Lifeline/releases/latest";
 Promise.resolve(window.__TAURI__?.app?.getVersion?.()).then(v => { if (v) $("app-version").textContent = v; }).catch(() => {});
 $("btn-releases").addEventListener("click", () =>

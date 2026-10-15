@@ -24,12 +24,12 @@ body.dash::after { display: none; }
 .dstat .l { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
 #d-full { font-size: 1.4rem; padding: 0.3rem 0.7rem; }
 
-/* ---- two columns: skills, passives ---- */
+/* ---- three columns: skills, passives, log ---- */
 .dgrid {
   position: relative; z-index: 1; flex: 1; min-height: 0; padding: 1rem 1.4rem 1.2rem;
-  display: grid; grid-template-columns: minmax(0, 38fr) minmax(0, 62fr); gap: 1.2rem;
+  display: grid; grid-template-columns: minmax(0, 30fr) minmax(0, 44fr) minmax(0, 26fr); gap: 1.2rem;
 }
-@media (max-width: 1200px) { .dgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } body.dash { overflow-y: auto; } }
+@media (max-width: 1200px) { .dgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .d-log { grid-column: 1 / -1; max-height: 30vh; } body.dash { overflow-y: auto; } }
 .dcol {
   min-height: 0; display: flex; flex-direction: column; padding: 1rem 1.1rem;
   background: rgba(24, 18, 14, 0.82); border: 1px solid var(--line); border-radius: var(--radius);
@@ -91,3 +91,18 @@ body.dash::after { display: none; }
   background: rgba(14, 10, 7, 0.97); border: 1px solid rgba(217, 169, 87, 0.55); font-size: 0.95rem; pointer-events: none;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6); }
 .d-tip b { display: block; color: var(--gold-2); margin-bottom: 0.2rem; }
+
+/* ---- playthrough log ---- */
+.feed { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+.feed li { display: flex; gap: 0.6rem; padding: 0.35rem 0; border-bottom: 1px solid #2a221b; }
+.feed li.empty { color: var(--muted); border: none; }
+.feed time { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.feed .k-death { color: var(--red); font-weight: 600; }
+.feed .k-reward { color: var(--green); }
+.feed .k-level { color: var(--gold-2); }
+.feed .k-zone { color: var(--text); }
+.feed .k-passive, .feed .k-planner { color: var(--muted); }
+.d-feed { font-size: 0.95rem; }
+/* A new line glows briefly as it arrives. */
+.d-feed li:first-child { animation: d-new 2.5s ease-out; }
+@keyframes d-new { from { background: rgba(217, 169, 87, 0.22); } to { background: transparent; } }

@@ -7,7 +7,10 @@ use lifeline_gamefiles::client_log::{self, plain_text, EventKind, LogEvent, LogT
 use lifeline_gamefiles::paths;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::state::{AppState, Character};
+use crate::state::{AppState, Character, FeedItem};
+
+/// Lines of playthrough log kept (and shown on the dashboard).
+const FEED_LIMIT: usize = 200;
 
 /// Hideouts, trials and other side areas the player visits mid-campaign.
 fn is_side_area(area_id: &str) -> bool {
@@ -17,8 +20,9 @@ fn is_side_area(area_id: &str) -> bool {
         .any(|k| id.contains(k))
 }
 
-/// Applies one event; true when the character changed.
-fn apply(c: &mut Character, e: &LogEvent) -> bool {
+/// Applies one event: whether the character changed, and the line it adds
+/// to the playthrough log (kind, text), if any.
+fn apply(c: &mut Character, e: &LogEvent) -> (bool, Option<(&'static str, String)>) {
     match &e.kind {
         EventKind::LevelUp { character, class, level } => {
             if c.name.as_deref() != Some(character.as_str()) {
@@ -41,6 +45,7 @@ fn apply(c: &mut Character, e: &LogEvent) -> bool {
             }
             c.class = class.clone();
             c.level = *level;
+            (true, Some(("level", format!("{character} reached level {level}"))))
         }
         EventKind::AreaGenerated { area_id, area_level, .. } => {
             c.area_id = area_id.clone();
@@ -52,17 +57,38 @@ fn apply(c: &mut Character, e: &LogEvent) -> bool {
                 None if is_side_area(area_id) => {}
                 None => c.act = None,
             }
+            (true, None)
         }
-        EventKind::SceneEntered { name } => c.zone = name.clone(),
-        EventKind::PassiveAllocated { id, .. } => {
+        EventKind::SceneEntered { name } => {
+            c.zone = name.clone();
+            let act = c.act.map_or(String::new(), |a| format!(" · Act {a}"));
+            (true, Some(("zone", format!("{name} (area {}){act}", c.area_level))))
+        }
+        EventKind::Slain { character } if c.name.as_deref() == Some(character.as_str()) => {
+            (false, Some(("death", format!("{character} was slain in {}", c.zone))))
+        }
+        EventKind::PassiveAllocated { id, name } => {
             c.allocated.insert(id.clone());
+            (true, Some(("passive", format!("Allocated {}", plain_text(name)))))
         }
-        EventKind::PassiveUnallocated { id, .. } => {
+        EventKind::PassiveUnallocated { id, name } => {
             c.allocated.remove(id);
+            (true, Some(("passive", format!("Refunded {}", plain_text(name)))))
         }
-        _ => return false,
+        EventKind::PassivePointsReceived { count, weapon_set } => {
+            let kind = if *weapon_set { "weapon set " } else { "" };
+            (false, Some(("reward", format!("Quest reward: {count} {kind}passive points"))))
+        }
+        EventKind::PermanentBonus { bonus, lost, .. } => {
+            let what = if *lost { "removed" } else { "gained" };
+            (false, Some(("reward", format!("Permanent buff {what}: {}", plain_text(bonus)))))
+        }
+        EventKind::BuildPlannerLoaded { path } => {
+            let file = path.rsplit(['/', '\\']).next().unwrap_or(path);
+            (false, Some(("planner", format!("Game loaded planner build {file}"))))
+        }
+        _ => (false, None),
     }
-    true
 }
 
 /// A passive was just taken in game: when it's on the plan, the chime plays
@@ -101,7 +127,21 @@ pub fn spawn_log_watcher(app: AppHandle) {
                 let mut changed = false;
                 for line in lines {
                     if let Some(event) = client_log::parse_line(&line) {
-                        changed |= apply(&mut state.character.lock().unwrap(), &event);
+                        let (did, note) = apply(&mut state.character.lock().unwrap(), &event);
+                        changed |= did;
+                        if let Some((kind, text)) = note {
+                            let item = FeedItem { time: event.timestamp.clone(), kind: kind.into(), text };
+                            {
+                                let mut feed = state.feed.lock().unwrap();
+                                feed.push(item.clone());
+                                let excess = feed.len().saturating_sub(FEED_LIMIT);
+                                feed.drain(..excess);
+                            }
+                            // The first read of the log arrives all at once (below).
+                            if backfilled {
+                                let _ = app.emit("feed", &item);
+                            }
+                        }
                         // Live play only: the first read of the log is history.
                         if let (true, EventKind::PassiveAllocated { id, name }) = (backfilled, &event.kind) {
                             passive_taken(&app, &state, id, name);
@@ -113,6 +153,8 @@ pub fn spawn_log_watcher(app: AppHandle) {
                     let _ = app.emit("character", &character);
                 }
                 if !backfilled {
+                    // The dashboard may have asked for the log before it was read.
+                    let _ = app.emit("feed-all", state.feed.lock().unwrap().clone());
                     let c = state.character.lock().unwrap().clone();
                     crate::debug_log(
                         &state,
@@ -155,5 +197,22 @@ mod tests {
         assert!(c.allocated.is_empty());
         apply(&mut c, &level("Main", 21));
         assert!(c.allocated.contains("evasion11"), "back on the main, its passives are restored");
+    }
+
+    #[test]
+    fn log_lines_for_the_playthrough() {
+        let mut c = Character::default();
+        let line = |c: &mut Character, k: EventKind| apply(c, &ev(k)).1;
+        let lvl = EventKind::LevelUp { character: "Main".into(), class: "Sorceress".into(), level: 7 };
+        assert_eq!(line(&mut c, lvl), Some(("level", "Main reached level 7".into())));
+        apply(&mut c, &area("G1_3", 6));
+        let zone = EventKind::SceneEntered { name: "The Grim Tangle".into() };
+        assert_eq!(line(&mut c, zone), Some(("zone", "The Grim Tangle (area 6) · Act 1".into())));
+        assert_eq!(line(&mut c, EventKind::Slain { character: "Main".into() }).map(|x| x.0), Some("death"));
+        assert_eq!(line(&mut c, EventKind::Slain { character: "SomeoneElse".into() }), None, "only your own deaths");
+        let took = EventKind::PassiveAllocated { id: "spell1".into(), name: "Spell Damage".into() };
+        assert_eq!(line(&mut c, took), Some(("passive", "Allocated Spell Damage".into())));
+        let planner = EventKind::BuildPlannerLoaded { path: "C:/x/BuildPlanner/Act 1 - Flameblast.build".into() };
+        assert_eq!(line(&mut c, planner), Some(("planner", "Game loaded planner build Act 1 - Flameblast.build".into())));
     }
 }
